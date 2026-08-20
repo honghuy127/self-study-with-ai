@@ -52,3 +52,45 @@ Append material decisions with evidence, alternatives, rationale, owner, and rev
 - Revisit condition: at /review, the reviewer may still re-point individual
   aggregate cites to component keys where a claim is subsystem-specific.
 - Owner: Huy H. Nguyen (human directed the revision at audit).
+
+## 2026-08-21 Human waiver of residual note-level markers (repo audit)
+
+- Decision: accept the ~23 remaining [CITATION NEEDED] / [EVIDENCE NEEDED]
+  markers in notes/ as documented gaps. They are statically unresolvable:
+  server-side production values (Codex models catalog and ModelInfo fields,
+  remotely-managed feature overrides), closed-core behavior (Claude Code
+  loader and gateway wire shape), live-service content (models.opencode.ai
+  catalog), and sources whose snapshots were dropped at the pre-merge
+  cleanup (Toolformer paper figures, minusX teardown metadata, Claude Code
+  plugins-reference deferrals).
+- Evidence: each marker records what was searched; the report asserts none
+  of the marked facts (report lint clean); seven sibling markers were
+  resolved the same day (stream:true proof, absence conversions,
+  compaction-path wiring).
+- Alternatives: runtime compatibility tests or web re-fetching, both out of
+  the brief's static-trace scope.
+- Owner: Huy H. Nguyen (human disposition at repo audit, recorded by the
+  audit agent).
+- Revisit condition: waiver stands unless /review surfaces a report claim
+  that depends on a marked gap.
+
+## 2026-08-21 Human sign-off overruling review r2 blocker
+
+- Decision: treat the r2 review as PASS and sign off. The human overrules
+  F-r2-1 (validation apparatus never committed to git) on the ground that
+  the study was carefully reviewed before the pre-merge cleanup, when the
+  artifacts existed in the working tree. F-r2-2 (note count 12 vs 11) is
+  likewise accepted as is.
+- Evidence: reviews/r2-agent.md (verdict FAIL, one blocker; system findings
+  independently re-verified at the pinned checkouts and held); this file's
+  2026-08-21 marker waiver; the pre-merge round r1-agent.md and the
+  merged_from record in study.yaml (original study done and cleaned with
+  all gates passed).
+- Consequence: the report's validation narrative (EXP-PLAN-2026-08-19-v1,
+  300/300 anchor counts, CLM ledger "preserved in its git history") stands
+  as reviewed-and-accepted content even though the underlying artifacts are
+  not recoverable from this repository. Any future claim relying on those
+  artifacts must re-derive them.
+- Owner: Huy H. Nguyen (human disposition; recorded by the audit agent).
+- Revisit condition: if the study is reopened or the narrative is ever
+  corrected, supersede this entry.
