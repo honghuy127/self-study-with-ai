@@ -89,15 +89,16 @@ What the source interprets (its own framing):
 
 What is not locatable (searched the full snapshot, lines 1-73):
 
-- Function-type local tools on the Responses route: [CITATION NEEDED]. The
+- Function-type local tools on the Responses route: absent from the page
+  (searched lines 1-73). The
   only `tools` entry in the snapshot has `"type": "mcp"` (line 64). A sibling
   page for tool calling exists in the registry
   (`lmstudioCompatToolsDocs`, `sources/registry.yaml` lines 129-139) but is a
   separate source outside this note.
 - `tool_choice`, `parallel_tool_calls`, `include`, `reasoning.summary`,
   `reasoning.encrypted_content`, `truncation`, `store`, `metadata`:
-  [CITATION NEEDED] for each. None of these strings appears anywhere in the
-  snapshot.
+  absent from the page; none of these strings appears anywhere in the
+  snapshot (searched lines 1-73).
 
 My inference about relevance is separated below under "Relevance to the
 brief".
@@ -105,7 +106,7 @@ brief".
 ## Evaluation and evidence
 
 This is an API doc, not an evaluation. There are no datasets, metrics,
-baselines, or quantitative results ([CITATION NEEDED]; looked at every line,
+baselines, or quantitative results (verified absent: looked at every line,
 1-73, and there is no evaluation content). All evidence is example-based:
 
 - Endpoint: `http://localhost:1234/v1/responses` (lines 15, 29, 41, 57),
@@ -130,11 +131,11 @@ Document-level omissions and weakness, kept separate from prose claims:
 - None of the fields Codex posts on the Responses wire appear anywhere in
   the snapshot: function-type `tools`, `tool_choice`, `parallel_tool_calls`,
   `reasoning.summary`, `include` with `reasoning.encrypted_content`
-  ([CITATION NEEDED], searched lines 1-73). From this page alone there is no
+  (verified absent, searched lines 1-73). From this page alone there is no
   evidence LM Studio accepts the request body Codex actually sends.
 - Array-form or item-list `input` is never shown; every example uses a
   string input (lines 19, 33, 45, 61). Support for non-string input:
-  [CITATION NEEDED].
+  not stated on the page (searched lines 1-73).
 - No version or date on the page: no LM Studio app version, no docs
   revision. The snapshot is the docs-repo mirror at `main` HEAD fetched
   2026-08-20 because the live site was unreachable; drift between the mirror

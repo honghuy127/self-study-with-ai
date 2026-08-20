@@ -189,6 +189,18 @@ sources:
     notes_file: "notes/codexConfigProviders.md"
     repo: codex
     component: "codex-rs/config/ (defaults.toml, examples/, src/); codex-rs/codex-home/; codex-rs/model-provider/; codex-rs/model-provider-info/; codex-rs/models-manager/; codex-rs/cloud-config/"
+  - key: codexRepo
+    title: "Codex CLI repository (aggregate entry for repo-level facts)"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: "notes/codexDocsRepo.md"
+    repo: codex
+    component: "repository-level facts (language, layout, license); constituent notes: codexTurnLoop, codexToolsPatch, codexContextCompaction, codexSandboxPermissions, codexExtensibility, codexConfigProviders, codexStateRollout, codexInterfaces, codexOssProviders"
 
   # ---------------- codebase: opencode (repo key: opencode, commit d545d8fba572), Part I ----------------
   - key: opencodeSessionLoop
@@ -287,6 +299,18 @@ sources:
     notes_file: "notes/opencodeConfigProviders.md"
     repo: opencode
     component: "packages/opencode/src/config/ (config.ts, paths.ts, plugin.ts, agent.ts, command.ts, managed.ts, markdown.ts, parse.ts); packages/opencode/src/provider/ (provider.ts, auth.ts, model-status.ts, transform.ts); packages/opencode/src/auth/"
+  - key: opencodeRepo
+    title: "OpenCode repository (aggregate entry for repo-level facts)"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: "notes/opencodeDocs.md"
+    repo: opencode
+    component: "repository-level facts (language, layout, license); constituent notes: opencodeSessionLoop, opencodeTools, opencodeContextCompaction, opencodePermissions, opencodeExtensibility, opencodeConfigProviders, opencodeStateSnapshots, opencodeInterfaces, opencodeOssProviders, opencodeModelGating"
 
   # ---------------- codebase: claude-code (repo key: claude-code, commit c3d2e35e5540; core is closed source), Part I ----------------
   - key: claudeCodePluginSurface
@@ -486,6 +510,17 @@ sources:
     status: noted
     notes_file: "notes/ollamaCompatDocs.md"
     snapshot: "sources/docs/ollamaOpenaiCompat.html"
+  - key: lmstudioApiDocs
+    title: "LM Studio developer API docs (aggregate entry for the local server and OpenAI-compatible endpoints)"
+    authors: "LM Studio (lmstudio-ai)"
+    year: 2026
+    url: "https://docs.lmstudio.ai/developers/local-server"
+    snapshot: "sources/docs/lmstudioServer.md, sources/docs/lmstudioChatCompletions.md, sources/docs/lmstudioTools.md, sources/docs/lmstudioResponses.md"
+    pdf: ""
+    venue: "docs.lmstudio.ai (snapshotted via github.com/lmstudio-ai/docs)"
+    tier: docs
+    status: noted
+    notes_file: "notes/lmstudioServerDocs.md"
   - key: lmstudioServerDocs
     title: "LM Studio docs: running the local LLM API server"
     authors: "LM Studio (lmstudio-ai)"

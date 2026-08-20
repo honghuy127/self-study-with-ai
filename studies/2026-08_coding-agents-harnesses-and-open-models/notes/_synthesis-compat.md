@@ -134,8 +134,10 @@ Degradation / open-model path details:
   (expects Codex's ModelsResponse schema) [EVIDENCE NEEDED].
 - OpenCode: production models.opencode.ai content (only test fixture
   verifiable); wire behavior inside @ai-sdk/openai-compatible; which
-  compaction path the default run uses; whether `stream: true` is
-  unconditional in the openai-chat builder [EVIDENCE NEEDED].
+  compaction path the default run uses [EVIDENCE NEEDED]. Resolved
+  2026-08-21: `stream: true` is unconditional in the openai-chat builder
+  (`openai-chat.ts:359`, schema `Literal(true)` at `:487`; see
+  opencodeModelGating note).
 - Claude Code: everything behind the closed loader; the wire shape of
   gateway traffic; whether any anthropic-compatible server actually drives
   a Claude Code session [EVIDENCE NEEDED].

@@ -149,10 +149,10 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
   \begin{itemize}
     \item Static source traces only: nothing executed, no API called, no
       server started; checkouts treated as read-only untrusted
-      data~\citep{codexRepo,opencodeRepo,claudeCodeSurface}.
+      data~\citep{codexRepo,opencodeRepo,claudeCodePluginSurface}.
     \item \ccc{} internals are boundaries, not findings; teardowns and
       routers enter only as hedged
-      context~\citep{minusXTeardown,agiflowInternals,tenguDecoded,%
+      context~\citep{minusXClaudeCodeTeardown,agiflowClaudeCodeInternals,tenguDecoded,%
       claudeCodeRouterContext}.
   \end{itemize}
 \end{frame}
@@ -233,7 +233,7 @@ E4 & compaction parameters & 35/35\\
       \textbf{\ccc{}: closed core, docs-attested seams}
       \begin{itemize}
         \item hook cadences: per session, per turn, per tool
-          call~\citep{claudeCodeHooksDocs}
+          call~\citep{claudeCodeDocsHooks}
         \item stop-hook override after 8 consecutive blocks
         \item continuation condition, caps, retries undisclosed
       \end{itemize}
@@ -249,7 +249,7 @@ E4 & compaction parameters & 35/35\\
     \item \textbf{Registration policy differs.} \codex{}: 32 conditional
       per-turn registrations behind feature and model gates. \occ{}:
       fixed array of 17 tool IDs. \ccc{}: 12 built-ins named in docs plus
-      8 more attested by the pinned surface; full registry open~\citep{codexRepo,opencodeRepo,claudeCodeHooksDocs,claudeCodeSurface}.
+      8 more attested by the pinned surface; full registry open~\citep{codexRepo,opencodeRepo,claudeCodeDocsHooks,claudeCodePluginSurface}.
     \item \textbf{The patch format converges across vendors.} \occ{}
       ports the \codex{} \texttt{apply\_patch} grammar near-verbatim
       (``Core types matching the Rust implementation'') and selects it for
@@ -291,9 +291,9 @@ E4 & compaction parameters & 35/35\\
       \textbf{\ccc{}: seams without numbers}
       \begin{itemize}
         \item \texttt{PreCompact}/\texttt{PostCompact} hooks with manual
-          and auto triggers~\citep{claudeCodeHooksDocs}
+          and auto triggers~\citep{claudeCodeDocsHooks}
         \item root CLAUDE.md is re-injected after \texttt{/compact};
-          nested files are not~\citep{claudeCodeMemoryDocs}
+          nested files are not~\citep{claudeCodeDocsMemory}
         \item no numeric threshold anywhere in the pinned snapshots
       \end{itemize}
   \end{columns}
@@ -306,7 +306,7 @@ E4 & compaction parameters & 35/35\\
       \textbf{\codex{}: prevent}
       \begin{itemize}
         \item OS sandbox (Seatbelt, bubblewrap, seccomp) plus Starlark
-          rule engine, strictest-wins~\citep{codexRepo,codexSandboxingDocs}
+          rule engine, strictest-wins~\citep{codexRepo,codexDocsSandboxing}
         \item ships no usable policy file; trust-gated project config
       \end{itemize}
     \column{0.32\textwidth}
@@ -321,7 +321,7 @@ E4 & compaction parameters & 35/35\\
       \textbf{\ccc{}: layer}
       \begin{itemize}
         \item permission rules before every tool; OS sandbox scoped to
-          Bash and its children only~\citep{claudeCodePermissionsDocs,claudeCodeSandboxingDocs}
+          Bash and its children only~\citep{claudeCodeDocsPermissions,claudeCodeDocsSandboxing}
         \item protected paths deny writes with no per-path exemption;
           enterprise kill switches
       \end{itemize}
@@ -334,12 +334,12 @@ E4 & compaction parameters & 35/35\\
       repairable SQLite mirror; exact replay across compaction. \occ{}:
       event-sourced SQLite plus shadow-git file snapshots at every step.
       \ccc{}: undisclosed; only subagent transcripts documented (30-day
-      cleanup default)~\citep{codexRepo,opencodeRepo,claudeCodeSubagentsDocs}.
+      cleanup default)~\citep{codexRepo,opencodeRepo,claudeCodeDocsSubagents}.
     \item \textbf{Interfaces.} \codex{}: one JSON-RPC protocol behind
       every frontend. \occ{}: local HTTP server consumed by its TUI,
       plus ACP and 38 built-in LSP servers feeding diagnostics back into
       edits. \ccc{}: CLI, IDE, and desktop surfaces attested; transports
-      closed~\citep{codexRepo,opencodeRepo,claudeCodePermissionsDocs}.
+      closed~\citep{codexRepo,opencodeRepo,claudeCodeDocsPermissions}.
     \item \textbf{Extensibility converges on the \ccc{} design.}
       \codex{} exports \texttt{CLAUDE\_PLUGIN\_ROOT} compatibility and
       discovers \texttt{.claude-plugin} manifests; \occ{} reads
@@ -547,7 +547,7 @@ E4 & compaction parameters & 35/35\\
     \occ{} pin is a \texttt{dev} branch.
     \item \textbf{Closed core.} \ccc{}'s loop, tool registry, compaction
     numbers, session storage, enforcement internals, and gateway wire
-    shape remain open~\citep{claudeCodeSurface,claudeCodeModelDocs}.
+    shape remain open~\citep{claudeCodePluginSurface,claudeCodeModelDocs}.
     \item \textbf{Provenance hedges.} The Ollama post is from 2024; LM
     Studio live docs were unreachable, so we cite the docs-repo mirror;
     Codex fallback metadata (including the 272k claim) and OpenCode's
@@ -605,11 +605,11 @@ E4 & compaction parameters & 35/35\\
 \begin{frame}{Backup: teardown claims held at context tier}
   \begin{itemize}
     \item Intercepted-log teardown: system-prompt and tool-token sizes,
-      small-model routing (unverified)~\citep{minusXTeardown}.
+      small-model routing (unverified)~\citep{minusXClaudeCodeTeardown}.
     \item Binary analysis: 243 feature flags, 1{,}163 telemetry events,
       49 built-in tools at one version (unverified)~\citep{tenguDecoded}.
     \item Trace-based breakdown: CLAUDE.md delivery shape, cross-verified
-      against official memory docs; only that overlap is reinforced~\citep{agiflowInternals,claudeCodeMemoryDocs}.
+      against official memory docs; only that overlap is reinforced~\citep{agiflowClaudeCodeInternals,claudeCodeDocsMemory}.
   \end{itemize}
 \end{frame}
 

@@ -129,10 +129,10 @@ release; it pairs a terminal UI with a local HTTP server and editor-facing
 protocols~\citep{opencodeRepo}. \ccc{} is Anthropic's
 coding agent: its core is closed source, distributed behind CLI, IDE, and
 desktop surfaces, and its public repository carries only the plugin and
-example surface~\citep{claudeCodeSurface,claudeCodePermissionsDocs}.
+example surface~\citep{claudeCodePluginSurface,claudeCodeDocsPermissions}.
 
 The \ccc{} core is closed source, and its pinned public checkout contains no
-harness code~\citep{claudeCodeSurface}. We therefore treat documentation
+harness code~\citep{claudeCodePluginSurface}. We therefore treat documentation
 snapshots as the evidence tier for that system, hold third-party teardowns
 to hedged context only, and mark closed-core internals as boundaries rather
 than findings. Contributions at the supported scope:
@@ -197,18 +197,18 @@ were treated as read-only untrusted data.
 \path{af700180808cce2ce28a31aad0fbad4dc58b857a} (\codex{},
 Apache-2.0), \path{d545d8fba57283528db69281f59c803c646eb7e9} (\occ{}, MIT,
 \texttt{dev} branch), and \path{c3d2e35e554060b5a20ee6b28140fbdbd4eb0048}
-(\ccc{})~\citep{codexRepo,opencodeRepo,claudeCodeSurface}. Official
+(\ccc{})~\citep{codexRepo,opencodeRepo,claudeCodePluginSurface}. Official
 documentation snapshots were fetched 2026-08-20; documentation sites are
 not version-pinned and can drift, so documentation claims cite the snapshot
-rather than a commit~\citep{claudeCodeHooksDocs,claudeCodeSubagentsDocs,%
-claudeCodePluginsDocs,claudeCodeMcpDocs,claudeCodeMemoryDocs,%
-claudeCodePermissionsDocs,claudeCodeSandboxingDocs,codexSandboxingDocs,%
+rather than a commit~\citep{claudeCodeDocsHooks,claudeCodeDocsSubagents,%
+claudeCodeDocsPlugins,claudeCodeDocsMcp,claudeCodeDocsMemory,%
+claudeCodeDocsPermissions,claudeCodeDocsSandboxing,codexDocsSandboxing,%
 opencodeDocs,codexDocsRepo,claudeCodeModelDocs,claudeCodeBedrockDocs}.
 Evidence tiers: pinned code (primary for \codex{} and \occ{}), pinned
 plugin/example surface plus documentation snapshots (the only tier
 available for the \ccc{} core), framing preprints (background), and
 third-party teardowns, \texttt{tier: blog}, admissible only for hedged
-contextual statements~\citep{minusXTeardown,agiflowInternals,%
+contextual statements~\citep{minusXClaudeCodeTeardown,agiflowClaudeCodeInternals,%
 tenguDecoded,claudeCodeRouterContext}.
 
 \paragraph{Part I trace experiments.} Four experiments were frozen in a plan
@@ -249,7 +249,7 @@ from documentation quotes and the pinned plugin/example surface in both
 parts. Where no pinned source states a value, the text says so explicitly
 and the gap is listed in Section~\ref{sec:limitations}. Blog-tier teardowns
 and community routers never fill a comparison cell on
-their own~\citep{claudeCodeSurface,agiflowInternals,claudeCodeRouterContext}.
+their own~\citep{claudeCodePluginSurface,agiflowClaudeCodeInternals,claudeCodeRouterContext}.
 
 \part{Harness architecture}
 
@@ -443,7 +443,7 @@ the edge cases.
 documentation discloses is the seam behavior: hook cadences run once per
 session, once per turn, and on every tool call inside the agentic loop,
 and a blocking stop hook is overridden after 8 consecutive
-blocks~\citep{claudeCodeHooksDocs}. The cadences attest that a loop with
+blocks~\citep{claudeCodeDocsHooks}. The cadences attest that a loop with
 that nesting structure exists; the continuation condition, any step cap,
 and the retry policy are not documented
 (Section~\ref{sec:limitations}).
@@ -493,12 +493,12 @@ IDs: the surface is a constant~\citep{opencodeRepo}. \ccc{}'s registry is
 only attestable through documentation (12 built-ins named in the hooks
 snapshot plus MCP tools) and the pinned surface (8 more names, including
 TodoWrite and Task), with the full closed-core inventory
-open~\citep{claudeCodeHooksDocs,claudeCodeSurface}. Even discovery, where
+open~\citep{claudeCodeDocsHooks,claudeCodePluginSurface}. Even discovery, where
 it exists, is implemented differently: \codex{} registers
 \path{tool_search} only when a deferred searchable tool exists, while
 \ccc{} documents \path{ToolSearch} as enabled by default and as the point
 where the harness waits for MCP
-connections~\citep{codexRepo,claudeCodeMcpDocs}.
+connections~\citep{codexRepo,claudeCodeDocsMcp}.
 
 The most concrete cross-vendor artifact in the study is the patch format.
 \codex{}'s \path{apply_patch} is a grammar-constrained freeform tool,
@@ -523,7 +523,7 @@ inspection to its shell tool, shipping no dedicated read, glob, or grep
 tools within the extracted registry~\citep{codexRepo}. Third-party
 teardowns assert a larger \ccc{} inventory (49 tools in one binary
 analysis) and a tool-tier design, but these remain unverified blog-tier
-observations~\citep{tenguDecoded,minusXTeardown}.
+observations~\citep{tenguDecoded,minusXClaudeCodeTeardown}.
 
 \subsection{Context compaction}
 \label{sec:compaction}
@@ -589,7 +589,7 @@ trigger values, and a hook blocking compaction during context-limit
 recovery surfaces the underlying error; the memory documentation states
 that project-root CLAUDE.md survives \path{/compact} by being re-read and
 re-injected, while nested CLAUDE.md files do
-not~\citep{claudeCodeHooksDocs,claudeCodeMemoryDocs}. No numeric trigger,
+not~\citep{claudeCodeDocsHooks,claudeCodeDocsMemory}. No numeric trigger,
 summarization budget, or retention policy appears anywhere in the pinned
 snapshot set (Section~\ref{sec:limitations}). With open models, these
 constants only matter once the accounting inputs are correct: Part II
@@ -645,7 +645,7 @@ approval-driven rather than policy-driven: the machinery is deep but
 idle until a user supplies rules. Second, writable roots still deny writes
 to harness metadata (\path{.git}, \path{.agents}, \path{.codex}), and command
 injection is addressed with a static 90-line list of amendable shell and
-runtime prefixes~\citep{codexRepo,codexSandboxingDocs}.
+runtime prefixes~\citep{codexRepo,codexDocsSandboxing}.
 
 \occ{} recovers. All safety is in-process: the pinned tree contains no OS
 sandbox machinery within the searched scope, and the default ruleset is
@@ -664,8 +664,8 @@ harness risks more by default.
 fixed order of deny, then ask, then allow, and the OS sandbox ``applies
 only to Bash commands and their child processes'', while Read, Edit, and
 Write ``use the permission system
-directly''~\citep{claudeCodePermissionsDocs,claudeCodeSandboxingDocs,%
-claudeCodeHooksDocs}. The scope choice is deliberate and instructive:
+directly''~\citep{claudeCodeDocsPermissions,claudeCodeDocsSandboxing,%
+claudeCodeDocsHooks}. The scope choice is deliberate and instructive:
 capability (file tools that run unsandboxed) is traded against a narrow,
 strongly enforced shell boundary, since the shell is the surface where
 arbitrary execution lives. Enforcement is platform-native
@@ -675,7 +675,7 @@ hooks, and shell startup files are denied writes even inside writable
 roots with no per-path exemption, and enterprise kill switches disable
 the bypass and auto modes. The pinned surface adds the reference
 confinement for untrusted work: a devcontainer whose firewall defaults to
-dropping egress outside an allowlist~\citep{claudeCodeSurface}. The
+dropping egress outside an allowlist~\citep{claudeCodePluginSurface}. The
 implementation of these layers is closed (Section~\ref{sec:limitations}).
 
 \subsection{Extensibility}
@@ -685,7 +685,7 @@ The vocabulary has converged: all three expose hooks, plugins, skills,
 agents or subagents, and MCP integration. The real design difference is
 the trust model: extension code is another person's program, and each
 system draws a different line around how much privilege it
-deserves~\citep{codexRepo,opencodeRepo,claudeCodePluginsDocs}.
+deserves~\citep{codexRepo,opencodeRepo,claudeCodeDocsPlugins}.
 
 \codex{} treats hook code as untrusted input. Handlers are content-hashed
 and run only when marked managed or trusted, so a pull request that edits
@@ -722,12 +722,12 @@ through two public marketplaces, one curated and one community-reviewed;
 subagents are quota-controlled by documentation, with a default depth of
 three layers, a 20-concurrent cap, and forks that inherit the full
 conversation but cannot spawn further
-forks~\citep{claudeCodeHooksDocs,claudeCodePluginsDocs,%
-claudeCodeSubagentsDocs}. The learning point is how much power the
+forks~\citep{claudeCodeDocsHooks,claudeCodeDocsPlugins,%
+claudeCodeDocsSubagents}. The learning point is how much power the
 documented contract already carries: the pinned surface contains an
 unbounded autonomous-loop plugin implemented entirely as a shell script
 that repeatedly blocks the Stop event (the ralph-wiggum plugin), with no
-core changes at all~\citep{claudeCodeSurface}. A good contract can replace
+core changes at all~\citep{claudeCodePluginSurface}. A good contract can replace
 a plugin API.
 
 \subsection{Configuration and providers}
@@ -772,12 +772,12 @@ instructive distinction explicit: guidance versus enforcement. CLAUDE.md
 files shape behavior but ``are not a hard enforcement layer'', while
 settings rules are enforced by the client regardless of model behavior,
 and managed-policy memory files are non-excludable and load
-first~\citep{claudeCodeMemoryDocs}. The split explains the system's trust
+first~\citep{claudeCodeDocsMemory}. The split explains the system's trust
 shape: advisory context for the model, hard rules around it. MCP servers
 follow a five-level scope precedence (local, project, user, plugin,
 connector) taken wholesale without field merging, and project-scoped
 \path{.mcp.json} servers require approval and are gated on workspace
-trust~\citep{claudeCodeMcpDocs}.
+trust~\citep{claudeCodeDocsMcp}.
 
 Part II is this dimension under stress: the provider-plumbing culture
 each system built here is precisely what decides how far open-weight
@@ -819,7 +819,7 @@ per-subagent transcripts retained across restarts within a session and
 deleted after a 30-day default cleanup, and notes that the transcript
 handoff to hooks ``may lag'' the in-memory conversation, which is itself
 a statement about where the truth
-lives~\citep{claudeCodeSubagentsDocs,claudeCodeHooksDocs}.
+lives~\citep{claudeCodeDocsSubagents,claudeCodeDocsHooks}.
 
 Interfaces answer a smaller question with large consequences: how many
 sources of truth exist for the agent's surface? \codex{} keeps exactly
@@ -837,8 +837,8 @@ SWE-agent's lint gating shipped as
 infrastructure~\citep{opencodeRepo,yang2024sweagent}. \ccc{} documents
 CLI, IDE extensions, desktop, and four MCP transports; the reference
 confinement for untrusted work is a firewalled
-devcontainer~\citep{claudeCodePermissionsDocs,claudeCodeMcpDocs,%
-claudeCodeSurface}.
+devcontainer~\citep{claudeCodeDocsPermissions,claudeCodeDocsMcp,%
+claudeCodePluginSurface}.
 
 \part{Open-source model support}
 
@@ -1307,10 +1307,10 @@ evidence~\citep{claudeCodeRouterContext}.
 \paragraph{Third-party teardowns.} Three teardowns of \ccc{} were reviewed
 and held to contextual use only: an intercepted-log teardown reporting
 system-prompt and tool-token sizes and small-model routing
-(minusXTeardown~\citep{minusXTeardown}), a binary-analysis catalog of
+(minusXClaudeCodeTeardown~\citep{minusXClaudeCodeTeardown}), a binary-analysis catalog of
 feature flags, telemetry events, and tools~\citep{tenguDecoded}, and a
 trace-based breakdown of extension layers whose memory-delivery shape is
-cross-verified by official documentation~\citep{agiflowInternals}. None
+cross-verified by official documentation~\citep{agiflowClaudeCodeInternals}. None
 carries a comparison cell; their assertions are unverified against any
 primary source.
 

@@ -183,10 +183,10 @@ claims rather than metrics; character-exact values found:
 - Timers: credential reuse "until five minutes before they expire, or for one
   hour" (L175); chain resolve "times out after 60 seconds" (L179); prompt
   cache TTLs "5-minute default" and "1-hour" (L318-L322).
-- No datasets, baselines, or latency numbers appear. [CITATION NEEDED] for any
+- No datasets, baselines, or latency numbers appear; the source supports no
   quantitative claim about Bedrock latency, throughput, or cost beyond the
   qualitative "trade off cost against latency" (L453) and "billed at a higher
-  rate" (L300, L322); I searched the full 595-line snapshot and found none.
+  rate" (L300, L322) (searched the full 595-line snapshot and found none).
 
 ## Limitations
 

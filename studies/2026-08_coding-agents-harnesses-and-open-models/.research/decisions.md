@@ -35,3 +35,20 @@ Append material decisions with evidence, alternatives, rationale, owner, and rev
 - Owner: Huy H. Nguyen (human decision at audit; recorded by the audit agent).
 - Revisit condition: if the /review stage ledgers report claims, link them to
   these evidence ids.
+
+## 2026-08-21 refs.bib to registry key alignment (repo audit, item 1)
+
+- Decision: rename 11 drifted bib keys to their registry keys
+  (word-order and short renames, e.g. claudeCodeHooksDocs to
+  claudeCodeDocsHooks, claudeCodeSurface to claudeCodePluginSurface), and
+  register the three deliberate aggregate citation keys (codexRepo,
+  opencodeRepo, lmstudioApiDocs) as explicit aggregate entries in
+  sources/registry.yaml, EVD-045..EVD-047.
+- Evidence: refs.bib note fields already listed the constituent note keys;
+  the registry had no matching entries, leaving bib keys untraceable.
+- Alternatives: re-point every aggregate cite (48 sites) to component keys.
+  Rejected for this pass: per-cite attribution is writer-stage semantic work
+  on a gated draft; the aggregate entries preserve the report as written.
+- Revisit condition: at /review, the reviewer may still re-point individual
+  aggregate cites to component keys where a claim is subsystem-specific.
+- Owner: Huy H. Nguyen (human directed the revision at audit).
