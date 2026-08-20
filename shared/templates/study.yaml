@@ -3,15 +3,18 @@ id: ""                     # e.g., 2026-08_transformer-length-extrapolation
 title: ""
 created: ""                # YYYY-MM-DD
 depth: briefing            # briefing | full
+track: review              # review | concept | experimental
 status: proposed           # proposed | gathering | summarizing | experimenting | drafting | review | done
 cleaned: ""                # set to a date by tools/cleanup_study.py at done-time cleanup
 audit_waiver: ""           # human-only reason to waive residual dossier-audit errors; agents never set this
 
 # Workflow gates. Agents refuse to pass until the human flips these by hand.
+# review and concept tracks never enter the experimenting state, so their
+# experiments_approved gate is n_a and stays n_a.
 gates:
   sources_approved: false
   notes_approved: false
-  experiments_approved: false
+  experiments_approved: n_a   # n_a on review/concept tracks; false until approved on experimental tracks
   draft_approved: false
   review_signed_off: false
 

@@ -1,5 +1,5 @@
 ---
-description: Advance the study one gated step: summarize unnoted sources, run experiments if asked, then draft the report. Idempotent; stops at each human gate. Usage: /draft studies/<slug>
+description: Advance the study one gated step: summarize unnoted sources, run experiments on experimental tracks, then draft the report. Idempotent; stops at each human gate. Usage: /draft studies/<slug>
 agent: build
 ---
 
@@ -17,11 +17,13 @@ one stopped.
    them in parallel; each gets one source only). Then stop and ask the user
    to review `notes/` and flip `gates.notes_approved` before re-running
    `/draft`.
-4. If the brief asks for experiments and `gates.experiments_approved` is not
-   `true`: dispatch the `experimenter`, then stop and ask the user to review
-   `experiments/` and flip `gates.experiments_approved`.
-5. With the notes gate (and the experiments gate, when experiments are part
-   of the brief) flipped, dispatch the `writer` subagent with the study
+4. If `study.yaml` says `track: experimental` and
+   `gates.experiments_approved` is not `true`: dispatch the `experimenter`,
+   then stop and ask the user to review `experiments/` and flip
+   `gates.experiments_approved`. On `review` and `concept` tracks this gate
+   is `n_a`; skip the step entirely and never treat it as unflipped.
+5. With the notes gate flipped (and the experiments gate too, on
+   experimental tracks), dispatch the `writer` subagent with the study
    directory. The writer produces `notes/_synthesis.md`, then
    `report/main.tex` and `report/refs.bib`.
 6. Ask the human to run `tools/build_report.sh <study-dir>` and

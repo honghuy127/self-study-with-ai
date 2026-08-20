@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Scaffold a new study directory from shared/templates/.
 
-Usage: python3 tools/new_study.py <slug> [--title "..."] [--depth briefing|full] [--date YYYY-MM-DD]
+Usage: python3 tools/new_study.py <slug> [--title "..."] [--depth briefing|full]
+       [--track review|concept|experimental] [--date YYYY-MM-DD]
 
 - slug: lowercase-hyphen identifier, e.g., transformer-length-extrapolation
+- track: review (literature synthesis, default) and concept (exposition)
+  studies never run experiments; experimental studies do
 - creates studies/YYYY-MM_<slug>/ with brief.md, study.yaml, sources/, notes/,
-  experiments/, report/, reviews/
+  report/, reviews/, and experiments/ on the experimental track only
 - with --depth full, also initializes .research/ via the vendored dossier script
 """
 from __future__ import annotations
@@ -24,6 +27,8 @@ TEMPLATES = ROOT / "shared" / "templates"
 
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
+TRACKS = ("review", "concept", "experimental")
+
 
 def slugify(title: str) -> str:
     s = title.lower()
@@ -39,19 +44,23 @@ def study_dir_name(slug: str, when: dt.date) -> str:
     return f"{when.strftime('%Y-%m')}_{slug}"
 
 
-def render_study_yaml(template_text: str, study_id: str, title: str, depth: str, created: str) -> str:
+def render_study_yaml(template_text: str, study_id: str, title: str, depth: str, track: str, created: str) -> str:
+    experiments_gate = "false" if track == "experimental" else "n_a"
     return (
         template_text.replace('id: ""', f'id: "{study_id}"')
         .replace('title: ""', f'title: "{title}"')
         .replace('created: ""', f'created: "{created}"')
         .replace("depth: briefing", f"depth: {depth}")
+        .replace("track: review", f"track: {track}")
+        .replace("experiments_approved: n_a", f"experiments_approved: {experiments_gate}")
     )
 
 
-def copy_templates(study: Path, study_id: str, title: str, depth: str) -> None:
+def copy_templates(study: Path, study_id: str, title: str, depth: str, track: str) -> None:
     (study / "sources" / "pdfs").mkdir(parents=True)
     (study / "notes").mkdir()
-    (study / "experiments").mkdir()
+    if track == "experimental":
+        (study / "experiments").mkdir()
     (study / "report").mkdir()
     (study / "slides").mkdir()
     (study / "reviews").mkdir()
@@ -61,7 +70,7 @@ def copy_templates(study: Path, study_id: str, title: str, depth: str) -> None:
 
     study_yaml = (TEMPLATES / "study.yaml").read_text(encoding="utf-8")
     today = dt.date.today().isoformat()
-    study_yaml = render_study_yaml(study_yaml, study_id, title, depth, today)
+    study_yaml = render_study_yaml(study_yaml, study_id, title, depth, track, today)
     (study / "study.yaml").write_text(study_yaml, encoding="utf-8")
 
     shutil.copytree(TEMPLATES / "latex", study / "report", dirs_exist_ok=True)
@@ -89,6 +98,12 @@ def main() -> int:
     ap.add_argument("slug", help="lowercase-hyphen slug, or a title to slugify with --from-title")
     ap.add_argument("--title", default=None)
     ap.add_argument("--depth", choices=("briefing", "full"), default="briefing")
+    ap.add_argument(
+        "--track",
+        choices=TRACKS,
+        default="review",
+        help="study track; review and concept never run experiments (default: review)",
+    )
     ap.add_argument("--from-title", action="store_true", help="treat positional arg as a title and slugify it")
     args = ap.parse_args()
 
@@ -104,7 +119,7 @@ def main() -> int:
         print(f"new_study: {study} already exists", file=sys.stderr)
         return 1
 
-    copy_templates(study, study_id, title, args.depth)
+    copy_templates(study, study_id, title, args.depth, args.track)
     if args.depth == "full":
         init_dossier(study, title)
 

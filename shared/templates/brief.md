@@ -19,8 +19,9 @@ templated brief. Delete bracketed guidance once filled.
 
 ## Depth
 
-- Depth: `briefing` <!-- or `full`: adds novelty checks, frozen experiment plans, run manifests, audit-clean dossier -->
+- Depth: `briefing` <!-- or `full`: adds novelty checks and an audit-clean dossier; on experimental tracks also frozen experiment plans and run manifests -->
 - Deliverable: [technical report PDF; notes only if this is a quick scan]
+- Track: `review` <!-- set by `new_study.py --track`; `review` and `concept` are source-only, `experimental` runs experiments -->
 
 ## Prior understanding
 
@@ -30,7 +31,7 @@ templated brief. Delete bracketed guidance once filled.
 ## Constraints
 
 - Sources: [peer-reviewed only / preprints allowed / blogs allowed for context]
-- Experiments: [none / allowed, budget: ...]
+- Experiments: [n_a on review/concept tracks / on experimental tracks, budget: ...]
 - Anything prohibited: [paid APIs, restricted data, ...]
 
 ## Definition of done

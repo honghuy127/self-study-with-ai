@@ -5,13 +5,15 @@ Runs, in order:
   0. recreate empty dossier runtime dirs (.research/runs) that git cannot
      store, so a fresh clone does not fail the dossier audit;
   1. lint_report.py over every study directory (report + slides);
-  2. audit_research.py over every study that has a .research/ dossier,
+  2. a manifest check that every study.yaml has valid status/depth/track
+     and a track-consistent experiments_approved gate;
+  3. audit_research.py over every study that has a .research/ dossier,
      honoring the human-owned `audit_waiver` field in study.yaml;
-  3. a hygiene check that fails on git-tracked PDF binaries and warns on
+  4. a hygiene check that fails on git-tracked PDF binaries and warns on
      oversized tracked files;
-  4. a drift check that tools/research/*.py match the skill submodule's
+  5. a drift check that tools/research/*.py match the skill submodule's
      scripts/*.py byte-for-byte;
-  5. the repo unit tests under tests/.
+  6. the repo unit tests under tests/.
 
 Exits non-zero on the first failing group, after printing a summary of every
 group it ran. Usage: python3 tools/check_all.py
@@ -31,6 +33,10 @@ SKILL_SCRIPTS = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research" / "scri
 VENDORED = TOOLS / "research"
 VENDORED_SCRIPTS = ("research_state.py", "capture_run.py", "audit_research.py")
 
+VALID_STATUSES = {"proposed", "gathering", "summarizing", "experimenting", "drafting", "review", "done"}
+VALID_DEPTHS = {"briefing", "full"}
+VALID_TRACKS = {"review", "concept", "experimental"}
+
 
 def run(cmd: list[str]) -> tuple[int, str]:
     proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
@@ -49,6 +55,60 @@ def check_lint() -> bool:
         print(f"lint  {study.name}: {status}")
         if code != 0:
             print(out)
+            ok = False
+    return ok
+
+
+def validate_manifest(manifest: Path) -> list[str]:
+    """Return manifest field errors; empty list when the manifest is consistent.
+
+    Checks the status/depth/track enums and that the experiments_approved gate
+    matches the track: boolean on experimental tracks, `n_a` on review and
+    concept tracks (which never enter the experimenting state).
+    """
+    errors: list[str] = []
+    if not manifest.is_file():
+        return [f"missing {manifest.name}"]
+    try:
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        return [f"invalid YAML in {manifest.name}: {exc}"]
+    if not isinstance(data, dict):
+        return [f"{manifest.name} did not parse to a mapping"]
+    status = data.get("status")
+    if status not in VALID_STATUSES:
+        errors.append(f"invalid status: {status!r}")
+    if data.get("depth") not in VALID_DEPTHS:
+        errors.append(f"invalid depth: {data.get('depth')!r}")
+    track = data.get("track")
+    if track not in VALID_TRACKS:
+        errors.append(f"invalid or missing track: {track!r}")
+        return errors
+    gate = (data.get("gates") or {}).get("experiments_approved")
+    if track == "experimental":
+        if not isinstance(gate, bool):
+            errors.append(f"experimental track requires a boolean experiments_approved, got {gate!r}")
+    else:
+        if gate != "n_a":
+            errors.append(f"{track} track requires experiments_approved: n_a, got {gate!r}")
+        if status == "experimenting":
+            errors.append(f"{track} track entered the experimenting state")
+    return errors
+
+
+def check_manifests() -> bool:
+    studies = sorted(p for p in STUDIES.iterdir() if p.is_dir()) if STUDIES.is_dir() else []
+    if not studies:
+        print("manifest: no studies found; skipping")
+        return True
+    ok = True
+    for study in studies:
+        errors = validate_manifest(study / "study.yaml")
+        status = "PASS" if not errors else "FAIL"
+        print(f"manifest {study.name}: {status}")
+        for error in errors:
+            print(f"manifest {study.name}: {error}")
+        if errors:
             ok = False
     return ok
 
@@ -181,6 +241,7 @@ def main() -> int:
     ensure_runtime_dirs()
     results = {
         "lint": check_lint(),
+        "manifest": check_manifests(),
         "audit": check_audit(),
         "hygiene": check_hygiene(),
         "drift": check_drift(),

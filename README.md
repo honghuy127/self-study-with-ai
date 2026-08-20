@@ -3,10 +3,11 @@
 [![check](https://github.com/honghuy127/self-study-with-ai/actions/workflows/check.yml/badge.svg)](https://github.com/honghuy127/self-study-with-ai/actions/workflows/check.yml)
 
 A collaboration between a human and AI agents for structured self-study. You
-pose a topic, agents gather and analyze the literature, optionally run
-experiments, and draft a technical report in LaTeX (built to PDF). You review
-and approve at defined gates. Everything is plain files, so oversight equals
-reading git diffs.
+pose a topic, agents gather and analyze the literature, and draft a technical
+report in LaTeX (built to PDF). Studies that need runnable evidence run on
+the experimental track; reviews and concept expositions stay source-only.
+You review and approve at defined gates. Everything is plain files, so
+oversight equals reading git diffs.
 
 ## Requirements
 
@@ -26,17 +27,21 @@ git clone --recurse-submodules <this-repo-url>
 
 ```bash
 python3 tools/new_study.py transformer-length-extrapolation --title "How do transformers extrapolate to longer sequences?"
+python3 tools/new_study.py sgd-noise-scale --title "What does SGD noise do to generalization?" --track experimental
 ```
 
 This scaffolds `studies/YYYY-MM_transformer-length-extrapolation/` from the
-templates in `shared/templates/`. Fill in `brief.md`, then run the lifecycle
-through the OpenCode commands:
+templates in `shared/templates/`. The `--track` flag sets what the study
+produces evidence from: `review` (literature synthesis, the default) and
+`concept` (concept exposition) are source-only; `experimental` also runs
+experiments and scaffolds `experiments/`. Fill in `brief.md`, then run the
+lifecycle through the OpenCode commands:
 
 | Command | What it does |
 |---|---|
 | `/new-study <topic>` | Wraps `new_study.py`, scaffolds the study |
 | `/gather <study-dir>` | Researcher agent collects sources into `sources/` |
-| `/draft <study-dir>` | Idempotent; summarizes unnoted sources, runs experiments if the brief asks, then (after you approve each gate) the writer drafts `report/main.tex` |
+| `/draft <study-dir>` | Idempotent; summarizes unnoted sources, runs experiments on `experimental` tracks, then (after you approve each gate) the writer drafts `report/main.tex` |
 | `/review <study-dir>` | Reviewer agent audits claims, style, and traceability |
 
 Each stage ends by updating `study.yaml`; the next stage refuses to proceed
@@ -65,7 +70,7 @@ tools/
 ├── build_report.sh            # latexmk/tectonic wrapper for report/
 ├── build_slides.sh            # latexmk/tectonic wrapper for slides/
 ├── lint_report.py             # prose/citation/marker linter (report + slides)
-├── check_all.py               # repo-wide gate: lint, dossier audit, PDF hygiene, drift check, tests
+├── check_all.py               # repo-wide gate: lint, manifest, dossier audit, PDF hygiene, drift check, tests
 ├── cleanup_study.py           # slim a signed-off study down to its knowledge core
 ├── pin_repos.py               # pin local codebase checkouts into sources/repos.yaml
 ├── verify_pins.py             # confirm pinned checkouts still hold their recorded commits
@@ -82,7 +87,7 @@ studies/<YYYY-MM_slug>/
 ├── sources/repos.yaml         # pinned local codebase checkouts (codebase studies)
 ├── sources/docs/              # pdftotext and page snapshots; PDF binaries are never committed
 ├── notes/                     # one structured note per source + _synthesis.md
-├── experiments/               # runnable code with pinned deps (optional)
+├── experiments/               # runnable code with pinned deps (experimental track only)
 ├── report/main.tex + refs.bib # NeurIPS preprint report, tools/build_report.sh
 ├── slides/main.tex            # beamer deck, tools/build_slides.sh; cites report/refs.bib
 ├── reviews/                   # per-round review notes
@@ -93,15 +98,19 @@ studies/<YYYY-MM_slug>/
 
 - **Workflow state** (`study.yaml.status`): where the study is in the pipeline
   (`proposed`, `gathering`, `summarizing`, `experimenting`, `drafting`,
-  `review`, `done`). Human-gated.
+  `review`, `done`). Human-gated. `review` and `concept` tracks skip
+  `experimenting` and carry `experiments_approved: n_a`; only `experimental`
+  tracks enter it.
 - **Epistemic state** (`.research/claims.jsonl`): the truth state of each
-  claim, `PROPOSED → ... → EXECUTED → ANALYZED → VERIFIED → REPORTED`, enforced
-  by the `conduct-cs-ai-research` skill. The writer may place a claim in the
-  report only if it is `VERIFIED` or traces to an eligible external source.
+  claim, enforced by the `conduct-cs-ai-research` skill. Experimental claims
+  move `PROPOSED → ... → EXECUTED → ANALYZED → VERIFIED → REPORTED`;
+  review and concept claims move `PROPOSED → VERIFIED → REPORTED` grounded in
+  evidence records. The writer may place a claim in the report only if it is
+  `VERIFIED` or traces to an eligible external source.
 
 Depth is set per study in `study.yaml`: `briefing` (notes + short synthesis,
-light gates) or `full` (novelty checks, frozen experiment plans, run manifests,
-audit-clean report). After sign-off, `tools/cleanup_study.py` slims a `done`
+light gates) or `full` (novelty checks, frozen experiment plans and run
+manifests on experimental tracks, audit-clean report). After sign-off, `tools/cleanup_study.py` slims a `done`
 study to its knowledge core and stamps the `cleaned` date; the human-only
 `audit_waiver` field lets `check_all.py` report a failing dossier audit as
 waived once documented deviations are accepted.
@@ -130,7 +139,9 @@ python3 tools/research/audit_research.py --root studies/<slug>
 The linter checks em-dashes, untied citations (`X \cite` without `~`),
 unresolved `[... NEEDED]` markers, and British spellings. The auditor checks
 claim/evidence/run traceability in the dossier. `check_all.py` is the
-pre-review gate: it lints every study, audits every `.research/` dossier
+pre-review gate: it lints every study, validates every `study.yaml` manifest
+(status/depth/track enums and a track-consistent `experiments_approved`
+gate), audits every `.research/` dossier
 (honoring `audit_waiver`), fails on git-tracked PDF binaries, fails if the
 vendored `tools/research/*.py` drift from the skill submodule, and runs the
 unit tests. CI runs it on every push and pull request.

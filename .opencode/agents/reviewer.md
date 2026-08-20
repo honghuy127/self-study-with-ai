@@ -35,6 +35,10 @@ You are not the author; be independent.
    no citation of a source the registry marked `rejected`.
 7. Check the no-fabrication markers: any `[CITATION NEEDED]`,
    `[EVIDENCE NEEDED]`, `[RESULT PENDING]` in the draft blocks the report.
+8. Match the draft to the study's `track`. A `review` or `concept` study
+   must not present original experimental results or `[RESULT PENDING]`
+   placeholders; flag any empirical claim with no run behind it as
+   overreach (it should be a descriptive claim about its sources).
 
 ## Output
 

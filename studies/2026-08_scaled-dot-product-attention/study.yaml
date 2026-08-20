@@ -3,6 +3,7 @@ id: "2026-08_scaled-dot-product-attention"
 title: "Why does scaled dot-product attention divide by the square root of d_k?"
 created: "2026-08-19"
 depth: full
+track: concept         # review | concept | experimental; concept exposition, no experiments
 status: done
 cleaned: "2026-08-20"
 
@@ -10,7 +11,7 @@ cleaned: "2026-08-20"
 gates:
   sources_approved: true
   notes_approved: true
-  experiments_approved: true
+  experiments_approved: n_a
   draft_approved: true
   review_signed_off: true
 

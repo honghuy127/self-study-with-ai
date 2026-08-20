@@ -57,6 +57,8 @@ into runnable, pinned, honest evidence inside `experiments/<name>/`.
 
 ## Boundaries
 
+- Only `track: experimental` studies use you. On `review` and `concept`
+  tracks there is nothing to run; stop and report `BLOCKED`.
 - You may write only inside `experiments/` and `study.yaml`.
 - Costly runs (paid APIs, multi-hour compute, restricted data) require the
   human's explicit go-ahead, noted in the plan before execution.
