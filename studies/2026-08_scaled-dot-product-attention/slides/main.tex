@@ -1,0 +1,72 @@
+% Slides for the scaled dot-product attention study.
+% Build with tools/build_slides.sh studies/2026-08_scaled-dot-product-attention.
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage[numbers]{natbib}
+
+\title{Why Scaled Dot-Product Attention Divides by $\sqrt{d_k}$}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Question and scope}
+  \begin{itemize}
+    \item Why does the Transformer scale attention logits by $1/\sqrt{d_k}$?
+    \item Scope: what the primary source, Vaswani et~al.~\citep{vaswani2017attention}, states.
+    \item Out of scope: attention variants, later empirical work.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{The mechanism}
+  \begin{equation*}
+    \mathrm{Attention}(Q, K, V)
+      = \mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
+  \end{equation*}
+  \begin{itemize}
+    \item Stated motivation~\citep{vaswani2017attention}: at large $d_k$, dot
+      products grow in magnitude and push softmax into regions of extremely
+      small gradients; dividing by $\sqrt{d_k}$ counteracts the effect.
+    \item Standard reading (an interpretation, not source text): a logit sums
+      $d_k$ roughly unit-scale products, so its standard deviation grows as
+      $\sqrt{d_k}$; the division normalizes it.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Why bother: the cost angle}
+  \begin{itemize}
+    \item Dot-product attention reduces to optimized matrix multiplication, so
+      it is faster and more space-efficient than additive
+      attention~\citep{vaswani2017attention}.
+    \item The scaling factor keeps the cheap form competitive at large
+      $d_k$~\citep{vaswani2017attention}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Evidence and limitations}
+  \begin{itemize}
+    \item Evidence: single primary source, peer-reviewed, NeurIPS
+      2017~\citep{vaswani2017attention}.
+    \item The motivation is asserted analytically, not measured: no ablation of
+      scaled versus unscaled attention appears in the source.
+    \item Multi-head configuration: $h = 8$, $d_k = 64$, $d_{\mathrm{model}} =
+      512$~\citep{vaswani2017attention}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{References}
+  \footnotesize
+  \bibliographystyle{plainnat}
+  \bibliography{refs}
+\end{frame}
+
+\end{document}

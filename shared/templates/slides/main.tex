@@ -1,0 +1,43 @@
+% Slides for a self-study report. Build with tools/build_slides.sh <study-dir>.
+% Citations come from report/refs.bib via BIBINPUTS set by build_slides.sh.
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[numbers]{natbib}
+
+\title{TITLE HERE}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Question and scope}
+  % The brief's primary question, scope boundary, and depth.
+\end{frame}
+
+\begin{frame}{Key findings}
+  % Three to five headline findings, each tied to a citation.
+  % Example: the scaling factor keeps softmax gradients usable at large
+  % $d_k$~\citep{example-key}.
+\end{frame}
+
+\begin{frame}{Evidence and limitations}
+  % What backs the findings, and what the evidence does not establish.
+\end{frame}
+
+\begin{frame}{References}
+  \footnotesize
+  \bibliographystyle{plainnat}
+  \bibliography{refs}
+\end{frame}
+
+\end{document}

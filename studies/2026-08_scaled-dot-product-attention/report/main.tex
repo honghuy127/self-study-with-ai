@@ -1,0 +1,110 @@
+\documentclass{article}
+
+% NeurIPS 2025 style (vendored in neurips/neurips_2025.sty), preprint mode:
+% this is a self-study report, not a conference submission.
+\PassOptionsToPackage{numbers,sort&compress}{natbib}
+\usepackage[preprint]{neurips/neurips_2025}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+
+\title{Why Scaled Dot-Product Attention Divides by $\sqrt{d_k}$}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The Transformer computes attention weights with softmax over query-key dot
+products divided by $\sqrt{d_k}$. Vaswani et~al.~\citep{vaswani2017attention}
+state their suspicion plainly: at large key dimensionality, unscaled dot
+products grow large in magnitude and push softmax into regions of extremely
+small gradients. This report reconstructs that argument from the primary
+source and marks where the source asserts rather than demonstrates.
+\end{abstract}
+
+\section{Introduction}
+
+The brief asks why the Transformer scales attention logits by
+$1/\sqrt{d_k}$. The answer, per the primary source, is a gradient-magnitude
+argument about the softmax function, offered as the mechanism that makes the
+computationally cheaper dot-product attention usable at large $d_k$.
+
+\section{Background}
+
+Attention maps a query and key--value pairs to an output as a weighted sum of
+the values; the weight on each value depends on a compatibility function of
+the query with the corresponding key~\citep{vaswani2017attention}. Two
+compatibility functions are common: additive attention, which computes the
+score with a single-hidden-layer feedforward network, and dot-product
+attention, which uses the raw inner product~\citep{vaswani2017attention}.
+
+\section{Methods and Sources}
+
+Scope: a single-source briefing on Vaswani et~al.~\citep{vaswani2017attention}
+(NeurIPS 2017), the paper that introduced the mechanism. Coverage is limited to what
+that paper states about the scaling factor; attention variants and later
+empirical work are out of scope.
+
+\section{Findings}
+
+The Transformer uses scaled dot-product attention~\citep{vaswani2017attention}:
+\begin{equation}
+\mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V ,
+\end{equation}
+where $Q$, $K$, $V$ are matrices of queries, keys, and values and $d_k$ is the
+key dimensionality. The authors' stated motivation~\citep{vaswani2017attention}:
+for large $d_k$, the dot products grow large in magnitude, pushing the
+softmax function into regions where it has extremely small gradients;
+dividing by $\sqrt{d_k}$ counteracts this effect.
+
+The engineering context matters. The authors note that dot-product attention
+is faster and more space-efficient than additive attention because it reduces
+to highly optimized matrix multiplication, and that the two forms are
+theoretically similar in complexity; the scaling factor is what keeps
+dot-product attention competitive with additive attention at large
+$d_k$~\citep{vaswani2017attention}.
+
+What the argument claims: if each logit is a sum of $d_k$ products of roughly
+unit-scale quantities, its magnitude grows with $d_k$; dividing by
+$\sqrt{d_k}$ corresponds to normalizing by the standard deviation of the sum
+under a unit-variance assumption, keeping logits in the region where softmax
+gradients remain usable. This middle step is a standard reading of the
+paper's stated motivation, not a sentence from the paper itself.
+
+In multi-head attention, the mechanism operates with $h = 8$ heads and
+$d_k = d_v = d_{\mathrm{model}} / h = 64$ at $d_{\mathrm{model}} =
+512$~\citep{vaswani2017attention}.
+
+\section{Related Work}
+
+Out of scope for this briefing: additive attention~\citep{vaswani2017attention}
+is the comparison point named by the source; later refinements and
+alternatives to the softmax are not covered.
+
+\section{Limitations}
+
+The scaling motivation is asserted, not measured: Vaswani
+et~al.~\citep{vaswani2017attention} provide neither an ablation of scaled
+versus unscaled dot-product attention nor numeric support for the claim that
+unscaled dot-product attention underperforms additive attention at large
+$d_k$. The standard-deviation reading in the Findings is an interpretation,
+labeled as such. Coverage is one primary source; later empirical work on the
+claim is outside the search scope.
+
+\section{Conclusion}
+
+The division by $\sqrt{d_k}$ exists to keep attention logits in the range
+where softmax gradients stay usable as key dimensionality grows, which is
+what makes the cheaper dot-product form viable in the Transformer. The
+justification in the primary source is analytical and stated with hedging;
+confirming it empirically requires additional sources outside this briefing.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

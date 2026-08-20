@@ -1,0 +1,28 @@
+# Study manifest. Agents do not edit gate fields; humans flip gates after review.
+id: ""                     # e.g., 2026-08_transformer-length-extrapolation
+title: ""
+created: ""                # YYYY-MM-DD
+depth: briefing            # briefing | full
+status: proposed           # proposed | gathering | summarizing | experimenting | drafting | review | done
+cleaned: ""                # set to a date by tools/cleanup_study.py at done-time cleanup
+audit_waiver: ""           # human-only reason to waive residual dossier-audit errors; agents never set this
+
+# Workflow gates. Agents refuse to pass until the human flips these by hand.
+gates:
+  sources_approved: false
+  notes_approved: false
+  experiments_approved: false
+  draft_approved: false
+  review_signed_off: false
+
+# What the pipeline produced, relative paths.
+artifacts:
+  brief: brief.md
+  registry: sources/registry.yaml
+  notes_dir: notes/
+  report: report/main.tex
+  pdf: report/build/main.pdf
+  dossier: .research/
+
+# Skill verdict from the last completed stage, if any.
+last_gate_verdict: ""      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED

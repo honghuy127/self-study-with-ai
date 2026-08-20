@@ -1,0 +1,3 @@
+[submodule ".opencode/skills/conduct-cs-ai-research"]
+	path = .opencode/skills/conduct-cs-ai-research
+	url = https://github.com/honghuy127/cs-ai-research-skills

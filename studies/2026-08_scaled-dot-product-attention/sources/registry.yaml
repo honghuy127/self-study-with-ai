@@ -1,0 +1,21 @@
+# provenance: queries run (text, date, scope), inclusion/exclusion reasons
+provenance:
+  queries:
+    - text: scaled dot-product attention transformer 1/sqrt(d_k)
+      date: 2026-08-19
+      scope: arXiv and NeurIPS proceedings, primary source only
+  inclusion: the Transformer's original paper defines the mechanism
+  exclusion: secondary tutorials and blog derivations (not primary)
+  coverage_limits: single-source briefing; not a survey of attention variants
+
+sources:
+  - key: vaswani2017attention
+    title: "Attention Is All You Need"
+    authors: "Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.; Gomez, A. N.; Kaiser, L.; Polosukhin, I."
+    year: 2017
+    url: "https://arxiv.org/abs/1706.03762"
+    pdf: "sources/pdfs/vaswani2017attention.pdf"
+    venue: "NeurIPS 2017"
+    tier: peer-reviewed
+    status: noted
+    notes_file: "notes/vaswani2017attention.md"
