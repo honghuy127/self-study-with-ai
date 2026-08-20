@@ -183,32 +183,26 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
 \section{Part I: harness architecture}
 
 \begin{frame}{Eight machinery dimensions}
-  \begin{columns}[T]
-    \column{0.55\textwidth}
-      \begin{tikzpicture}[font=\scriptsize, scale=0.66, transform shape]
-      \node[loopdim] (loop) at (0,0) {\textbf{Turn loop}};
-      \node[box] (tools) at (-4.0, 1.3) {\textbf{Tool surface}\\edit protocol};
-      \node[box] (ctx)   at ( 0.0, 1.3) {\textbf{Context and}\\\textbf{compaction}};
-      \node[box] (mem)   at ( 4.0, 1.3) {\textbf{Memory files}};
-      \node[box] (perm)  at (-4.0, 0) {\textbf{Permissions}\\and sandbox};
-      \node[box] (ext)   at ( 4.0, 0) {\textbf{Extensibility}\\hooks, plugins, MCP};
-      \node[box] (cfg)   at (-4.0,-1.3) {\textbf{Config and}\\providers};
-      \node[box] (state) at ( 0.0,-1.3) {\textbf{State and}\\transports};
-      \foreach \n in {tools,ctx,mem,perm,ext,cfg,state}
-        \draw[conn] (loop) -- (\n);
-      \end{tikzpicture}
-    \column{0.42\textwidth}
-      Every system implements all eight dimensions; they differ in
-      \emph{how}:
-      \begin{itemize}
-        \item the abstraction is settled: loop, tools, compaction,
-          permissions, extensions;
-        \item the engineering culture is not: trust boundaries, state
-          durability, interface unification.
-      \end{itemize}
-      Naming differences (hooks, skills, agents) overlay the structural
-      ones rather than masking them.
-  \end{columns}
+  \begin{center}
+    \begin{tikzpicture}[font=\scriptsize, scale=1.15, transform shape]
+    \node[loopdim] (loop) at (0,0) {\textbf{Turn loop}};
+    \node[box] (tools) at (-4.0, 1.3) {\textbf{Tool surface}\\edit protocol};
+    \node[box] (ctx)   at ( 0.0, 1.3) {\textbf{Context and}\\\textbf{compaction}};
+    \node[box] (mem)   at ( 4.0, 1.3) {\textbf{Memory files}};
+    \node[box] (perm)  at (-4.0, 0) {\textbf{Permissions}\\and sandbox};
+    \node[box] (ext)   at ( 4.0, 0) {\textbf{Extensibility}\\hooks, plugins, MCP};
+    \node[box] (cfg)   at (-4.0,-1.3) {\textbf{Config and}\\providers};
+    \node[box] (state) at ( 0.0,-1.3) {\textbf{State and}\\transports};
+    \foreach \n in {tools,ctx,mem,perm,ext,cfg,state}
+      \draw[conn] (loop) -- (\n);
+    \end{tikzpicture}
+  \end{center}
+  \vspace{-0.3em}
+  Every system implements all eight dimensions; they differ in \emph{how}.
+  The abstraction is settled (loop, tools, compaction, permissions,
+  extensions); the engineering culture is not (trust boundaries, state
+  durability, interface unification). Naming differences (hooks, skills,
+  agents) overlay the structural ones rather than masking them.
   \note{The decomposition is grounded in three pinned implementations and
   the framing literature; see the report's summary table for the full
   matrix.}
@@ -257,8 +251,8 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
       fixed array of 17 tool IDs. \ccc{}: 12 built-ins named in docs plus
       8 more attested by the pinned surface; full registry open~\citep{codexRepo,opencodeRepo,claudeCodeHooksDocs,claudeCodeSurface}.
     \item \textbf{The patch format converges across vendors.} \occ{}
-      ports the \codex{} \texttt{apply\_patch} grammar verbatim (``Core
-      types matching the Rust implementation'') and selects it for
+      ports the \codex{} \texttt{apply\_patch} grammar near-verbatim
+      (``Core types matching the Rust implementation'') and selects it for
       \texttt{gpt-*} model IDs, except \texttt{gpt-4} and
       \texttt{oss}~\citep{opencodeRepo}.
     \item \textbf{Edit robustness is engineered in.} \occ{}'s
@@ -369,16 +363,16 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
 
 \begin{frame}{The wire protocols, as a bar}
   \begin{center}
-    \scalebox{0.60}{%
     \begin{tikzpicture}[font=\scriptsize]
       \node[proto] (p1) at (0,0) {\textbf{Chat completions}\\ plus tool calls};
       \node[proto] (p2) at (4.25,0) {\textbf{Responses API}\\ (OpenAI)};
       \node[proto] (p3) at (8.5,0) {\textbf{Anthropic}\\ \path{/v1/messages}};
       \node[reqlab, fill=genericcol!14] (oc) at (0,1.75) {\textcolor{genericcol}{OpenCode} accepts any\\ chat-completions shape};
       \node[reqlab, fill=nativecol!14] (cx) at (4.25,1.75) {\textcolor{nativecol}{Codex} pins Responses;\\ \path{chat} is a hard error};
-      \node[reqlab, fill=unattcol!14] at (8.5,1.75) {\textcolor{unattcol}{Claude Code}: Anthropic\\ protocol only, as attested};
+      \node[reqlab, fill=unattcol!14] (ccreq) at (8.5,1.75) {\textcolor{unattcol}{Claude Code}: Anthropic\\ protocol only, as attested};
       \draw[arr] (oc.south) -- (p1.north);
       \draw[arr] (cx.south) -- (p2.north);
+      \draw[arr] (ccreq.south) -- (p3.north);
       \node[rowhead] at (-3.0,-1.4) {Ollama\\ 2024 snapshot};
       \node[chip, fill=partcol!16] at (0,-1.4) {partial: chat yes, tools\\ listed as future};
       \node[chip, fill=black!7] at (4.25,-1.4) {absent: not in snapshot};
@@ -391,7 +385,7 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
       \node[chip, fill=genericcol!14] at (0,-3.6) {supported: tools via\\ jinja templates, JSON schema};
       \node[chip, fill=partcol!16] at (4.25,-3.6) {partial: documented as a\\ converter to chat completions};
       \node[chip, fill=genericcol!14] at (8.5,-3.6) {supported:\\ \path{/v1/messages} documented};
-    \end{tikzpicture}}
+    \end{tikzpicture}
   \end{center}
   \note{Read it as a bar to clear. Top row is what each agent commits to
   on the wire; the grid is what the reference servers document. The
@@ -456,38 +450,37 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
 \end{frame}
 
 \begin{frame}{Support as a graph}
-  \begin{center}
-    \scalebox{0.72}{%
-    \begin{tikzpicture}[font=\scriptsize]
-      \node[ag=nativecol] (cx) at (0, 2.0) {\textbf{Codex}\\ Responses wire};
+  \centering
+    \begin{tikzpicture}[font=\scriptsize,
+      chip/.style={align=center, inner sep=1.5pt, fill=white, rounded corners=1pt}]
+      \node[ag=nativecol] (cx) at (0, 2.4) {\textbf{Codex}\\ Responses wire};
       \node[ag=genericcol] (oc) at (0, 0.0) {\textbf{OpenCode}\\ chat-completions wire};
-      \node[ag=unattcol] (cc) at (0,-2.0) {\textbf{Claude Code}\\ Anthropic protocol};
-      \node[sv] (ol) at (6.2, 2.0) {\textbf{Ollama}\\ port 11434};
-      \node[sv] (lm) at (6.2, 0.0) {\textbf{LM Studio}\\ port 1234};
-      \node[sv] (gn) at (6.2,-2.0) {\textbf{Generic server}\\ llama.cpp class};
-      \draw[nat] (cx) to[out=0, in=180] (ol)
-        node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.5] {native; version gate 0.13.4};
-      \draw[nat] (cx) to[out=-18, in=162] (lm)
-        node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.52] {native; model pull via lms};
-      \draw[nat] (cx) to[out=-38, in=142] (gn)
-        node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.58] {config; Responses wire only};
-      \draw[gen] (oc) to[out=18, in=198] (ol)
-        node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.48] {generic; baseURL config};
-      \draw[gen] (oc) to[out=0, in=180] (lm)
-        node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.5] {generic; catalog fixture};
-      \draw[gen] (oc) to[out=-18, in=162] (gn)
-        node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.52] {compat-SDK fallback};
-      \draw[unv] (cc) to[out=24, in=216] (ol);
-      \draw[unv] (cc) to[out=8, in=188] (lm);
-      \draw[unv] (cc) to[out=0, in=180] (gn);
-      \node[align=center, font=\tiny, text width=4.6cm] at (6.2,-3.35)
-        {dotted edges are the unverified gateway gray zone;\\ no documented surface connects the two sides};
-      \node[align=left, font=\tiny] at (0,-3.35)
+      \node[ag=unattcol] (cc) at (0,-2.4) {\textbf{Claude Code}\\ Anthropic protocol};
+      \node[sv] (ol) at (8.6, 2.4) {\textbf{Ollama}\\ port 11434};
+      \node[sv] (lm) at (8.6, 0.0) {\textbf{LM Studio}\\ port 1234};
+      \node[sv] (gn) at (8.6,-2.4) {\textbf{Generic server}\\ llama.cpp class};
+      \draw[unv] (cc.east) to[out=10, in=190] (ol.west);
+      \draw[unv] (cc.east) to[out=3, in=183] (lm.west);
+      \draw[unv] (cc.east) to[out=-8, in=172] (gn.west);
+      \draw[nat] (cx.east) to[out=-4, in=184]
+        node[chip, pos=0.5, yshift=5pt, text=nativecol] {native; version\\ gate 0.13.4} (ol.west);
+      \draw[nat] (cx.east) to[out=-16, in=172]
+        node[chip, pos=0.30, yshift=6pt, text=nativecol] {native; model\\ pull via lms} (lm.west);
+      \draw[nat] (cx.east) to[out=-30, in=158]
+        node[chip, pos=0.22, yshift=-9pt, text=nativecol] {config; Responses\\ wire only} (gn.west);
+      \draw[gen] (oc.east) to[out=16, in=196]
+        node[chip, pos=0.72, text=genericcol] {generic;\\ baseURL config} (ol.west);
+      \draw[gen] (oc.east) to[out=0, in=180]
+        node[chip, pos=0.5, yshift=3pt, text=genericcol] {generic; catalog\\ fixture} (lm.west);
+      \draw[gen] (oc.east) to[out=-16, in=168]
+        node[chip, pos=0.28, text=genericcol] {compat-SDK\\ fallback} (gn.west);
+      \node[align=left, font=\scriptsize] at (0,-3.7)
         {\textcolor{nativecol}{solid blue: native provider}\\
          \textcolor{genericcol}{solid green: generic path}\\
          \textcolor{black!60}{dotted gray: unverified}};
-    \end{tikzpicture}}
-  \end{center}
+      \node[align=center, font=\scriptsize, text width=6.4cm] at (6.2,-3.7)
+        {dotted edges are the unverified gateway gray zone;\\ no documented surface connects the two sides};
+    \end{tikzpicture}
   \note{Same matrix as the report table, drawn as a graph. Edge styles
   encode tier plus certainty; the labels repeat both, so the figure reads
   in grayscale too.}
@@ -596,9 +589,9 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
 
 \begin{frame}{Backup: evidence ledger}
   \begin{itemize}
-    \item 44 registry entries: 20 codebase, 13 docs, 3 preprints, 4
-      blog-tier context (teardowns and one community router); 45 notes
-      including both per-part syntheses.
+    \item 44 registry entries: 20 codebase, 17 docs, 3 preprints, 4
+      blog-tier context (teardowns and one community router); 47 notes
+      (44 source notes plus the combined and per-part syntheses).
     \item 12 Part I claims advanced to ANALYZED with supported evidential
       status (\texttt{CLM-E1-1a} to \texttt{CLM-E4-3a});
       \texttt{CLM-E2-1b} corrected a registration count from 33 to 32
@@ -630,7 +623,7 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
   \textbf{OpenCode defaults}~\citep{opencodeRepo}:
   \begin{itemize}
     \item \path{context} $=0$ disables auto-compaction entirely.
-    \item \path{output} $=0$ becomes \path{OUTPUT_TOKEN_MAX}$=32000$.
+    \item \path{output} $=0$ becomes \path{OUTPUT_TOKEN_MAX}$=32{,}000$.
     \item token estimate: \path{characters / 4}.
   \end{itemize}
 \end{frame}

@@ -50,7 +50,7 @@ the three production harnesses \ccc{}, \codex{}, and \occ{} with two
 questions. Part I asks how they are built: because the \ccc{} core is
 closed source, we pin all three repositories and restrict the study to
 static source traces and official documentation snapshots, with 300
-anchors re-verifying against the pinned commits. Part II asks what
+anchors re-verified against the pinned commits. Part II asks what
 happens when the model on the other end is open source: through which
 surface each agent reaches Ollama, LM Studio, and generic
 OpenAI-compatible servers, and what degrades there. The three systems
@@ -80,9 +80,10 @@ commands, or remember what happened last iteration. The harness, all the
 software around the model, supplies everything else: the continuation
 condition, the tool surface the model sees, the context budget, the
 permission system, and the extension point where users bend the agent to
-their workflow. This decomposition has research pedigree. ReAct interleaves reasoning traces
-with environment actions and showed the combination beats either alone on
-question answering and interactive tasks~\citep{yao2023react}. Toolformer
+their workflow. This decomposition has research pedigree. ReAct
+interleaved reasoning traces with environment actions and showed the
+combination beats either alone on question answering and interactive
+tasks~\citep{yao2023react}. Toolformer
 trained a model to emit, execute, and resume around API calls,
 establishing the interrupt-execute-resume protocol that every agent harness
 now re-implements in engineering form~\citep{schick2023toolformer}. SWE-agent
@@ -142,7 +143,7 @@ than findings. Contributions at the supported scope:
   \item four pre-registered static-trace extractions, turn loops, tool
   surfaces, safety policies, and compaction parameters, whose anchors all
   re-verify at the pinned commits (Section~\ref{sec:methods},
-  Sections~\ref{sec:turnloop} to~\ref{sec:compaction});
+  Sections~\ref{sec:turnloop} to~\ref{sec:safety});
   \item a dimension-by-dimension comparison that separates genuine
   structural differences from naming differences
   (Sections~\ref{sec:extensibility} to~\ref{sec:state});
@@ -210,7 +211,7 @@ contextual statements~\citep{minusXTeardown,agiflowInternals,%
 tenguDecoded,claudeCodeRouterContext}.
 
 \paragraph{Part I trace experiments.} Four experiments were frozen in a plan
-before any full extraction (EXP-PLAN-2026-08-19-v1): E1 turns loops, E2
+before any full extraction (EXP-PLAN-2026-08-19-v1): E1 turn loops, E2
 tool surfaces, E3 safety policies, E4 compaction parameters. Each produced
 markdown and JSON artifacts in which every stated value carries a
 \path{file:line} or snapshot-line anchor, plus a validation script that
@@ -500,8 +501,8 @@ connections~\citep{codexRepo,claudeCodeMcpDocs}.
 
 The most concrete cross-vendor artifact in the study is the patch format.
 \codex{}'s \path{apply_patch} is a grammar-constrained freeform tool,
-parsed by a 19-line Lark grammar; \occ{} ports that grammar essentially
-verbatim (the port's comment reads ``Core types matching the Rust
+parsed by a 19-line Lark grammar; \occ{} ports that grammar near-verbatim
+(the port's comment reads ``Core types matching the Rust
 implementation'', \path{patch/index.ts:12}) and swaps it in for
 \path{edit} and \path{write} whenever the model ID contains
 \path{gpt-}, except \path{gpt-4} and
@@ -574,7 +575,7 @@ reaches the input limit minus a reserved buffer defaulting to
 min(20{,}000, \path{maxOutputTokens})
 tokens~\citep{opencodeRepo}. More instructive than the trigger is what
 the budgets protect. They are pruning-shaped rather than summary-shaped,
-and aimed at tool output, where a coding agent's context actually bloats:
+and aimed at tool output, where a coding agent's context bloats:
 keep the last 40{,}000 tokens of tool output, only prune when at least
 20{,}000 tokens exist, truncate outputs to 2{,}000 characters, never prune
 skill outputs, and retain recent messages clamped to 25\% of the usable
@@ -666,7 +667,7 @@ directly''~\citep{claudeCodePermissionsDocs,claudeCodeSandboxingDocs,%
 claudeCodeHooksDocs}. The scope choice is deliberate and instructive:
 capability (file tools that run unsandboxed) is traded against a narrow,
 strongly enforced shell boundary, since the shell is the surface where
-arbitrary execution actually lives. Enforcement is platform-native
+arbitrary execution lives. Enforcement is platform-native
 (Seatbelt on macOS, bubblewrap plus socat on Linux and WSL2), no network
 domain is pre-allowed, protected paths such as the client's settings, git
 hooks, and shell startup files are denied writes even inside writable
@@ -886,44 +887,45 @@ llama.cpp reference server & models, completions, chat completions, embeddings, 
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[font=\scriptsize, scale=0.92, transform shape,
+\begin{tikzpicture}[font=\scriptsize,
   proto/.style={draw=black!70, line width=0.7pt, rounded corners=1pt,
-    fill=black!5, align=center, minimum width=3.85cm, minimum height=0.95cm,
+    fill=black!5, align=center, minimum width=3.65cm, minimum height=0.95cm,
     inner sep=2.5pt, text=black},
   reqlab/.style={draw=black!40, line width=0.5pt, rounded corners=1pt,
-    align=center, minimum width=3.85cm, minimum height=0.85cm,
+    align=center, minimum width=3.65cm, minimum height=0.85cm,
     inner sep=2.5pt, text=black},
-  chip/.style={rounded corners=1pt, align=center, minimum width=3.85cm,
+  chip/.style={rounded corners=1pt, align=center, minimum width=3.65cm,
     minimum height=0.85cm, inner sep=2.5pt, text=black},
   rowhead/.style={draw=black!50, line width=0.5pt, rounded corners=1pt,
-    fill=black!5, align=center, minimum width=2.3cm, inner sep=2.5pt,
+    fill=black!5, align=center, minimum width=2.1cm, inner sep=2.5pt,
     text=black},
   arr/.style={-{Stealth[length=1.8mm]}, draw=black!60, line width=0.5pt}]
 % protocol columns
 \node[proto] (p1) at (0,0) {\textbf{Chat completions}\\ plus tool calls};
-\node[proto] (p2) at (4.25,0) {\textbf{Responses API}\\ (OpenAI)};
-\node[proto] (p3) at (8.5,0) {\textbf{Anthropic}\\ \path{/v1/messages}};
+\node[proto] (p2) at (4.05,0) {\textbf{Responses API}\\ (OpenAI)};
+\node[proto] (p3) at (8.1,0) {\textbf{Anthropic}\\ \path{/v1/messages}};
 % agent requirements
 \node[reqlab, fill=genericcol!14] (oc) at (0,1.75) {\occ{} accepts any\\ chat-completions shape};
-\node[reqlab, fill=nativecol!14] (cx) at (4.25,1.75) {\codex{} pins Responses;\\ \path{chat} is a hard error};
-\node[reqlab, fill=unattcol!14] (ccreq) at (8.5,1.75) {\ccc{}: Anthropic protocol\\ only, as attested};
+\node[reqlab, fill=nativecol!14] (cx) at (4.05,1.75) {\codex{} pins Responses;\\ \path{chat} is a hard error};
+\node[reqlab, fill=unattcol!14] (ccreq) at (8.1,1.75) {\ccc{}: Anthropic protocol\\ only, as attested};
 \draw[arr] (oc.south) -- (p1.north);
 \draw[arr] (cx.south) -- (p2.north);
+\draw[arr] (ccreq.south) -- (p3.north);
 % Ollama row
-\node[rowhead] at (-3.0,-1.4) {Ollama\\ 2024 snapshot};
+\node[rowhead] at (-2.9,-1.4) {Ollama\\ 2024 snapshot};
 \node[chip, fill=partcol!16] at (0,-1.4) {partial: chat yes, tools\\ listed as future};
-\node[chip, fill=black!7] at (4.25,-1.4) {absent: not in snapshot};
-\node[chip, fill=black!7] at (8.5,-1.4) {absent: not in snapshot};
+\node[chip, fill=black!7] at (4.05,-1.4) {absent: not in snapshot};
+\node[chip, fill=black!7] at (8.1,-1.4) {absent: not in snapshot};
 % LM Studio row
-\node[rowhead] at (-3.0,-2.5) {LM Studio\\ docs mirror};
+\node[rowhead] at (-2.9,-2.5) {LM Studio\\ docs mirror};
 \node[chip, fill=genericcol!14] at (0,-2.5) {supported: tools on chat\\ completions; no parallel flag};
-\node[chip, fill=partcol!16] at (4.25,-2.5) {partial: streaming, effort,\\ prior state, remote MCP only};
-\node[chip, fill=black!7] at (8.5,-2.5) {named only: shape\\ undocumented};
+\node[chip, fill=partcol!16] at (4.05,-2.5) {partial: streaming, effort,\\ prior state, remote MCP only};
+\node[chip, fill=black!7] at (8.1,-2.5) {named only: shape\\ undocumented};
 % llama.cpp row
-\node[rowhead] at (-3.0,-3.6) {llama.cpp\\ reference server};
+\node[rowhead] at (-2.9,-3.6) {llama.cpp\\ reference server};
 \node[chip, fill=genericcol!14] at (0,-3.6) {supported: tools via\\ jinja templates, JSON schema};
-\node[chip, fill=partcol!16] at (4.25,-3.6) {partial: documented as a\\ converter to chat completions};
-\node[chip, fill=genericcol!14] at (8.5,-3.6) {supported:\\ \path{/v1/messages} documented};
+\node[chip, fill=partcol!16] at (4.05,-3.6) {partial: documented as a\\ converter to chat completions};
+\node[chip, fill=genericcol!14] at (8.1,-3.6) {supported:\\ \path{/v1/messages} documented};
 \end{tikzpicture}
 \caption{Wire protocols as a compatibility bar. Top row: the protocol each
 agent commits to. Bottom grid: what each reference server documents for
@@ -1019,8 +1021,8 @@ min(20{,}000 tokens, \path{maxOutputTokens}); a second compaction path
 exists in the pinned tree and which one serves the default run is
 unresolved~\citep{opencodeRepo}. Tools are sent unconditionally with the
 capability flag defaulting to true, so a server without tool support is
-not discovered until the request fails, or, worse, the model simply
-never calls a tool and file editing quietly
+not discovered until the request fails, or, worse, the model never
+calls a tool and file editing quietly
 disappears~\citep{opencodeRepo}. An unknown model string is a hard error
 with fuzzy suggestions rather than a silent fallback, which is honest but
 unforgiving~\citep{opencodeRepo}. Two filters shape what open models
@@ -1099,41 +1101,42 @@ Agent & Ollama & LM Studio & Generic server\\
   server/.style={draw=black!70, line width=0.7pt, rounded corners=1pt,
     fill=black!6, text=black, minimum width=2.7cm, minimum height=1.05cm,
     align=center},
+  chip/.style={align=center, inner sep=1.5pt, fill=white, rounded corners=1pt},
   nat/.style={-{Stealth[length=2.4mm]}, line width=1.1pt, nativecol},
   gen/.style={-{Stealth[length=2.4mm]}, line width=1.1pt, genericcol},
   unv/.style={-{Stealth[length=2mm]}, line width=0.8pt, black!45, loosely dotted}]
 % agents
-\node[agent=nativecol] (cx) at (0, 2.0) {\textbf{Codex}\\ Responses wire};
+\node[agent=nativecol] (cx) at (0, 2.8) {\textbf{Codex}\\ Responses wire};
 \node[agent=genericcol] (oc) at (0, 0.0) {\textbf{OpenCode}\\ chat-completions wire};
-\node[agent=unattcol] (cc) at (0,-2.0) {\textbf{Claude Code}\\ Anthropic protocol};
+\node[agent=unattcol] (cc) at (0,-2.8) {\textbf{Claude Code}\\ Anthropic protocol};
 % servers
-\node[server] (ol) at (6.2, 2.0) {\textbf{Ollama}\\ port 11434};
-\node[server] (lm) at (6.2, 0.0) {\textbf{LM Studio}\\ port 1234};
-\node[server] (gn) at (6.2,-2.0) {\textbf{Generic server}\\ llama.cpp class};
-% Codex edges
-\draw[nat] (cx) to[out=0, in=180] (ol)
-  node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.5] {native; version gate 0.13.4};
-\draw[nat] (cx) to[out=-18, in=162] (lm)
-  node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.52] {native; model pull via lms};
-\draw[nat] (cx) to[out=-38, in=142] (gn)
-  node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.58] {config; Responses wire only};
-% OpenCode edges
-\draw[gen] (oc) to[out=18, in=198] (ol)
-  node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.48] {generic; baseURL config};
-\draw[gen] (oc) to[out=0, in=180] (lm)
-  node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.5] {generic; catalog fixture};
-\draw[gen] (oc) to[out=-18, in=162] (gn)
-  node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.52] {compat-SDK fallback};
+\node[server] (ol) at (8.6, 2.8) {\textbf{Ollama}\\ port 11434};
+\node[server] (lm) at (8.6, 0.0) {\textbf{LM Studio}\\ port 1234};
+\node[server] (gn) at (8.6,-2.8) {\textbf{Generic server}\\ llama.cpp class};
 % Claude Code edges: unverified gray zone
-\draw[unv] (cc) to[out=24, in=216] (ol);
-\draw[unv] (cc) to[out=8, in=188] (lm);
-\draw[unv] (cc) to[out=0, in=180] (gn);
-\node[align=center, font=\tiny, text width=4.6cm] at (6.2,-3.35)
-  {dotted edges are the unverified gateway gray zone;\\ no documented surface connects the two sides};
-\node[align=left, font=\tiny] at (0,-3.35)
+\draw[unv] (cc.east) to[out=10, in=190] (ol.west);
+\draw[unv] (cc.east) to[out=3, in=183] (lm.west);
+\draw[unv] (cc.east) to[out=-8, in=172] (gn.west);
+% Codex edges
+\draw[nat] (cx.east) to[out=-4, in=184]
+  node[chip, pos=0.5, yshift=3pt, text=nativecol] {native; version\\ gate 0.13.4} (ol.west);
+\draw[nat] (cx.east) to[out=-16, in=172]
+  node[chip, pos=0.26, text=nativecol] {native; model\\ pull via lms} (lm.west);
+\draw[nat] (cx.east) to[out=-30, in=158]
+  node[chip, pos=0.24, text=nativecol] {config; Responses\\ wire only} (gn.west);
+% OpenCode edges
+\draw[gen] (oc.east) to[out=16, in=196]
+  node[chip, pos=0.72, text=genericcol] {generic;\\ baseURL config} (ol.west);
+\draw[gen] (oc.east) to[out=0, in=180]
+  node[chip, pos=0.5, yshift=3pt, text=genericcol] {generic; catalog\\ fixture} (lm.west);
+\draw[gen] (oc.east) to[out=-16, in=168]
+  node[chip, pos=0.28, text=genericcol] {compat-SDK\\ fallback} (gn.west);
+\node[align=left, font=\scriptsize] at (0,-4.3)
   {\textcolor{nativecol}{solid blue: native provider}\\
    \textcolor{genericcol}{solid green: generic path}\\
    \textcolor{black!60}{dotted gray: unverified}};
+\node[align=center, font=\scriptsize, text width=6.4cm] at (6.2,-4.3)
+  {dotted edges are the unverified gateway gray zone;\\ no documented surface connects the two sides};
 \end{tikzpicture}
 \caption{Support as a graph. Solid arrows are attested paths with their
 tier; dotted arrows mark the \ccc{} gray zone where no source attests the
