@@ -66,9 +66,12 @@ def check_gates(data: dict) -> None:
 def stamp_cleaned(study: Path, text: str) -> str:
     today = dt.date.today().isoformat()
     line = f'cleaned: "{today}"'
-    new = re.sub(r"(?m)^(status:[^\n]*\n)", rf"\g<1>{line}\n", text, count=1)
-    if new == text:
-        new = text.rstrip("\n") + f"\n\n{line}\n"
+    if re.search(r"(?m)^cleaned:", text):
+        new = re.sub(r"(?m)^cleaned:.*$", line, text, count=1)
+    else:
+        new = re.sub(r"(?m)^(status:[^\n]*\n)", rf"\g<1>{line}\n", text, count=1)
+        if new == text:
+            new = text.rstrip("\n") + f"\n\n{line}\n"
     (study / "study.yaml").write_text(new, encoding="utf-8")
     return line
 

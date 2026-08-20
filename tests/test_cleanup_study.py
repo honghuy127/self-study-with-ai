@@ -21,6 +21,7 @@ def manifest_text(status: str = "done", signed_off: bool = True, cleaned: str | 
         "created: \"2026-08-20\"",
         "depth: briefing",
         f"status: {status}",
+        f'cleaned: "{cleaned or ""}"',
         "",
         "gates:",
         "  sources_approved: true",
@@ -29,8 +30,6 @@ def manifest_text(status: str = "done", signed_off: bool = True, cleaned: str | 
         "  draft_approved: true",
         f"  review_signed_off: {'true' if signed_off else 'false'}",
     ]
-    if cleaned is not None:
-        lines.append(f'cleaned: "{cleaned}"')
     return "\n".join(lines) + "\n"
 
 
@@ -90,6 +89,8 @@ class CleanupStudyTests(unittest.TestCase):
             self.assertTrue((study / rel).exists(), rel)
         data = yaml.safe_load((study / "study.yaml").read_text(encoding="utf-8"))
         self.assertTrue(data.get("cleaned"))
+        text = (study / "study.yaml").read_text(encoding="utf-8")
+        self.assertEqual(text.count("cleaned:"), 1)
 
     def test_refuses_when_not_done(self) -> None:
         study = make_study(self.tmp, status="review")
@@ -116,7 +117,7 @@ class CleanupStudyTests(unittest.TestCase):
         for rel in cleanup_study.REMOVABLE:
             self.assertTrue((study / rel).exists(), rel)
         text = (study / "study.yaml").read_text(encoding="utf-8")
-        self.assertNotIn("cleaned:", text)
+        self.assertIn('cleaned: ""', text)
 
     def test_main_missing_study_dir(self) -> None:
         argv = sys.argv
