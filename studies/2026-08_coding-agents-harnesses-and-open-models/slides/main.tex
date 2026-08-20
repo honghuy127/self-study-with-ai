@@ -157,27 +157,17 @@ OpenCode Build Their Harnesses, and Meet Open-Source Models}
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Trace experiments and anchors}
-  Part I: four frozen extractions (plan EXP-PLAN-2026-08-19-v1), every value
-  carrying a file:line or snapshot-line anchor. Part II: 12 anchored notes
-  (3 codebase, 8 docs, 1 context), briefing-scoped, not pre-registered.
-  \begin{center}
-    \small
-    \begin{tabular}{llr}
-\toprule
-Trace & Scope & Anchors re-verified\\
-\midrule
-E1 & turn loops & 59/59\\
-E2 & tool surfaces & 131/131\\
-E3 & safety policies & 75/75\\
-E4 & compaction parameters & 35/35\\
-\midrule
-& \textbf{total at the pinned commits} & \textbf{300/300}\\
-\bottomrule
-    \end{tabular}
-  \end{center}
-  Validation runs are smoke-test plumbing; the extraction artifacts carry
-  the findings. All three HEADs matched the pins at every validation.
+\begin{frame}{Trace extraction and anchors}
+  \begin{itemize}
+    \item Part I: four structured extractions: E1 turn loops, E2 tool
+      surfaces, E3 safety policies, E4 compaction parameters.
+    \item Every stated value carries a file:line or snapshot-line anchor
+      at the pinned commits; the anchors are the evidence.
+    \item Part II: 12 anchored notes (3 codebase, 8 docs, 1 context) at
+      briefing scope.
+    \item No behavior was measured: no agent ran, no API was called, no
+      server served.
+  \end{itemize}
 \end{frame}
 
 \section{Part I: harness architecture}
@@ -592,10 +582,9 @@ E4 & compaction parameters & 35/35\\
     \item 44 registry entries: 20 codebase, 17 docs, 3 preprints, 4
       blog-tier context (teardowns and one community router); 47 notes
       (44 source notes plus the combined and per-part syntheses).
-    \item 12 Part I claims advanced to ANALYZED with supported evidential
-      status (\texttt{CLM-E1-1a} to \texttt{CLM-E4-3a});
-      \texttt{CLM-E2-1b} corrected a registration count from 33 to 32
-      during review.
+    \item Every Part I finding traces to an anchored note; one value, the
+      \codex{} tool registration count, was corrected from 33 to 32
+      during review against the pinned sources.
     \item Pinned checkouts: \codex{} \texttt{af70018} (main), \occ{}
       \texttt{d545d8f} (dev), \ccc{} surface \texttt{c3d2e35} (main),
       pinned 2026-08-19 and re-pinned 2026-08-20.

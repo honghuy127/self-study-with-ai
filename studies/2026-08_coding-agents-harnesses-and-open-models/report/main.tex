@@ -50,8 +50,9 @@ software, the harness, decides whether to continue. This study examines
 the three production harnesses \ccc{}, \codex{}, and \occ{} with two
 questions. Part I asks how they are built: because the \ccc{} core is
 closed source, we pin all three repositories and restrict the study to
-static source traces and official documentation snapshots, with 300
-anchors re-verified against the pinned commits. Part II asks what
+static source traces and official documentation snapshots; every stated
+value carries a file:line or snapshot-line anchor at the pinned commits.
+Part II asks what
 happens when the model on the other end is open source: through which
 surface each agent reaches Ollama, LM Studio, and generic
 OpenAI-compatible servers, and what degrades there. The three systems
@@ -141,10 +142,10 @@ than findings. Contributions at the supported scope:
   \item an eight-dimension decomposition of a coding-agent harness, grounded
   in three pinned implementations and the framing literature
   (Section~\ref{sec:components});
-  \item four pre-registered static-trace extractions, turn loops, tool
-  surfaces, safety policies, and compaction parameters, whose anchors all
-  re-verify at the pinned commits (Section~\ref{sec:methods},
-  Sections~\ref{sec:turnloop} to~\ref{sec:safety});
+  \item four structured static-trace extractions (turn loops, tool
+  surfaces, safety policies, and compaction parameters) in which every
+  stated value carries a file:line or snapshot anchor
+  (Section~\ref{sec:methods}, Sections~\ref{sec:turnloop} to~\ref{sec:safety});
   \item a dimension-by-dimension comparison that separates genuine
   structural differences from naming differences
   (Sections~\ref{sec:extensibility} to~\ref{sec:state});
@@ -211,22 +212,14 @@ third-party teardowns, \texttt{tier: blog}, admissible only for hedged
 contextual statements~\citep{minusXClaudeCodeTeardown,agiflowClaudeCodeInternals,%
 tenguDecoded,claudeCodeRouterContext}.
 
-\paragraph{Part I trace experiments.} Four experiments were frozen in a plan
-before any full extraction (EXP-PLAN-2026-08-19-v1): E1 turn loops, E2
-tool surfaces, E3 safety policies, E4 compaction parameters. Each produced
-markdown and JSON artifacts in which every stated value carries a
-\path{file:line} or snapshot-line anchor, plus a validation script that
-re-checks every anchor against the pinned sources. Results: 59/59 anchor
-checks for E1, 131/131 for E2, 75/75 for E3, 35/35 for E4
-(300 total); all three HEADs matched the pins at every validation. The
-validation runs are smoke-test plumbing, not scientific evidence; the
-extraction artifacts carry the findings. Twelve claims advanced to
-ANALYZED with supported evidential status (\texttt{CLM-E1-1a} through
-\texttt{CLM-E4-3a} in the study's claim ledger, each superseding its
-EXECUTED counterpart; after review, \texttt{CLM-E2-1a} was itself
-superseded by \texttt{CLM-E2-1b} correcting a registration count from 33
-to 32). The claim ledger lived in the Part I study's dossier and is
-preserved in its git history.
+\paragraph{Part I trace extractions.} Part I organized the extraction into
+four traces: E1 turn loops, E2 tool surfaces, E3 safety policies, and E4
+compaction parameters. Every stated value carries a \path{file:line} anchor
+in the pinned checkouts or a line anchor in a documentation snapshot, and
+the study notes carry those anchors one per claim. The anchors are the
+evidence: a reader can re-open each cited file at the pinned commit and
+check the value directly. One value, the \codex{} tool registration count,
+was corrected from 33 to 32 during review against the pinned sources.
 
 \paragraph{Part II traces.} Provider plumbing was traced in the same pinned
 trees: the dedicated \codex{} Ollama and LM Studio crates, and \occ{}'s
@@ -238,9 +231,9 @@ the 2024 Ollama OpenAI-compatibility post~\citep{ollamaCompatDocs}, LM
 Studio's developer docs snapshotted via its public docs repository because
 the live site was unreachable from the study
 environment~\citep{lmstudioApiDocs}, and the llama.cpp server README at
-master~\citep{llamaCppServerDocs}. Part II was scoped as a briefing:
-extraction was anchored but not pre-registered as an experiment plan; its
-12 notes (3 codebase, 8 documentation, 1 context) carry its evidence.
+master~\citep{llamaCppServerDocs}. Part II was scoped as a briefing: its
+12 notes (3 codebase, 8 documentation, 1 context) carry its evidence, with
+every claim anchored the same way.
 The Part I extractions oriented Part II but were never cited for it: every
 Part II claim carries its own anchor.
 
@@ -311,8 +304,8 @@ Sections~\ref{sec:turnloop} to~\ref{sec:state}.}
 \begin{table}[t]
 \centering
 \small
-\caption{Summary comparison. Anchors: E1 to E4 are the trace experiment
-artifacts; notes are the per-component study notes
+\caption{Summary comparison. Anchors: E1 to E4 are the four trace
+extractions; notes are the per-component study notes
 (Section~\ref{sec:methods}). ``Undisclosed'' means no pinned source states
 the value.}
 \label{tab:summary}
@@ -1327,8 +1320,8 @@ rewrite, not a released version.
 agent was run, no API was called, no server served, and no code from the
 pinned repositories was executed. Statements about defaults and triggers
 describe code paths and documentation contracts, not observed runtime
-behavior. The validation runs re-check anchors but are smoke-test
-plumbing, not evidence about the systems. In Part II, the practical
+behavior. Anchors make each value checkable at the pinned commit, but
+checkability is not measurement. In Part II, the practical
 consequence is that server acceptance of agent request fields (tools
 JSON, parallel calls, reasoning fields) is the single largest uncheckable
 cell~\citep{codexRepo,lmstudioApiDocs}.
