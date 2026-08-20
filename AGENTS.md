@@ -53,7 +53,8 @@ the human disposes.
   human-only and lets `check_all.py` report a failing dossier audit as
   `WAIVED` once documented deviations are accepted. Fields documented
   inline in `shared/templates/study.yaml`.
-- `sources/registry.yaml`: one entry per source: `key`, `title`, `authors`,
+- `sources/registry.yaml`: top-level `sources:` list, one entry per source:
+  `key`, `title`, `authors`,
   `year`, `url`, `pdf`, `venue`, `tier` (`peer-reviewed`, `preprint`,
   `blog`, `codebase`, `docs`), `status` (`to-read`, `noted`, `rejected`),
   `notes_file`. For `tier: codebase` also: `repo` (key in

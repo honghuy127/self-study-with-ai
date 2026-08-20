@@ -91,7 +91,7 @@ provenance:
     - "Harness-study (Claude Code docs, teardown) snapshot paths are historical after that study's done-time cleanup; local copies live in its git history."
     - "Findings are bounded to the three pinned commits and the fetch-date snapshots; nothing generalizes to newer releases."
 
-entries:
+sources:
   # ---------------- codebase: codex (repo key: codex, commit af700180808c), Part I ----------------
   - key: codexTurnLoop
     title: "Codex: turn loop, thread manager, and turn state machine"

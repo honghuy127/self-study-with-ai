@@ -11,7 +11,7 @@ merged_from:           # provenance only; agents never edit
     - "2026-08_coding-agent-harnesses"   # done + cleaned 2026-08-20, all gates passed
     - "2026-08_open-source-model-compat" # was in review, unsigned, 2026-08-20
   merged_on: "2026-08-20"
-  note: "Gates reset for the combined deliverable: the integrated brief, report, and slides are new content and need fresh human approval. Original reviews preserved under reviews/ and both prior syntheses under notes/."
+  note: "Gates reset for the combined deliverable: the integrated brief, report, and slides are new content and need fresh human approval. Original reviews preserved under reviews/ and both prior syntheses under notes/. Repo audit 2026-08-21: human ratified the early shared/ merge (glossary terms and knowledge page) ahead of sign-off, and approved retroactive dossier creation with a fresh EVD id scheme."
 
 # Workflow gates. Agents refuse to pass until the human flips these by hand.
 gates:
