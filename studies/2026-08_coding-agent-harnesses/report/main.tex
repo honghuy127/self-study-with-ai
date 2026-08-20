@@ -1,0 +1,762 @@
+\documentclass{article}
+
+% NeurIPS 2025 style (vendored in neurips/neurips_2025.sty), preprint mode:
+% these are self-study reports, not conference submissions.
+\PassOptionsToPackage{numbers,sort&compress}{natbib}
+\usepackage[preprint]{neurips/neurips_2025}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+
+\newcommand{\codex}[0]{Codex}
+\newcommand{\occ}[0]{OpenCode}
+\newcommand{\ccc}[0]{Claude Code}
+
+\title{How Claude Code, Codex, and OpenCode Build Their Coding-Agent Harnesses:\\
+A Static Source-Trace Comparison}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We compare how three production coding agents, Claude Code, Codex, and
+OpenCode, implement the harness that turns a language model into a coding
+agent: the turn loop, the tool surface, context compaction, permission and
+sandbox policy, extensibility, configuration, session state, and interfaces.
+The Claude Code core is closed source, so we pin all three repositories,
+restrict the study to static source traces and official documentation
+snapshots, and pre-register four trace experiments. Every extracted constant
+and structure carries a file:line or snapshot-line anchor, and 300 anchors
+re-verify against the pinned commits in a validation pass. The three systems
+realize the same abstract turn loop with structurally different control
+flow: an abortable task state machine in \codex{}, a persistence-driven
+while loop in \occ{}, and docs-attested hook cadences in \ccc{}. Patch
+application converges, with \occ{} porting the \codex{} \path{apply_patch}
+format and selecting it by model ID. Safety postures diverge structurally:
+\codex{} pairs an OS sandbox with a Starlark rule engine, \occ{} runs an
+in-process ruleset with no OS sandbox in the pinned tree, and \ccc{}
+documents an OS sandbox scoped to Bash commands only. Compaction triggers
+are literal constants of different kinds, a fraction of the context window
+in \codex{} against a reserved buffer in \occ{}, while \ccc{} discloses no
+numeric threshold. All findings are bounded to the pinned commits
+(\path{af70018}, \path{d545d8f}, \path{c3d2e35}) and the documentation
+snapshots of 2026-08-20.
+\end{abstract}
+
+\section{Introduction}
+
+A coding agent is a loop: the model proposes, tools act on a repository,
+observations return, and the harness decides whether to continue. This
+decomposition has research pedigree. ReAct interleaves reasoning traces
+with environment actions and showed the combination beats either alone on
+question answering and interactive tasks~\citep{yao2023react}. Toolformer
+trained a model to emit, execute, and resume around API calls,
+establishing the interrupt-execute-resume protocol that every agent harness
+now re-implements in engineering form~\citep{schick2023toolformer}. SWE-agent
+demonstrated that the interface itself is a first-order factor: an
+agent-tailored computer interface with a guarded edit command and lint
+gating raised SWE-bench Lite resolution from 11.0\% (shell-only) to 18.0\%
+with GPT-4 Turbo, without changing the model~\citep{yang2024sweagent}.
+
+What the literature leaves open is how this interface layer is built in
+the shipping products that practitioners use. We study three of
+them, \ccc{}, \codex{}, and \occ{}, at pinned source versions, and ask four
+questions: what components make up a coding-agent harness; where the
+three systems genuinely differ; how each trades capability against safety;
+and what the closed \ccc{} core reveals through documentation, its plugin
+surface, and third-party teardowns.
+
+The \ccc{} core is closed source, and its pinned public checkout contains no
+harness code~\citep{claudeCodeSurface}. We therefore treat documentation
+snapshots as the evidence tier for that system, hold third-party teardowns
+to hedged context only, and mark closed-core internals as boundaries rather
+than findings. Contributions at the supported scope:
+
+\begin{itemize}
+  \item an eight-dimension decomposition of a coding-agent harness, grounded
+  in three pinned implementations and the framing literature
+  (Section~\ref{sec:components});
+  \item four pre-registered static-trace extractions, turn loops, tool
+  surfaces, safety policies, and compaction parameters, whose anchors all
+  re-verify at the pinned commits (Section~\ref{sec:methods},
+  Sections~\ref{sec:turnloop} to~\ref{sec:compaction});
+  \item a dimension-by-dimension comparison that separates genuine
+  structural differences from naming differences
+  (Sections~\ref{sec:extensibility} to~\ref{sec:convergence}).
+\end{itemize}
+
+\section{Background}
+\label{sec:background}
+
+\paragraph{The abstract loop.} ReAct frames agency as an interleave of
+thoughts, actions, and observations, and measured both its gains and its
+failure modes: grounded search cut hallucinated failures from 56\% (chain
+of thought) to 0\% of failures on HotpotQA, at the cost of a repetitive
+failure pattern in which the model re-generates its previous thoughts and
+actions~\citep{yao2023react}. Harness designers inherit both sides: a
+continuation condition, and a defense against loops.
+
+\paragraph{Tool calling as protocol.} Toolformer learns when to call a tool,
+with what arguments, and how to fold results back into prediction, and
+restricts decoding to at most one API call per input explicitly to prevent
+runaway tool loops~\citep{schick2023toolformer}. The same concern appears in
+all three harnesses as explicit machinery (Section~\ref{sec:turnloop}).
+
+\paragraph{The agent-computer interface.} SWE-agent ablated interface
+choices on SWE-bench Lite and found each one measurable: removing the edit
+command dropped resolution by 7.7 points, disabling linting dropped it by
+3.0 points, and an iterative search interface performed worse than no added
+search tools at all~\citep{yang2024sweagent}. Editing is where agents spend
+their failures: 51.7\% of instances had at least one failed edit, and the
+probability of eventual edit success dropped from 90.5\% to 57.2\% after a
+single failure~\citep{yang2024sweagent}. Guardrails trade flexibility for
+recovery, a tradeoff our three systems resolve differently
+(Sections~\ref{sec:tools},~\ref{sec:safety}).
+
+\section{Methods and Sources}
+\label{sec:methods}
+
+\paragraph{Design.} Descriptive static source-trace study. The units of
+analysis are literal code constructs at pinned commits and quoted
+documentation text at pinned snapshots. There is no behavioral measurement:
+no agent CLI was invoked, no live API was called, and no code from the
+pinned repositories was executed. The pinned checkouts were treated as
+read-only untrusted data.
+
+\paragraph{Pins and sources.} Three local checkouts were pinned on
+2026-08-19 at commits \path{af700180808cce2ce28a31aad0fbad4dc58b857a} (\codex{},
+Apache-2.0), \path{d545d8fba57283528db69281f59c803c646eb7e9} (\occ{}, MIT,
+\texttt{dev} branch), and \path{c3d2e35e554060b5a20ee6b28140fbdbd4eb0048}
+(\ccc{})~\citep{codexRepo,opencodeRepo,claudeCodeSurface}. Official
+documentation snapshots were fetched 2026-08-20; documentation sites are
+not version-pinned and can drift, so documentation claims cite the snapshot
+rather than a commit~\citep{claudeCodeHooksDocs,claudeCodeSubagentsDocs,%
+claudeCodePluginsDocs,claudeCodeMcpDocs,claudeCodeMemoryDocs,%
+claudeCodePermissionsDocs,claudeCodeSandboxingDocs,codexSandboxingDocs,%
+opencodeDocs,codexDocsRepo}. Evidence tiers: pinned code (primary for \codex{}
+and \occ{}), pinned plugin/example surface plus documentation snapshots
+(only tier available for the \ccc{} core), framing preprints
+(background), and third-party teardowns, \texttt{tier: blog}, admissible
+only for hedged contextual statements~\citep{minusXTeardown,agiflowInternals,%
+tenguDecoded}.
+
+\paragraph{Trace experiments.} Four experiments were frozen in a plan
+before any full extraction (EXP-PLAN-2026-08-19-v1): E1 turns loops, E2
+tool surfaces, E3 safety policies, E4 compaction parameters. Each produced
+markdown and JSON artifacts in which every stated value carries a
+\path{file:line} or snapshot-line anchor, plus a validation script that
+re-checks every anchor against the pinned sources. Results: 59/59 anchor
+checks for E1, 131/131 for E2, 75/75 for E3, 35/35 for E4
+(300 total); all three HEADs matched the pins at every validation. The
+validation runs are smoke-test plumbing, not scientific evidence; the
+extraction artifacts carry the findings. Twelve claims advanced to
+ANALYZED with supported evidential status (\texttt{CLM-E1-1a} through
+\texttt{CLM-E4-3a} in the study's claim ledger, each superseding its
+EXECUTED counterpart; after review, \texttt{CLM-E2-1a} was itself
+superseded by \texttt{CLM-E2-1b} correcting a registration count from 33
+to 32).
+
+\paragraph{Closed-core protocol.} The \ccc{} column is filled exclusively
+from documentation quotes and the pinned plugin/example surface. Where no
+pinned source states a value, the text says so explicitly and the gap is
+listed in Section~\ref{sec:limitations}. Blog-tier teardowns never fill a
+comparison cell on their own~\citep{claudeCodeSurface,agiflowInternals}.
+
+\section{Findings}
+
+\subsection{What makes a coding-agent harness}
+\label{sec:components}
+
+Cross-system, the harness decomposes into eight machinery dimensions, each
+independently implemented by all three systems: the turn loop; the tool
+surface and its file-edit protocol; context assembly and compaction;
+persistent memory files; permission and sandbox policy; extensibility
+(hooks, plugins, skills, subagents, MCP servers); configuration and model
+provider plumbing; and session state with durable storage and user-facing
+transports. Table~\ref{tab:summary} summarizes the matrix; the details
+follow per dimension.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Summary comparison. Anchors: E1 to E4 are the trace experiment
+artifacts; notes are the per-component study notes
+(Section~\ref{sec:methods}). ``Undisclosed'' means no pinned source states
+the value.}
+\label{tab:summary}
+\begin{tabular}{p{2.5cm}p{4.1cm}p{4.1cm}p{4.1cm}}
+\toprule
+Dimension & \codex{} (\path{af70018}) & \occ{} (\path{d545d8f}) & \ccc{} (docs + surface)\\
+\midrule
+Turn loop & abortable task state machine; 27-op dispatch; continuation bit \path{needs_follow_up} (E1, \path{codexTurnLoop}) & persistence-driven \path{while (true)} loop; step verdict \path{compact|stop|continue} (E1, \path{opencodeSessionLoop}) & closed core; hook cadences per session, per turn, per tool call (E1, hooks snapshot)\\
+Tools & 32 conditional registrations; \path{apply_patch} grammar; no read/glob/grep tools (E2, \path{codexToolsPatch}) & fixed 17-ID array; \path{apply_patch} port gated on \path{gpt-*} model IDs (E2, \path{opencodeTools}) & 12 built-ins named in docs; \path{ToolSearch} default-on (E2, hooks and MCP snapshots)\\
+Compaction & fraction trigger, 9/10 of 95\% window; explicit retention budgets (E4, \path{codexContextCompaction}) & reserved-buffer trigger, input limit minus a reservation defaulting to min(20{,}000, \path{maxOutputTokens}) tokens (E4, \path{opencodeContextCompaction}) & seams only; thresholds undisclosed (E4, hooks and memory snapshots)\\
+Safety & OS sandbox plus Starlark execpolicy, strictest-wins (E3, \path{codexSandboxPermissions}) & in-process ruleset only; no OS sandbox in tree (E3, \path{opencodePermissions}) & permission rules plus Bash-only OS sandbox (E3, permissions and sandboxing snapshots)\\
+Extensibility & hooks with content-hash trust; plugins as \path{<plugin>@<marketplace>} (\path{codexExtensibility}) & in-process TypeScript plugins; 7 built-in agents (\path{opencodeExtensibility}) & 31 hook events; 10-component plugins; subagent quotas (hooks, plugins, subagents docs)\\
+Config & 10 numeric precedence layers; trust-gated project config (\path{codexConfigProviders}) & 9 layers ending in MDM; runtime provider install (\path{opencodeConfigProviders}) & closed loader; managed settings documented as enforcement (memory, MCP docs)\\
+State & append-only JSONL plus repairable SQLite mirror (\path{codexStateRollout}) & event-sourced SQLite plus shadow-git snapshots (\path{opencodeStateSnapshots}) & undisclosed; subagent transcripts documented (subagents docs)\\
+Interfaces & every frontend is one JSON-RPC protocol client (\path{codexInterfaces}) & TUI consumes local HTTP server; ACP; 38 LSP servers (\path{opencodeInterfaces}) & CLI, IDE extensions, desktop app attested in docs (permissions docs)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Turn loops}
+\label{sec:turnloop}
+
+All three harnesses implement the same abstract loop and realize it
+structurally differently (Table~\ref{tab:turnloop}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Turn-loop structures at the pinned commits. \ccc{} values are
+docs-attested; its implementation values are undisclosed (closed core).}
+\label{tab:turnloop}
+\begin{tabular}{p{2.6cm}p{4.0cm}p{4.0cm}p{4.0cm}}
+\toprule
+Property & \codex{} & \occ{} & \ccc{} (docs)\\
+\midrule
+Realization & background Tokio task; \path{Submission} envelope; \path{Op} enum, 27 variants; loop exits on \path{Op::Shutdown} (\path{protocol.rs:543-698}) & \path{while (true)} over persisted message parts, \path{prompt.ts:1088} & closed; per-turn \path{UserPromptSubmit ... Stop/StopFailure} nesting per-tool-call \path{PreToolUse/PostToolUse} (hooks snapshot :20-24)\\
+Continuation & \path{needs_follow_up = model_needs_follow_up || has_pending_input}, \path{session/turn.rs:405} & exit needs non-\path{tool-calls} finish, no pending tool parts, assistant parented to last user message (\path{prompt.ts:1106-1130}) & undisclosed\\
+Step verdict & n/a (task-level: 3 \path{TaskKind} variants Regular, Review, Compact) & \path{compact|stop|continue}, \path{processor.ts:30} & undisclosed\\
+Abort & 4 \path{TurnAbortReason} variants; spawn preempts with \path{Replaced} (\path{tasks/mod.rs:279-288}) & abort routes; denied permissions break the loop unless an experimental flag is set & undisclosed\\
+Anti-loop & 8-variant \path{NotSubmittedReason} steering rejections (\path{turn_input.rs:182-208}) & \path{DOOM_LOOP_THRESHOLD = 3} byte-identical calls raise a permission ask (\path{processor.ts:29}) & stop hooks capped after 8 consecutive blocks (hooks snapshot :2397)\\
+Retry and caps & n/a at loop level & \path{RETRY_MAX_RETRIES = 5}, initial delay 2000 ms, backoff factor 2 (\path{retry.ts:26-31}); per-agent \path{steps} cap is a soft guardrail & undisclosed; docs cap agent hooks at 50 turns (hooks snapshot)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\codex{} models a turn as an abortable task inside a state machine: inputs
+arrive as \path{Submission} envelopes whose \path{Op} enum has exactly 27
+variants at the pinned commit; any new task preempts a running one with
+\path{TurnAbortReason::Replaced}; and the sampling loop continues exactly
+while \path{needs_follow_up = model_needs_follow_up || has_pending_input},
+where the model-side bit is set by queued tool calls, by tool errors marked
+\path{RespondToModel}, and by completed responses that did not end the
+turn~\citep{codexRepo}. Mid-turn, a rollover gate runs automatic compaction
+before continuing (Section~\ref{sec:compaction}). Steering an active turn is
+itself a typed decision with an 8-variant rejection taxonomy; accepted
+replies mean only that the core accepted the input for processing, not that
+it will act on it~\citep{codexRepo}.
+
+\occ{} is persistence-driven: the loop condition is recomputed each
+iteration from stored message parts, not from in-memory step state. Exiting
+requires all of a non-\path{tool-calls} finish reason, no pending tool
+parts, and the last assistant message parented to the last user message; the
+exit-condition comment explains the redundancy as defense against providers
+that return \path{stop} while the message still contains tool
+calls~\citep{opencodeRepo}. Each step inside the loop returns one of three
+verdicts, \path{compact}, \path{stop}, or \path{continue}; a repeated
+identical tool call (three times, byte-identical serialized input) raises a
+\path{doom_loop} permission ask whose default action is itself
+\path{ask}~\citep{opencodeRepo}.
+
+\ccc{} exposes no loop code. The hook reference documents three event
+cadences that attest the loop's seam structure: once per session, once per
+turn, and on every tool call inside the agentic loop, and states that a
+blocking stop hook is overridden after 8 consecutive blocks~\citep{%
+claudeCodeHooksDocs}. The continuation condition, any step cap, and the
+retry policy are not documented in the pinned snapshots
+(Section~\ref{sec:limitations}).
+
+\subsection{Tool surfaces and patch application}
+\label{sec:tools}
+
+The tool shapes overlap (one shell path, at least one edit path, search,
+delegation), but the registration policy and the edit protocol differ
+(Table~\ref{tab:tools}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Tool surfaces. \codex{} and \occ{} cells are code-anchored; \ccc{}
+cells are docs-attested or attested by the pinned plugin surface (closed
+core). Undisclosed cells have no pinned source.}
+\label{tab:tools}
+\begin{tabular}{p{2.2cm}p{4.2cm}p{4.2cm}p{4.2cm}}
+\toprule
+Shape & \codex{} & \occ{} & \ccc{} (docs/surface)\\
+\midrule
+Shell & \path{shell_command} (legacy) or \path{exec_command} + \path{write_stdin} (unified pty), chosen by shell tool type & \path{bash} & \path{Bash}, plus \path{PowerShell} (hooks snapshot :1513)\\
+File edit & \path{apply_patch}, freeform string parsed by a 19-line Lark grammar & \path{edit} (9-stage replacer cascade, similarity 0.65) and \path{write}; \path{apply_patch} port & \path{Edit}, \path{Write}, \path{MultiEdit}, \path{NotebookEdit} (surface attestations)\\
+Patch-vs-edit choice & gated on \path{model_info.apply_patch_tool_type} & \path{apply_patch} replaces \path{edit}/\path{write} for \path{gpt-*} except \path{gpt-4}/\path{oss} (\path{registry.ts:296-300}) & undisclosed\\
+Read/search & no dedicated tools; shell carries read and search; \path{view_image} for images & \path{read}, \path{glob}, \path{grep} & \path{Read}, \path{Glob}, \path{Grep} (hooks snapshot :1513)\\
+Delegation & 6 v2 agent tools (\path{spawn_agent} ... \path{list_agents}) or 5 v1 tools, feature-gated & \path{task} & \path{Agent} (docs), \path{Task} (surface); \path{SubagentStart/Stop} hook events\\
+Planning & \path{update_plan} behind config & \path{plan_exit} behind experimental flags & \path{ExitPlanMode} (hooks snapshot :1513)\\
+Discovery & \path{tool_search} registered only when a deferred searchable tool exists & none builtin & \path{ToolSearch} enabled by default; doubles as the MCP wait point (MCP snapshot :279,:310)\\
+Context tooling & \path{new_context} and \path{get_context_remaining} behind a feature gate & session-managed compaction, no model-visible tool & no model-visible tool attested; \path{PreCompact/PostCompact} hook seams\\
+Shell defaults & 10 s timeout, 1 MiB output cap, 10{,}000 event deltas per call; unified exec: 10 s yield default clamped at 30 s, 300 s background, 64 processes & truncation via \path{tool/truncate.ts}; numeric caps outside E2 scope & Bash sandbox scope is Bash-only (surface); numeric defaults undisclosed\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\codex{} exposes the widest conditional surface. Tool registration happens
+per turn: 32 handler-to-tool-name mappings, each with an explicit condition
+(feature gates, model capabilities, or the presence of other
+tools)~\citep{codexRepo}. \path{apply_patch} is a grammar-constrained
+freeform tool, parsed by a 19-line Lark grammar, and is registered only when
+the model's \path{apply_patch_tool_type} says so. \codex{} has no dedicated
+read, glob, or grep tool in the extracted registry; file inspection is
+delegated to the shell tools~\citep{codexRepo}. Shell defaults are
+explicit: a 10 s timeout, a 1 MiB output cap, and 10{,}000 output
+event deltas per call.
+
+\occ{} ships a fixed ordered array of 17 tool IDs and makes one structural
+swap: for model IDs containing \path{gpt-}, except \path{gpt-4} and
+\path{oss}, \path{apply_patch} replaces \path{edit} and
+\path{write}~\citep{opencodeRepo}. The swap exists because \occ{} ports the
+\codex{} patch format directly; the port's comment reads ``Core types
+matching the Rust implementation'' (\path{patch/index.ts:12}). The
+\path{edit} tool itself falls back through an ordered 9-stage replacer
+cascade with Levenshtein similarity thresholds of 0.65, an engineering
+response to the same fragility SWE-agent measured, where edit success drops
+sharply after one failed edit~\citep{yang2024sweagent,opencodeRepo}.
+
+\ccc{}'s inventory is attestable only through documentation and the pinned
+surface. The hooks snapshot names 12 built-in tools plus MCP tools; the
+pinned plugin and example surface attests 8 more names (LS, NotebookRead,
+TodoWrite, KillShell, BashOutput, Task, MultiEdit, NotebookEdit), and the
+complete closed-core registry remains open~\citep{claudeCodeHooksDocs,%
+claudeCodeSurface}. Tool discovery is implemented differently where it
+exists: \codex{} registers \path{tool_search} only when a deferred
+searchable tool exists, while \ccc{} documents \path{ToolSearch} as enabled
+by default and as the point where the harness waits for MCP
+connections~\citep{codexRepo,claudeCodeMcpDocs}. Third-party teardowns
+assert a larger inventory (49 tools in one binary analysis) and a tool-tier
+design (low, medium, high level), but these are unverified blog-tier
+observations~\citep{tenguDecoded,minusXTeardown}.
+
+\subsection{Context compaction}
+\label{sec:compaction}
+
+Both open systems trigger compaction at literal constants, and the
+constants are of different kinds (Table~\ref{tab:compaction}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Compaction parameters at the pinned commits. \ccc{} exposes the
+compaction lifecycle at hook seams but discloses no numeric thresholds in
+the pinned snapshot set.}
+\label{tab:compaction}
+\begin{tabular}{p{2.6cm}p{4.0cm}p{4.0cm}p{4.0cm}}
+\toprule
+Parameter & \codex{} & \occ{} & \ccc{} (docs)\\
+\midrule
+Trigger style & fractional & reserved buffer & undisclosed\\
+Threshold & 9/10 of the resolved context window, capped by config (\path{openai_models.rs:488-499}) & count reaches input limit minus a reservation defaulting to min(20{,}000, \path{maxOutputTokens}) tokens (\path{overflow.ts:8-34}) & undisclosed\\
+Headroom & 95\% effective window default (\path{openai_models.rs:376-378}) & \texttt{COMPACTION\_BUFFER} = 20{,}000 tokens & undisclosed\\
+Summarization budget & user messages capped at 20{,}000 tokens locally (\path{compact.rs:57}) & pruning targets tool outputs, not user messages & undisclosed; root CLAUDE.md re-injected after \path{/compact}, nested files are not (memory snapshot :450-454)\\
+Retention & remote path retains 64{,}000 tokens, agent messages capped at 10{,}000, 2 retries (\path{compact_remote_v2.rs:65-69}) & preserve clamp(25\% of usable, 2{,}000 to 15{,}000) tokens of recent messages (\path{compaction.ts:115-118}) & undisclosed\\
+Pruning & summary replaces context; rollback op drops last N turns & keep last 40{,}000 tokens of tool output (\path{PRUNE_PROTECT}); minimum 20{,}000 before pruning; truncated outputs keep 2{,}000 chars; skill outputs never pruned & \path{PostCompact} input carries \path{compact_summary} (hooks docs)\\
+Mid-turn & rollover runs auto-compaction then continues (ContextLimit, MidTurn) & verdict \path{compact} appends a compaction part and continues (\path{processor.ts:679}) & blocking \path{PreCompact} during context-limit recovery surfaces the error (hooks docs)\\
+Token accounting & model-reported counts & chars/4 estimate for unknown counts (\path{token.ts:3-5}) & undisclosed\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\codex{} computes \path{auto_compact_token_limit} as nine tenths of the
+resolved context window (capped by any explicit configuration limit), on
+top of an effective window held at 95\% by default; local summarization
+caps the user messages fed to the summarizer at 20{,}000 tokens, and the
+remote summarization path retains a 64{,}000-token budget with
+10{,}000-token agent-message caps and 2 retries~\citep{codexRepo}. Mid-turn,
+the rollover gate runs auto-compaction and continues the loop, so
+compaction is a state transition inside the turn rather than between turns.
+
+\occ{} triggers on an absolute boundary: overflow fires when the running
+token count reaches the input limit minus a reserved buffer defaulting to
+min(20{,}000, \path{maxOutputTokens}) tokens~\citep{opencodeRepo}. Its
+budgets are pruning-shaped rather than summary-shaped: the pruner protects
+the last 40{,}000 tokens of tool output, requires at least 20{,}000 tokens
+before it runs, truncates outputs to 2{,}000 characters, never prunes skill
+tool outputs, and preserves recent messages clamped to 25\% of usable
+context within 2{,}000 to 15{,}000 tokens. Unknown token counts are
+estimated as characters divided by four.
+
+\ccc{} documents the lifecycle but not the numbers. The hook reference
+carries \path{PreCompact}/\path{PostCompact} events with \path{manual}/%
+\path{auto} trigger values, and states that a hook blocking compaction
+during context-limit recovery surfaces the underlying error; the memory
+documentation states that project-root CLAUDE.md survives \path{/compact}
+by being re-read and re-injected, while nested CLAUDE.md files do
+not~\citep{claudeCodeHooksDocs,claudeCodeMemoryDocs}. No numeric trigger,
+summarization budget, or retention policy appears anywhere in the pinned
+snapshot set (Section~\ref{sec:limitations}).
+
+\subsection{Permissions and sandboxing}
+\label{sec:safety}
+
+The three systems occupy three distinct points on the same axis
+(Table~\ref{tab:safety}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Safety policies. \ccc{} cells cite the pinned documentation
+snapshots and the pinned settings surface; enforcement internals are closed.
+Undisclosed cells have no pinned source.}
+\label{tab:safety}
+\begin{tabular}{p{2.6cm}p{4.0cm}p{4.0cm}p{4.0cm}}
+\toprule
+Dimension & \codex{} & \occ{} & \ccc{} (docs)\\
+\midrule
+Policy engine & Starlark rule engine over \path{.codexpolicy} files & in-process permission ruleset & permission rules plus OS sandbox as two documented layers (sandboxing snapshot :521-525)\\
+Decision model & \path{Decision = Allow|Prompt|Forbidden} (\path{decision.rs:9-16}) & \path{allow|ask|deny} per ruleset entry & six modes default, acceptEdits, plan, auto, dontAsk, bypassPermissions (permissions snapshot :56-63); rule order deny, ask, allow (:42)\\
+Aggregation & strictest-wins via \path{max()} over matched rules (\path{policy.rs:402-403}) & merge precedence not extracted & hook decisions \path{deny > defer > ask > allow} (hooks docs)\\
+Shipped content & no \path{.rules} file; only a 78-line example marked not recommended for actual use & default ruleset ships: \path{"*": allow}, doom loop ask, \path{question/plan_enter/plan_exit} deny, \path{*.env} ask (\path{agent.ts:119-136}) & rule syntax documented; no shipped default policy text in snapshots\\
+OS sandbox & Seatbelt (macOS, 122-line compiled policy), bubblewrap argv plus seccomp/landlock network filtering (Linux) & none found in the pinned tree & built-in Seatbelt (macOS); bubblewrap plus socat (Linux, WSL2); native Windows not supported (sandboxing snapshot)\\
+Sandbox scope & 4 \path{SandboxPolicy} variants; \path{WritableRoot} protects \path{.git}, \path{.agents}, \path{.codex} (\path{protocol/src/permissions.rs:24-33}) & n/a & Bash commands and their child processes only; Read/Edit/Write use the permission system directly (sandboxing snapshot :523,:658)\\
+Network control & seccomp denies ptrace/\path{io_uring}; restricted mode denies sockets except \path{AF_UNIX} & n/a & no domains pre-allowed; first connection prompts; allow for the session (sandboxing docs)\\
+Evasion resistance & 90-line banned list of amendable shell/runtime prefixes (\path{exec_policy.rs:58-147}) & bash arity normalization, longest-prefix-wins over about 130 entries, before rule matching & fixed wrapper stripping; argument-scoped allow patterns documented as fragile (permissions snapshot)\\
+Kill switches & enterprise \path{requirements.toml}; trust gating of project config & environment flags & \path{disableBypassPermissionsMode}/\path{disableAutoMode} (permissions snapshot :69)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\codex{} layers mechanisms: an OS sandbox per platform under a rule
+engine~\citep{codexRepo}. The execpolicy engine evaluates shell commands
+against Starlark rules with a three-valued decision and strictest-wins
+aggregation; no policy file ships with the repository, and the only example
+is explicitly labeled as not recommended for actual use, so the default
+behavior is approval-driven rather than policy-driven. The sandbox side is
+concrete: a 122-line Seatbelt base policy compiled into the binary on
+macOS, a bubblewrap argument builder plus a seccomp filter that
+unconditionally denies ptrace and \path{io_uring} socket families on
+Linux, and writable-root structures that deny writes to \path{.git},
+\path{.agents}, and \path{.codex} inside permitted roots. Hardening against
+command-prefix smuggling is a static 90-line list of amendable shell and
+runtime prefixes~\citep{codexRepo,codexSandboxingDocs}.
+
+\occ{} takes the opposite position: all safety is in-process. The pinned
+tree contains no OS sandbox machinery within the searched scope, and the
+default ruleset is permissive, \path{"*": allow}, with narrow friction at
+\path{.env} reads (ask), the doom-loop tripwire (ask), and external
+directories (ask), plus denials for the interaction and plan tools. Its
+answer to command smuggling is normalization: shell commands are reduced to
+a canonical arity via a longest-prefix-wins dictionary of about 130 entries
+before rules match~\citep{opencodeRepo,opencodeDocs}.
+
+\ccc{} documents a two-layer model. Permission rules are evaluated before
+any tool runs and apply to every tool, in the fixed order deny, then ask,
+then allow, with hook-level decisions ordered \path{deny > defer > ask >
+allow}; the OS sandbox ``applies only to Bash commands and their child
+processes'', while Read, Edit, and Write ``use the permission system
+directly''~\citep{claudeCodePermissionsDocs,claudeCodeSandboxingDocs,%
+claudeCodeHooksDocs}. Enforcement is platform-native (Seatbelt on macOS,
+bubblewrap plus socat on Linux and WSL2), no domain is pre-allowed at the
+network layer, and protected paths such as \path{.claude} settings,
+\path{.git/hooks}, and shell startup files deny writes even inside writable
+roots, with no per-path exemption. Enterprise kill switches disable
+\path{bypassPermissions} and \path{auto}
+modes~\citep{claudeCodePermissionsDocs,claudeCodeSandboxingDocs}. The
+pinned surface corroborates the Bash-only scoping and adds the reference
+confinement for untrusted work: a devcontainer whose firewall defaults to
+dropping egress outside an allowlist~\citep{claudeCodeSurface}. The
+implementation of these layers is closed (Section~\ref{sec:limitations}).
+
+\subsection{Extensibility}
+\label{sec:extensibility}
+
+All three expose hooks, plugins, skills, subagents or agents, and MCP
+integration, but the extension substrate differs more than the vocabulary
+(Table~\ref{tab:summary}, row Extensibility).
+
+\codex{} implements eleven hook events with regex matchers, and treats hook
+code as untrusted input: handlers are content-hashed and run only when
+marked managed or trusted~\citep{codexRepo}. \path{PreToolUse} hooks can
+block, inject context, or rewrite tool input, with exit code 2 as the block
+signal. Plugins are \path{<plugin>@<marketplace>} packages bundling skills,
+hooks, MCP configuration, and app manifests, discovered under
+\path{.codex-plugin}, \path{.claude-plugin}, and \path{.cursor-plugin}
+directories. The \ccc{} compatibility is explicit in code: plugin hook
+environments export \path{CLAUDE_PLUGIN_ROOT} and \path{CLAUDE_PLUGIN_DATA}
+``for OOTB compat with existing plugins''. Skills are \path{SKILL.md}
+documents with a 2\% of context window budget (capped at 10{,}000 tokens),
+and MCP servers are config-defined with per-step policy overlays and a
+protocol version pinned to 2025-06-18 by default.
+
+\occ{} makes plugins a first-class in-process runtime: a plugin is a
+TypeScript function returning hooks, dispatched sequentially in registration
+order, and ten of the eleven internal plugins are provider authentication
+bundles that exercise the same API~\citep{opencodeRepo}. It defines seven
+built-in agents, including dedicated \path{compaction}, \path{title}, and
+\path{summary} agents, with \path{explore} read-only by permission ruleset
+except for an explicit \path{bash: "allow"} (\path{agent.ts:205}). Its MCP
+client advertises only the \path{roots} capability, with sampling,
+elicitation, and tasks disabled. Skills are discovered from \occ{}
+directories,
+from the vendor-neutral \path{.agents} layout, and from the \ccc{}
+\path{.claude} layouts unless disabled, and every skill doubles as a slash
+command~\citep{opencodeRepo,opencodeDocs}. The trust surface is
+correspondingly wide: plugins receive the full SDK client in-process, and
+the SDK declares a \path{permission.ask} hook for which no trigger call
+site exists at this commit.
+
+\ccc{} documents the broadest lifecycle surface: 31 hook events with five
+handler types (command, HTTP, MCP tool, prompt, agent), hooks running in
+parallel, and agent hooks capped at 50 turns~\citep{claudeCodeHooksDocs}.
+Plugins carry up to ten component kinds, including monitors whose stdout
+lines are delivered as session notifications and \path{bin/} executables
+added to the Bash tool's path; two public marketplaces distribute them, one
+curated and one community-reviewed~\citep{claudeCodePluginsDocs}. Subagents
+are quota-controlled by documentation: a depth of three layers below the
+main conversation by default, a 20-concurrent cap, and forks that inherit
+the full conversation while remaining unable to spawn further
+forks~\citep{claudeCodeSubagentsDocs}. The pinned surface shows how far the
+hook contract delegates: an unbounded agent loop is implemented entirely in
+a shell script that blocks the Stop event repeatedly
+(the ralph-wiggum plugin), with no core changes~\citep{claudeCodeSurface}.
+
+\subsection{Configuration and providers}
+\label{sec:config}
+
+\codex{} ranks configuration provenance numerically across ten layers,
+from packaged defaults (-10) through MDM-delivered legacy managed config
+(50), merged by recursive table merge in which overlay layers replace
+non-table values wholesale and arrays never union across
+layers~\citep{codexRepo}. Two mechanisms couple configuration to safety:
+project-local configuration is disabled until the project is trusted, and a
+twelve-key denylist hard-blocks repository content from setting provider
+endpoints, model providers, notify, profile, realtime, and otel
+keys (\path{loader/mod.rs:71-84}), with the source comment that
+repo-local config should not choose where credentials are sent. The
+provider layer is deliberately narrow: exactly five built-in provider IDs
+(\path{openai}, \path{amazon-bedrock}, \path{amazon-bedrock-runtime},
+\path{ollama}, \path{lmstudio}), reserved against override except Bedrock,
+and a wire protocol pinned to the Responses API, with \path{chat} rejected
+as a hard error pointing to a migration discussion.
+
+\occ{} merges a layered precedence chain that ends in admin-managed config
+directories and a macOS MDM plist whose code comment states it overrides
+everything, with one asymmetry: inside
+\path{.opencode} directories the entry farther from the working directory
+wins, the opposite of plain-file precedence~\citep{opencodeRepo}. Its
+provider layer is the widest of the three: 24 bundled AI-SDK provider
+packages, runtime installation of arbitrary provider SDKs named in config,
+and a hosted model catalog fetched from models.opencode.ai and cached for
+five minutes. Configuration handling is capability-first: unknown keys are
+silently discarded, environment substitution falls back to empty without
+error, and an inline environment variable replaces the credentials file
+without schema validation.
+
+\ccc{}'s configuration loader is closed. The documented contract separates
+guidance from enforcement: CLAUDE.md files shape behavior but ``are not a
+hard enforcement layer'', while settings rules are enforced by the client
+regardless of model behavior; managed-policy memory files are
+non-excludable and load first~\citep{claudeCodeMemoryDocs}. MCP server
+definitions follow a five-level scope precedence (local, project, user,
+plugin, connector) in which duplicate entries are taken wholesale from the
+highest-precedence source without field merging, and project-scoped
+\path{.mcp.json} servers require approval in interactive sessions and are
+gated on workspace trust~\citep{claudeCodeMcpDocs}.
+
+\subsection{State, rollout, and interfaces}
+\label{sec:state}
+
+\codex{} persists each thread as append-only JSONL under
+\path{sessions/YYYY/MM/DD/}, flushing per record and retrying failed writes
+once, with a \path{session_meta} head record; six SQLite databases mirror
+thread metadata in WAL mode with a five-second busy timeout and are treated
+as repairable, with filesystem read-repair fallback; and cold rollouts are
+zstd-compressed after seven days~\citep{codexRepo}. Resume reconstructs the
+transcript by reverse-scanning to a compaction base and replaying forward,
+honoring rollbacks, which makes resume exact across compaction boundaries.
+Memories are generated offline from rollouts by a two-phase pipeline.
+
+\occ{} stores sessions in SQLite tables written exclusively by event
+projectors over a durable event log with per-aggregate contiguous sequence
+numbers, and separates file history from conversation history: snapshots
+are git tree objects in a shadow repository (never commits), captured
+before the stream and at every step boundary, capped by a 2 MiB untracked
+file limit, and reverted by checking out saved hashes in batches of 100
+files~\citep{opencodeRepo}. Sharing syncs sessions to a public URL with a
+1000 ms debounce. Non-git projects get no snapshot tracking.
+
+\ccc{} session storage is not inspectable. The documentation attests
+per-subagent transcript files under the project directory, retained across
+restarts within a session and deleted after a cleanup period that defaults
+to 30 days, and hook inputs carry a \path{transcript_path} documented as
+written asynchronously and possibly lagging the in-memory
+conversation~\citep{claudeCodeSubagentsDocs,claudeCodeHooksDocs}.
+
+Interfaces follow the same pattern of convergence with different
+substrates. \codex{} dispatches TUI, exec, MCP server, app server, and
+exec server from one binary, and every frontend is a client of one JSON-RPC
+protocol in which approvals are server-to-client requests, backpressure has
+a dedicated error code (-32001), and headless exec refuses to run outside a
+git repository unless \path{--skip-git-repo-check} or the documented
+bypass is set (\path{exec/src/lib.rs:799-805})~\citep{codexRepo}. \occ{}
+runs the TUI against a local HTTP server exposing the full surface
+(prompt, summarize, fork, abort, share, revert), implements the Agent
+Client Protocol with one authentication method, and wires 38 built-in LSP
+servers whose severity-one diagnostics are fed back into edit tool
+outputs with the prefix ``LSP errors detected in this file, please
+fix:''~\citep{opencodeRepo}. \ccc{}'s documentation attests CLI, IDE
+extension, and desktop surfaces and a command-line MCP integration with
+four transports; the reference deployment for untrusted work is a
+firewalled devcontainer~\citep{claudeCodePermissionsDocs,%
+claudeCodeMcpDocs,claudeCodeSurface}.
+
+\subsection{Convergence and divergence}
+\label{sec:convergence}
+
+The evidence points to one shared architecture with three engineering
+cultures.
+
+\paragraph{Convergence.} (1) All three implement the abstract
+prompt-sample-execute-continue loop and all three encode an explicit
+anti-loop defense (rejection taxonomy; identical-call tripwire; stop-hook
+cap). (2) The patch format is converging across vendors: \occ{} ports the
+\codex{} \path{apply_patch} format verbatim in type names and selects it
+for OpenAI model IDs, evidence of cross-harness borrowing at the protocol
+level. (3) Extension vocabularies are converging on the \ccc{} design:
+\codex{} exports \path{CLAUDE_PLUGIN_ROOT} compatibility variables and
+discovers \path{.claude-plugin} manifests, and \occ{} reads \path{.claude}
+skill layouts and CLAUDE.md files as fallbacks. (4) MCP is the shared
+external-tool boundary in all three, with \codex{} exposing itself as an
+MCP server (\path{codex} and \path{codex-reply} tools), and both open
+systems naming MCP tools by server-prefixed identifiers. (5) All three
+gate dangerous defaults behind enterprise layers (managed settings,
+\path{requirements.toml}, MDM plists).
+
+\paragraph{Genuine divergence.} (1) Control flow: task state machine
+against persistence-driven loop against an undisclosed closed loop.
+(2) Tool registration: conditional per-turn registration against a fixed
+array against a partly documented inventory. (3) Safety substrate: OS
+sandbox plus rule engine against in-process rules only against a Bash-scoped
+OS sandbox plus permission layer. (4) Compaction triggers: fractional
+window against reserved buffer against undisclosed. (5) State: JSONL-first
+with a repairable SQL mirror against SQL-event-first with shadow-git file
+history against undisclosed. (6) Interface philosophy: one protocol for
+every frontend against a local HTTP server consumed by every frontend
+against documented-only surfaces. Naming differences (hooks, skills,
+agents/subagents, plugins) overlay these structural differences rather than
+masking them.
+
+\section{Related Work}
+\label{sec:related}
+
+Organized by comparison dimension.
+
+\paragraph{Loop control and tool protocols.} ReAct established interleaved
+reasoning and acting as the canonical agent loop and measured its
+hallucination and repetition failure modes~\citep{yao2023react}; Toolformer
+learned the tool-call emission protocol and constrained decoding to avoid
+tool-call loops~\citep{schick2023toolformer}. The studied harnesses move
+both concerns from prompting into machinery: typed rejection taxonomies,
+identical-call tripwires, and stop-hook caps are engineering versions of
+the same defenses.
+
+\paragraph{Agent-computer interfaces and editing.} SWE-agent showed
+interface design moves coding-agent performance: a guarded edit command and
+lint gating each contributed measurable gains, while an iterative search
+interface hurt~\citep{yang2024sweagent}. Our tool-surface findings extend
+this from benchmark scaffolds to shipping products: all three systems
+converge on structured edit protocols (grammar-parsed patches, staged
+fuzzy replacers, documented edit tools), consistent with SWE-agent's
+evidence that free-form shell editing is the failure-prone baseline.
+
+\paragraph{Safety for tool-using agents.} ReAct's ethics statement limited
+its action space to benign websites precisely because acting on real
+environments is dangerous~\citep{yao2023react}; SWE-agent used Docker
+containers with no permission model~\citep{yang2024sweagent}. The three
+harnesses represent the next stage: per-command policy engines with OS
+sandboxing, in-process permission rulesets, and layered permission-plus-
+sandbox models with documented protected paths. Within our scope, none of
+the three pinned sources cross-references the academic literature in its
+policy design; the connection above is ours, grounded in the shared
+failure patterns each mechanism addresses.
+
+\paragraph{Third-party teardowns.} Three teardowns of \ccc{} were reviewed
+and held to contextual use only: an intercepted-log teardown reporting
+system-prompt and tool-token sizes and small-model routing
+(minusXTeardown~\citep{minusXTeardown}), a binary-analysis catalog of
+feature flags, telemetry events, and tools~\citep{tenguDecoded}, and a
+trace-based breakdown of extension layers whose memory-delivery shape is
+cross-verified by official documentation~\citep{agiflowInternals}. None
+carries a comparison cell; their assertions are unverified against any
+primary source.
+
+\paragraph{Distinction from nearest work.} The nearest verifiable work is
+the SWE-agent interface study, which ablates interface choices for one
+external agent on one benchmark~\citep{yang2024sweagent}. This study
+instead traces three closed-loop products at the implementation level,
+covers eight machinery dimensions, and treats a closed-source system with a
+documentation-tier protocol. Its bounds are correspondingly different:
+no behavior was executed, and every claim is version-pinned.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\paragraph{Version bounds.} Every code claim is bounded to the three pinned
+commits; every documentation claim to snapshots fetched 2026-08-20 from
+sites that are not version-pinned and can drift. Nothing generalizes to
+newer releases, and the \occ{} pin is the \texttt{dev} branch of the
+rewrite, not a released version.
+
+\paragraph{No behavior was measured.} The study is static by design. No
+agent was run, no API was called, and no code from the pinned repositories
+was executed. Statements about defaults and triggers describe code paths
+and documentation contracts, not observed runtime behavior. The validation
+runs re-check anchors but are smoke-test plumbing, not evidence about the
+systems.
+
+\paragraph{Closed core.} The \ccc{} turn loop, tool registry, compaction
+thresholds, session storage, permission-enforcement internals, and sandbox
+mechanisms are not established by this study; all are documented contracts
+or surface attestations. The pinned documentation set also lacks the
+compaction-survival page referenced by the memory docs, so the survival
+rules beyond root CLAUDE.md are incomplete. Documentation describes
+intended behavior, not necessarily shipped behavior on every platform.
+
+\paragraph{Teardown tier.} Third-party teardowns are unverified claims
+about captures and binaries this study cannot inspect; they appear only as
+hedged context (Section~\ref{sec:tools}). One blog assertion (the
+memory-delivery shape) is corroborated by official documentation, and only
+that overlap is treated as reinforced.
+
+\paragraph{Open cells.} Where no pinned source states a value, the
+dimensions above say so explicitly: \ccc{} compaction thresholds, loop
+implementation, full tool registry, and provider plumbing; \occ{}
+permission merge precedence and runtime enforcement of several schema
+defaults; \codex{} remote model-catalog and enterprise cloud-bundle
+contents, which are server-side state. These are evidence gaps, not
+findings of absence, except where stated (for example, the absence of an OS
+sandbox in the pinned \occ{} tree is a searched-scope result).
+
+\paragraph{Negative scope for Codex.} The extracted \codex{} registry has
+no dedicated read/glob/grep tools within the searched components; absence
+is bounded to the extraction scope and the pinned commit.
+
+\section{Conclusion}
+
+Three production harnesses implement the same abstract coding-agent loop
+and diverge at every level below it. \codex{} builds a typed state machine
+over abortable tasks, wraps shell access in an OS sandbox plus a rule
+engine, and persists threads as inspectable JSONL with an exact replay
+path. \occ{} builds a persistence-driven loop over a fixed tool array,
+keeps all policy in-process, and invests its safety budget in recoverable
+state, per-step snapshots with revert, rather than prevention. \ccc{}
+presents a documentation-defined contract over a closed core: a wide hook
+lifecycle, a two-layer permission model with a Bash-only OS sandbox, and an
+extension surface whose stop-hook escape hatches already implement
+autonomous loops outside the core. For a reader choosing or building a
+harness, the comparison indicates that the abstraction is settled (loop,
+tools, compaction, permissions, extensions) while the engineering culture
+is not:
+trust boundary placement, state durability, and interface unification are
+the axes on which these systems genuinely differ. All conclusions are
+bounded to the pinned commits and documentation snapshots named in
+Section~\ref{sec:methods}.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

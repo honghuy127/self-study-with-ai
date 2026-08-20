@@ -1,0 +1,25 @@
+# Local source repositories pinned for this study. Written by tools/pin_repos.py.
+# Each entry records the exact checkout every codebase note must be anchored to.
+pinned_at: "2026-08-19T15:56:51+00:00"
+repos:
+  - key: claude-code
+    path: "/Users/hong.huy.nguyen/Work/Code/references/coding-agents/claude-code"
+    remote: "https://github.com/anthropics/claude-code"
+    branch: "main"
+    commit: "c3d2e35e554060b5a20ee6b28140fbdbd4eb0048"
+    dirty: false
+    pinned_at: "2026-08-19T15:56:51+00:00"
+  - key: codex
+    path: "/Users/hong.huy.nguyen/Work/Code/references/coding-agents/codex"
+    remote: "https://github.com/openai/codex"
+    branch: "main"
+    commit: "af700180808cce2ce28a31aad0fbad4dc58b857a"
+    dirty: false
+    pinned_at: "2026-08-19T15:56:51+00:00"
+  - key: opencode
+    path: "/Users/hong.huy.nguyen/Work/Code/references/coding-agents/opencode"
+    remote: "https://github.com/anomalyco/opencode"
+    branch: "dev"
+    commit: "d545d8fba57283528db69281f59c803c646eb7e9"
+    dirty: false
+    pinned_at: "2026-08-19T15:56:51+00:00"

@@ -1,0 +1,102 @@
+% Slides for a self-study report. Build with tools/build_slides.sh <study-dir>.
+% Citations come from report/refs.bib via BIBINPUTS set by build_slides.sh.
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[numbers]{natbib}
+
+\title{How Claude Code, Codex, and OpenCode Build Their Coding-Agent Harnesses}
+\subtitle{A static source-trace comparison at pinned commits}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Question and scope}
+  \textbf{Primary question.} How do Claude Code, Codex, and OpenCode
+  implement their coding-agent harnesses, and where do they genuinely
+  differ?
+
+  \textbf{Dimensions.} Turn loop, tool surface and editing, context
+  compaction, permissions and sandboxing, extensibility, configuration,
+  session state, interfaces.
+
+  \textbf{Method and pins (static traces only, nothing executed).}
+  \begin{itemize}
+    \item Codex~\citep{codexRepo} at \texttt{af70018}, OpenCode~\citep{%
+      opencodeRepo} at \texttt{d545d8f}, Claude Code public
+      surface~\citep{claudeCodeSurface} at \texttt{c3d2e35}; pins of
+      2026-08-19.
+    \item Claude Code core is closed source: docs snapshots
+      (2026-08-20)~\citep{claudeCodeHooksDocs,claudeCodePermissionsDocs,%
+      claudeCodeSandboxingDocs} are its evidence tier; teardowns are hedged
+      context only~\citep{minusXTeardown,agiflowInternals,tenguDecoded}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Key findings}
+  \begin{enumerate}
+    \item One abstract loop, three realizations: an abortable task state
+      machine in Codex (\path{Op}, 27 variants; continuation bit
+      \path{needs_follow_up}) against a persistence-driven
+      \path{while (true)} loop in OpenCode (verdict
+      \path{compact|stop|continue}) against docs-attested hook cadences in
+      Claude Code (stop-hook cap after 8 blocks)~\citep{codexRepo,%
+      opencodeRepo,claudeCodeHooksDocs}.
+    \item Patch formats converge: OpenCode ports the Codex \path{apply_patch}
+      grammar (``Core types matching the Rust implementation'') and selects
+      it for \path{gpt-*} model IDs; Codex has no read/glob/grep tools of
+      its own in the extracted registry~\citep{codexRepo,opencodeRepo}.
+    \item Safety architectures diverge: OS sandbox plus Starlark rule engine
+      in Codex; in-process ruleset only in OpenCode (no OS sandbox in the
+      pinned tree); Bash-only OS sandbox plus permission layer in Claude
+      Code~\citep{codexRepo,opencodeRepo,claudeCodeSandboxingDocs}.
+    \item Compaction triggers are literal but of different kinds: 9/10 of a
+      95\% window (Codex) versus input limit minus a reservation defaulting
+      to min(20{,}000, \path{maxOutputTokens}) tokens
+      (OpenCode); Claude Code publishes no threshold~\citep{codexRepo,%
+      opencodeRepo,claudeCodeMemoryDocs}.
+    \item Extension vocabularies converge on the Claude Code design: Codex
+      exports \path{CLAUDE_PLUGIN_ROOT} compatibility and discovers
+      \path{.claude-plugin}; OpenCode reads \path{.claude} skill layouts~\citep{codexRepo,opencodeRepo}.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Evidence and limitations}
+  \textbf{Evidence.}
+  \begin{itemize}
+    \item Four pre-registered trace experiments; 300 anchors re-verified at
+      the pinned commits (59/59, 131/131, 75/75, 35/35 checks pass).
+    \item Framing grounded in ReAct, Toolformer, and SWE-agent~\citep{yao2023react,schick2023toolformer,yang2024sweagent}; SWE-agent
+      measured interface effects on SWE-bench Lite (11.0\% shell-only to
+      18.0\% with the agent interface, GPT-4 Turbo).
+  \end{itemize}
+  \textbf{Limitations.}
+  \begin{itemize}
+    \item Version-bound: three pinned commits and docs snapshots of
+      2026-08-20; no generalization to other releases.
+    \item No behavior measured: nothing was executed; validation runs are
+      plumbing, not system evidence.
+    \item Closed core: Claude Code loop implementation, compaction numbers,
+      session storage, and enforcement internals remain open questions~\citep{claudeCodeSurface}.
+    \item Teardowns (token counts, flag catalogs) are unverified blog-tier
+      assertions and appear only as hedged context.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{References}
+  \footnotesize
+  \bibliographystyle{plainnat}
+  \bibliography{refs}
+\end{frame}
+
+\end{document}

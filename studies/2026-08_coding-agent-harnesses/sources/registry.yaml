@@ -1,0 +1,455 @@
+# sources/registry.yaml for study 2026-08_coding-agent-harnesses.
+# Schema per AGENTS.md Contracts: key, title, authors, year, url, pdf, venue,
+# tier (peer-reviewed | preprint | blog | codebase | docs), status
+# (to-read | noted | rejected), notes_file. Codebase entries add repo (key in
+# sources/repos.yaml) and component (directories/files covered).
+#
+# All evidence is recorded in .research/evidence.jsonl; IDs below map to the
+# citation_key field there (EVD-004 onward).
+
+provenance:
+  research_questions:
+    - "RQ1 (primary): How do Claude Code, Codex, and OpenCode implement their coding-agent harnesses, and where do they genuinely differ?"
+    - "RQ2: What components make up a coding-agent harness in general (turn loop, tools, context management, permissions, extensibility)?"
+    - "RQ3: How does each system trade capability against safety in shell and file access?"
+    - "RQ4: What does Claude Code's closed core reveal through its docs, plugin surface, and third-party teardowns?"
+  review_mode: "Orientation scan plus component inventory. Not a systematic review; coverage is scoped and dated, never exhaustive."
+  evidence_cutoff: "2026-08-20"
+  scope:
+    - "Primary code: three pinned local checkouts recorded in sources/repos.yaml (claude-code @ c3d2e35, codex @ af70018, opencode @ d545d8fb). Codebase entries cover eight brief dimensions: turn loop; context/compaction; tools & apply-patch; permissions/sandboxing; extensibility (MCP/plugins/hooks/subagents/skills); config/providers; state/rollout/session persistence; interfaces (TUI/ACP/LSP)."
+    - "Official docs for all three systems, one entry per docs area relevant to the dimensions."
+    - "Framing preprints: ReAct, SWE-agent/SWE-bench, Toolformer."
+    - "Third-party Claude Code teardowns, tier: blog, max 3, usable only for hedged contextual claims."
+  queries:
+    - date: "2026-08-19"
+      query: "Repo pinning (pre-established): tools/pin_repos.py pinned claude-code, codex, opencode clones; EVD-001..EVD-003."
+    - date: "2026-08-20"
+      query: "Local checkout inventory (artifact-checked): git log -1 on each clone confirmed pinned commits and clean trees; ls/glob over codex-rs/ crates, codex-rs/core/src/, packages/opencode/src/, packages/*, claude-code plugins//examples//scripts//Script/. Every component path below verified to exist at the pinned commit."
+    - date: "2026-08-20"
+      query: "arXiv abs pages 2210.03629, 2405.15793, 2302.04761 (webfetch). Exact titles, authors, versions, DataCite DOIs recorded from the canonical pages; abstracts checked. PDFs downloaded to sources/pdfs/."
+    - date: "2026-08-20"
+      query: "Decision: do not commit the local PDF binaries. The framing-preprint entries now carry the canonical arXiv PDF URL in the `pdf` field, and the local evidence artifact is the pdftotext snapshot in sources/docs/ (cited by `snapshot`). The previously downloaded PDFs under sources/pdfs/ were removed from the working tree."
+    - date: "2026-08-20"
+      query: "Official docs verification (webfetch/curl): github.com/openai/codex/tree/main/docs (directory listing matches pinned docs/); developers.openai.com/codex/cli and /codex/sandboxing; opencode.ai/docs; docs.claude.com/en/docs/claude-code/{hooks,sub-agents,plugins,mcp,memory} (each 200, redirects to code.claude.com/docs/en/<slug>); code.claude.com/docs/en/{permissions,settings,sandboxing} (.md endpoints fetched)."
+    - date: "2026-08-20"
+      query: "Web search for Claude Code teardowns: DuckDuckGo HTML '\"claude code\" internals reverse engineering system prompt teardown'; follow-ups: minusx.ai blog page, github.com/wtfwhs/tengu-decoded README (raw.githubusercontent), agiflow.io blog page, simonwillison.net search (chat-prompt posts, excluded), kotrotsos.medium.com (403, excluded)."
+  inclusion:
+    - "Codebase components at component granularity; every listed path verified present at the pinned commit."
+    - "Two extra codebase entries added beyond the candidate list to cover the config/providers dimension: codex-config-providers and opencode-config-providers. opencode-permissions additionally folds in packages/codemode (confined interpreter) and worktree sandboxes because that is where the pinned tree implements its isolation."
+    - "Docs entries limited to harness-relevant areas: codex repo docs directory + official docs-site sandboxing page; one opencode docs entry covering the full docs site (config, permissions, agents, tools, plugins, MCP, ACP, LSP, skills); six Claude Code docs areas (hooks, sub-agents, plugins, MCP, memory, permissions) plus sandboxing. Claude Code settings content is covered by the permissions entry note and by examples/settings in the pinned repo."
+    - "Three blog-tier teardowns restricted to analysis of publicly distributed artifacts or intercepted network traffic; each may only support hedged contextual claims about the closed core."
+  exclusion:
+    - "Teardowns built on the reported 2026-03-31 Claude Code source-map leak (github.com/anderson2805/claude-code-internals; victorantos.com 'Claude Code Internals' post; ai.plainenglish.io leak write-up): excluded as leaked-source material, not a permitted surface under the human-approved decision; the brief restricts claims to verifiable artifacts."
+    - "kotrotsos.medium.com 'Claude Code Internals' 15-part series: found via search snippet but the page returns 403 to both curl and webfetch; not verifiable against the canonical page, excluded."
+    - "cc.deeptoai.com Claude Code reverse-analysis guide: unclear provenance and authorship, excluded."
+    - "Simon Willison's system-prompt posts: concern Claude chat system prompts, not Claude Code harness machinery; out of RQ scope, excluded (tag page logged in queries)."
+    - "LLM capability benchmarks and model comparisons beyond the three framing preprints: out of scope per brief."
+    - "OpenAI API/product docs beyond the Codex CLI surface (Responses API, Agents SDK): out of scope; pages seen while verifying the Codex docs site were not registered."
+  ranking_rationale: >
+    Ranked against RQ1-RQ4. The 17 codebase entries are primary evidence for
+    RQ1-RQ3 (the only inspectable harness machinery) and are ordered so each of
+    the eight brief dimensions is covered per open system. The 10 docs entries
+    are primary evidence for RQ4 (Claude Code) and secondary corroboration for
+    Codex/OpenCode behavior. The 3 preprints frame RQ2 (what a coding agent is:
+    interleaved reasoning/acting, agent-computer interfaces, tool calling).
+    The 3 blog teardowns are context only for RQ4 and never bear strong claims.
+  coverage_limits:
+    - "[CLOSED] Claude Code core: turn loop, tool implementations, context compaction engine, session/rollout storage, and permission enforcement code are closed source. No codebase entries exist for these dimensions of claude-code; they are covered only by official docs, the plugin/example surface (claude-code-plugin-surface), and hedged blog-tier teardowns."
+    - "opencode permissions/sandboxing: the pinned tree contains no OS-level sandbox (no seatbelt/bubblewrap/landlock machinery found within searched scope). Isolation surface is: permission rulesets (packages/opencode/src/permission), git-worktree sandbox workspaces (packages/opencode/src/worktree, packages/schema/src/project.ts), and the confined codemode interpreter (packages/codemode). Recorded in the opencode-permissions component note."
+    - "Docs sites are not pinned: opencode.ai/docs and code.claude.com/docs reflect current versions (checked 2026-08-19/2026-08-20) and can drift from the pinned commits. Codex docs-site content (e.g., hooks) may describe features newer than pinned checkout af70018; docs-site claims must cite the page, and code claims must cite the pinned tree. The codex docs/ directory exists in the pinned checkout too, so its files can be cited at commit af70018."
+    - "Teardown search was a single query family on one engine plus known-candidate checks; additional teardowns may exist and are not claimed to be covered."
+    - "opencode checkout is the dev branch of anomalyco/opencode (TypeScript rewrite); older Go-era opencode architecture is out of scope."
+
+entries:
+  # ------------------------ codebase: codex (repo key: codex, commit af700180808c)
+  - key: codexTurnLoop
+    title: "Codex: turn loop, thread manager, and turn state machine"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexTurnLoop.md\"
+    repo: codex
+    component: "codex-rs/core/src/agent/ (mod.rs, control.rs, registry.rs, role.rs, builtins/explorer.toml, builtins/awaiter.toml); codex-rs/core/src/codex_thread.rs; codex-rs/core/src/thread_manager.rs; codex-rs/core/src/turn_metadata.rs; codex-rs/core/src/turn_diff_tracker.rs; codex-rs/core/src/turn_timing.rs; codex-rs/core/src/state/ (session.rs, turn.rs, service.rs, auto_compact_window.rs); codex-rs/core/src/tasks/ (regular.rs, lifecycle.rs, compact.rs, review.rs, user_shell.rs); codex-rs/core/src/session/; codex-rs/protocol/"
+  - key: codexContextCompaction
+    title: "Codex: context management and compaction"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexContextCompaction.md\"
+    repo: codex
+    component: "codex-rs/core/src/compact.rs, compact_remote.rs, compact_remote_v2.rs, compact_remote_v2_attempt.rs, compact_remote_request.rs, compact_remote_history.rs, compact_token_budget.rs, compact_model_fallback.rs; codex-rs/core/src/context_manager/ (history.rs, normalize.rs, updates.rs); codex-rs/core/src/context/ (instruction and reminder builders); codex-rs/context-fragments/"
+  - key: codexToolsPatch
+    title: "Codex: tool registry, shell tools, and apply-patch"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexToolsPatch.md\"
+    repo: codex
+    component: "codex-rs/apply-patch/; codex-rs/shell-command/; codex-rs/tools/; codex-rs/core/src/tools/ (registry.rs, router.rs, orchestrator.rs, handlers/, approvals.rs, sandboxing.rs, parallel.rs); codex-rs/core/src/apply_patch.rs; codex-rs/core/src/exec.rs; codex-rs/core/src/unified_exec/ (process_manager.rs); codex-rs/core/src/function_tool.rs; codex-rs/core/src/mcp_tool_call.rs"
+  - key: codexSandboxPermissions
+    title: "Codex: sandboxing, exec policy, process hardening, approvals"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexSandboxPermissions.md\"
+    repo: codex
+    component: "codex-rs/sandboxing/; codex-rs/linux-sandbox/; codex-rs/execpolicy/; codex-rs/process-hardening/; codex-rs/shell-escalation/; codex-rs/bwrap/; codex-rs/windows-sandbox-rs/; codex-rs/core/src/exec_policy.rs; codex-rs/core/src/sandboxing/mod.rs; codex-rs/core/src/guardian/ (auto-review policies); codex-rs/core/src/windows_sandbox.rs; codex-rs/core/src/network_policy_decision.rs"
+  - key: codexExtensibility
+    title: "Codex: extensibility (MCP server/client, hooks, skills, plugins)"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexExtensibility.md\"
+    repo: codex
+    component: "codex-rs/mcp-server/; codex-rs/rmcp-client/; codex-rs/hooks/ (schema + runtime); codex-rs/skills/; codex-rs/plugin/; codex-rs/core-plugins/; codex-rs/connectors/; codex-rs/core/src/plugins/; codex-rs/core/src/skills.rs; codex-rs/core/src/hook_runtime.rs; codex-rs/core/src/hook_mcp_executor.rs; codex-rs/core/src/mcp.rs; codex-rs/core/src/mcp_skill_dependencies.rs"
+  - key: codexStateRollout
+    title: "Codex: session state, rollout persistence, history, memories"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexStateRollout.md\"
+    repo: codex
+    component: "codex-rs/rollout/; codex-rs/rollout-trace/; codex-rs/history/; codex-rs/message-history/; codex-rs/state/; codex-rs/memories/ (read/, write/); codex-rs/thread-store/; codex-rs/agent-graph-store/; codex-rs/core/src/session_rollout_init_error.rs; codex-rs/core/src/thread_rollout_truncation.rs; codex-rs/core/src/state_db_bridge.rs"
+  - key: codexInterfaces
+    title: "Codex: interfaces (TUI, app-server, exec, CLI)"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexInterfaces.md\"
+    repo: codex
+    component: "codex-rs/tui/; codex-rs/app-server/; codex-rs/app-server-protocol/; codex-rs/app-server-daemon/; codex-rs/app-server-transport/; codex-rs/exec/; codex-rs/exec-server/; codex-rs/exec-server-protocol/; codex-rs/cli/; codex-rs/codex-mcp/"
+  - key: codexConfigProviders
+    title: "Codex: configuration and model providers"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/codexConfigProviders.md\"
+    repo: codex
+    component: "codex-rs/config/ (defaults.toml, examples/, src/); codex-rs/codex-home/; codex-rs/model-provider/; codex-rs/model-provider-info/; codex-rs/models-manager/; codex-rs/cloud-config/"
+
+  # ------------------------ codebase: opencode (repo key: opencode, commit d545d8fba572)
+  - key: opencodeSessionLoop
+    title: "OpenCode: session run loop, agent runtime, subagents"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodeSessionLoop.md\"
+    repo: opencode
+    component: "packages/opencode/src/session/ (processor.ts, run-state.ts, llm.ts, llm/, prompt.ts, prompt/, retry.ts, tools.ts, message.ts, message-v2.ts, revert.ts, status.ts); packages/opencode/src/agent/ (agent.ts, prompt/, subagent-permissions.ts)"
+  - key: opencodeContextCompaction
+    title: "OpenCode: context assembly, compaction, and summaries"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodeContextCompaction.md\"
+    repo: opencode
+    component: "packages/opencode/src/session/compaction.ts; packages/opencode/src/session/summary.ts; packages/opencode/src/session/overflow.ts; packages/opencode/src/session/reminders.ts; packages/opencode/src/session/instruction.ts; packages/opencode/src/session/system.ts; packages/opencode/src/session/todo.ts"
+  - key: opencodeTools
+    title: "OpenCode: tool registry and apply_patch/edit tools"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodeTools.md\"
+    repo: opencode
+    component: "packages/opencode/src/tool/ (tool.ts, registry.ts, schema.ts, apply_patch.ts, edit.ts, write.ts, read.ts, glob.ts, grep.ts, shell.ts, shell/, task.ts, skill.ts, lsp.ts, plan.ts, question.ts, webfetch.ts, websearch.ts, truncate.ts, truncation-dir.ts); packages/opencode/src/patch/"
+  - key: opencodePermissions
+    title: "OpenCode: permission rulesets and confinement (no OS sandbox found)"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodePermissions.md\"
+    repo: opencode
+    component: "packages/opencode/src/permission/ (index.ts, evaluate.ts, arity.ts); packages/opencode/src/worktree/index.ts (git-worktree sandbox workspaces); packages/schema/src/project.ts (Project.sandboxes); packages/codemode/ (confined JS interpreter: interpreter/runtime.ts, tool-runtime.ts, sandbox value types). Note: no OS-level sandbox (seatbelt/bubblewrap/landlock) machinery found in the pinned tree within searched scope [CLOSED for opencode OS-sandbox sub-dimension]"
+  - key: opencodeExtensibility
+    title: "OpenCode: plugins, MCP, skills, commands"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodeExtensibility.md\"
+    repo: opencode
+    component: "packages/opencode/src/plugin/ (index.ts, loader.ts, install.ts, meta.ts, shared.ts, provider bundles: openai/, github-copilot/, modal/, tui/, azure.ts, cloudflare.ts, ...); packages/opencode/src/mcp/ (index.ts, catalog.ts, auth.ts, oauth-provider.ts, oauth-callback.ts, browser.ts); packages/opencode/src/skill/ (index.ts, discovery.ts); packages/opencode/src/command/ (index.ts, template/); packages/plugin/ (plugin SDK: index.ts, tool.ts, shell.ts, tui.ts, v2/)"
+  - key: opencodeStateSnapshots
+    title: "OpenCode: storage, snapshots, share, sync"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodeStateSnapshots.md\"
+    repo: opencode
+    component: "packages/opencode/src/storage/ (storage.ts, schema.ts); packages/opencode/src/snapshot/index.ts; packages/opencode/src/share/ (session.ts, share-next.ts); packages/opencode/src/sync/"
+  - key: opencodeInterfaces
+    title: "OpenCode: interfaces (ACP, LSP, IDE server, HTTP server, TUI, CLI)"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodeInterfaces.md\"
+    repo: opencode
+    component: "packages/opencode/src/acp/ (agent.ts, session.ts, permission.ts, service.ts, event.ts); packages/opencode/src/lsp/ (client.ts, server.ts, launch.ts, diagnostic.ts, language.ts, lsp.ts); packages/opencode/src/ide/; packages/opencode/src/server/; packages/tui/; packages/cli/"
+  - key: opencodeConfigProviders
+    title: "OpenCode: configuration, providers, auth"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/opencodeConfigProviders.md\"
+    repo: opencode
+    component: "packages/opencode/src/config/ (config.ts, paths.ts, plugin.ts, agent.ts, command.ts, managed.ts, markdown.ts, parse.ts); packages/opencode/src/provider/ (provider.ts, auth.ts, model-status.ts, transform.ts); packages/opencode/src/auth/"
+
+  # ------------------------ codebase: claude-code (repo key: claude-code, commit c3d2e35e5540; core is closed source)
+  - key: claudeCodePluginSurface
+    title: "Claude Code: official plugins, examples, and scripts (verifiable harness surface)"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://github.com/anthropics/claude-code"
+    pdf: ""
+    venue: "github.com/anthropics/claude-code"
+    tier: codebase
+    status: noted
+    notes_file: \"notes/claudeCodePluginSurface.md\"
+    repo: claude-code
+    component: "plugins/ (13 official plugins: agent-sdk-dev, claude-opus-4-5-migration, code-review, commit-commands, explanatory-output-style, feature-dev, frontend-design, hookify, learning-output-style, plugin-dev, pr-review-toolkit, ralph-wiggum, security-guidance; plugins/README.md); examples/ (hooks/bash_command_validator_example.py, settings/{settings-bash-sandbox.json,settings-strict.json,settings-lax.json}, mdm/, gateway/{aws,gcp}); scripts/; Script/run_devcontainer_claude_code.ps1. [CLOSED core boundary]: the agent core (shipped cli bundle) is closed source at this commit; turn loop, tools, compaction, and permission enforcement are only observable here via plugin manifests, hook scripts, and settings examples, plus official docs"
+
+  # ------------------------ docs
+  - key: codexDocsRepo
+    title: "Codex CLI repository documentation (docs/ directory)"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex/tree/main/docs"
+    pdf: ""
+    venue: "github.com/openai/codex docs directory (official)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/codexDocsRepo.md\"
+  - key: codexDocsSandboxing
+    title: "Sandbox: How sandboxing works across ChatGPT and Codex clients"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://developers.openai.com/codex/sandboxing"
+    pdf: ""
+    venue: "developers.openai.com Codex docs (official)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/codexDocsSandboxing.md\"
+  - key: opencodeDocs
+    title: "OpenCode documentation (intro, config, providers, permissions, agents, tools, plugins, MCP, ACP, LSP, skills, SDK/server)"
+    authors: "Anomaly (opencode)"
+    year: 2026
+    url: "https://opencode.ai/docs/"
+    snapshot: "in-repo at pinned commit (repo opencode: packages/web/src/content/docs/); floating mirror https://opencode.ai/docs/"
+    pdf: ""
+    venue: "opencode.ai/docs (official)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/opencodeDocs.md\"
+  - key: claudeCodeDocsHooks
+    title: "Claude Code Hooks reference"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://docs.claude.com/en/docs/claude-code/hooks"
+    snapshot: "sources/docs/claudeCodeDocsHooks.md"
+    pdf: ""
+    venue: "Claude Code official docs (code.claude.com/docs/en/hooks)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/claudeCodeDocsHooks.md\"
+  - key: claudeCodeDocsSubagents
+    title: "Create custom subagents"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://docs.claude.com/en/docs/claude-code/sub-agents"
+    snapshot: "sources/docs/claudeCodeDocsSubagents.md"
+    pdf: ""
+    venue: "Claude Code official docs (code.claude.com/docs/en/sub-agents)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/claudeCodeDocsSubagents.md\"
+  - key: claudeCodeDocsPlugins
+    title: "Create plugins"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://docs.claude.com/en/docs/claude-code/plugins"
+    snapshot: "sources/docs/claudeCodeDocsPlugins.md"
+    pdf: ""
+    venue: "Claude Code official docs (code.claude.com/docs/en/plugins)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/claudeCodeDocsPlugins.md\"
+  - key: claudeCodeDocsMcp
+    title: "Connect Claude Code to tools via MCP"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://docs.claude.com/en/docs/claude-code/mcp"
+    snapshot: "sources/docs/claudeCodeDocsMcp.md"
+    pdf: ""
+    venue: "Claude Code official docs (code.claude.com/docs/en/mcp)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/claudeCodeDocsMcp.md\"
+  - key: claudeCodeDocsMemory
+    title: "How Claude remembers your project (CLAUDE.md and auto memory)"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://docs.claude.com/en/docs/claude-code/memory"
+    snapshot: "sources/docs/claudeCodeDocsMemory.md"
+    pdf: ""
+    venue: "Claude Code official docs (code.claude.com/docs/en/memory)"
+    tier: docs
+    status: noted
+    notes_file: \"notes/claudeCodeDocsMemory.md\"
+  - key: claudeCodeDocsPermissions
+    title: "Configure permissions"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://code.claude.com/docs/en/permissions"
+    snapshot: "sources/docs/claudeCodeDocsPermissions.md"
+    pdf: ""
+    venue: "Claude Code official docs"
+    tier: docs
+    status: noted
+    notes_file: \"notes/claudeCodeDocsPermissions.md\"
+  - key: claudeCodeDocsSandboxing
+    title: "Configure the sandboxed Bash tool"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://code.claude.com/docs/en/sandboxing"
+    snapshot: "sources/docs/claudeCodeDocsSandboxing.md"
+    pdf: ""
+    venue: "Claude Code official docs"
+    tier: docs
+    status: noted
+    notes_file: \"notes/claudeCodeDocsSandboxing.md\"
+
+  # ------------------------ framing preprints (tier per task: preprint)
+  # Local PDFs are deliberately not stored in the repo; the `pdf` field
+  # carries the canonical arXiv PDF URL and the local evidence artifact is
+  # the pdftotext snapshot in sources/docs/ cited by `snapshot`.
+  - key: yao2023react
+    title: "ReAct: Synergizing Reasoning and Acting in Language Models"
+    authors: "Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao"
+    year: 2023
+    url: "https://arxiv.org/abs/2210.03629"
+    snapshot: "sources/docs/react-2210.03629.txt (pdftotext of the arXiv PDF, 2026-08-20)"
+    pdf: "https://arxiv.org/pdf/2210.03629"
+    venue: "ICLR 2023 (arXiv:2210.03629; arXiv comments state v3 is the ICLR camera-ready)"
+    tier: preprint
+    status: noted
+    notes_file: \"notes/yao2023react.md\"
+  - key: yang2024sweagent
+    title: "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering"
+    authors: "John Yang, Carlos E. Jimenez, Alexander Wettig, Kilian Lieret, Shunyu Yao, Karthik Narasimhan, Ofir Press"
+    year: 2024
+    url: "https://arxiv.org/abs/2405.15793"
+    snapshot: "sources/docs/swe-agent-2405.15793.txt (pdftotext of the arXiv PDF, 2026-08-20)"
+    pdf: "https://arxiv.org/pdf/2405.15793"
+    venue: "arXiv preprint (arXiv:2405.15793); evaluates on SWE-bench"
+    tier: preprint
+    status: noted
+    notes_file: \"notes/yang2024sweagent.md\"
+  - key: schick2023toolformer
+    title: "Toolformer: Language Models Can Teach Themselves to Use Tools"
+    authors: "Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli, Luke Zettlemoyer, Nicola Cancedda, Thomas Scialom"
+    year: 2023
+    url: "https://arxiv.org/abs/2302.04761"
+    snapshot: "sources/docs/toolformer-2302.04761.txt (pdftotext of the arXiv PDF, 2026-08-20)"
+    pdf: "https://arxiv.org/pdf/2302.04761"
+    venue: "arXiv preprint (arXiv:2302.04761)"
+    tier: preprint
+    status: noted
+    notes_file: \"notes/schick2023toolformer.md\"
+
+  # ------------------------ third-party Claude Code teardowns (context only, never strong claims)
+  - key: minusXClaudeCodeTeardown
+    title: "What makes Claude Code so damn good (and how to recreate that magic in your agent)!?"
+    authors: "vivek (MinusX)"
+    year: 2025
+    url: "https://minusx.ai/blog/decoding-claude-code/"
+    snapshot: "sources/docs/minusXClaudeCodeTeardown.html"
+    pdf: ""
+    venue: "MinusX blog (third-party teardown)"
+    tier: blog
+    status: noted
+    notes_file: \"notes/minusXClaudeCodeTeardown.md\"
+  - key: agiflowClaudeCodeInternals
+    title: "Claude Code Internals: How Skills, Hooks, MCP, and Subagents Actually Work"
+    authors: "Vuong Ngo"
+    year: 2025
+    url: "https://agiflow.io/blog/claude-code-internals-reverse-engineering-prompt-augmentation"
+    snapshot: "sources/docs/agiflowClaudeCodeInternals.html"
+    pdf: ""
+    venue: "agiflow.io blog (third-party teardown; published 2025-10-18, refreshed 2026-07)"
+    tier: blog
+    status: noted
+    notes_file: \"notes/agiflowClaudeCodeInternals.md\"
+  - key: tenguDecoded
+    title: "Tengu Decoded: reverse-engineering Claude Code's internals (feature flags, gated features, telemetry, device fingerprinting), version by version"
+    authors: "wtfwhs"
+    year: 2026
+    url: "https://github.com/wtfwhs/tengu-decoded"
+    snapshot: "sources/docs/tenguDecoded.md (README at main 8b2060d, 2026-08-20)"
+    pdf: ""
+    venue: "GitHub personal research archive (third-party teardown of the publicly distributed binary; analyzed v2.1.32, v2.1.169, v2.1.197)"
+    tier: blog
+    status: noted
+    notes_file: \"notes/tenguDecoded.md\"

@@ -1,0 +1,159 @@
+% References for study 2026-08_coding-agent-harnesses.
+% Keys and metadata follow sources/registry.yaml. Codebase entries carry the
+% pinned commit in the note field; docs entries carry the snapshot locator;
+% blog-tier entries are flagged as hedged context only.
+
+@inproceedings{yao2023react,
+  author    = {Yao, Shunyu and Zhao, Jeffrey and Yu, Dian and Du, Nan and Shafran, Izhak and Narasimhan, Karthik and Cao, Yuan},
+  title     = {ReAct: Synergizing Reasoning and Acting in Language Models},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2023},
+  url       = {https://arxiv.org/abs/2210.03629},
+  note      = {arXiv:2210.03629; study snapshot sources/docs/react-2210.03629.txt}
+}
+
+@article{yang2024sweagent,
+  author    = {Yang, John and Jimenez, Carlos E. and Wettig, Alexander and Lieret, Kilian and Yao, Shunyu and Narasimhan, Karthik and Press, Ofir},
+  title     = {SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering},
+  journal   = {arXiv preprint arXiv:2405.15793},
+  year      = {2024},
+  url       = {https://arxiv.org/abs/2405.15793},
+  note      = {study snapshot sources/docs/swe-agent-2405.15793.txt}
+}
+
+@article{schick2023toolformer,
+  author    = {Schick, Timo and Dwivedi-Yu, Jane and Dess{\`{\i}}, Roberto and Raileanu, Roberta and Lomeli, Maria and Zettlemoyer, Luke and Cancedda, Nicola and Scialom, Thomas},
+  title     = {Toolformer: Language Models Can Teach Themselves to Use Tools},
+  journal   = {arXiv preprint arXiv:2302.04761},
+  year      = {2023},
+  url       = {https://arxiv.org/abs/2302.04761},
+  note      = {study snapshot sources/docs/toolformer-2302.04761.txt}
+}
+
+@misc{codexRepo,
+  author       = {{OpenAI}},
+  title        = {Codex CLI (codex-rs)},
+  year         = {2026},
+  howpublished = {\url{https://github.com/openai/codex}},
+  note         = {Repo key \texttt{codex}, pinned commit af700180808cce2ce28a31aad0fbad4dc58b857a (sources/repos.yaml, pinned 2026-08-19); static read-only trace. Component notes: codexTurnLoop, codexToolsPatch, codexContextCompaction, codexSandboxPermissions, codexExtensibility, codexConfigProviders, codexStateRollout, codexInterfaces.}
+}
+
+@misc{opencodeRepo,
+  author       = {{Anomaly (opencode)}},
+  title        = {OpenCode},
+  year         = {2026},
+  howpublished = {\url{https://github.com/anomalyco/opencode}},
+  note         = {Repo key \texttt{opencode}, pinned commit d545d8fba57283528db69281f59c803c646eb7e9, dev branch (sources/repos.yaml, pinned 2026-08-19); static read-only trace. Component notes: opencodeSessionLoop, opencodeTools, opencodeContextCompaction, opencodePermissions, opencodeExtensibility, opencodeConfigProviders, opencodeStateSnapshots, opencodeInterfaces.}
+}
+
+@misc{claudeCodeSurface,
+  author       = {{Anthropic}},
+  title        = {Claude Code public repository (plugin and example surface)},
+  year         = {2026},
+  howpublished = {\url{https://github.com/anthropics/claude-code}},
+  note         = {Repo key \texttt{claude-code}, pinned commit c3d2e35e554060b5a20ee6b28140fbdbd4eb0048 (sources/repos.yaml, pinned 2026-08-19). Pinned tree carries plugins, examples, and scripts only; the agent core is closed source. Note key: claudeCodePluginSurface.}
+}
+
+@misc{codexDocsRepo,
+  author       = {{OpenAI}},
+  title        = {Codex CLI repository documentation (docs/ directory)},
+  year         = {2026},
+  howpublished = {\url{https://github.com/openai/codex/tree/main/docs}},
+  note         = {In-repo docs cited at pinned commit af700180808cce2ce28a31aad0fbad4dc58b857a. Note key: codexDocsRepo.}
+}
+
+@misc{codexSandboxingDocs,
+  author       = {{OpenAI}},
+  title        = {Sandbox: How sandboxing works across ChatGPT and Codex clients},
+  year         = {2026},
+  howpublished = {\url{https://developers.openai.com/codex/sandboxing}},
+  note         = {Official docs; accessed 2026-08-20; floating relative to the pinned code (cite page, not commit). Note key: codexDocsSandboxing.}
+}
+
+@misc{opencodeDocs,
+  author       = {{Anomaly (opencode)}},
+  title        = {OpenCode documentation},
+  year         = {2026},
+  howpublished = {\url{https://opencode.ai/docs/}},
+  note         = {Snapshot in-repo at pinned commit d545d8fba57283528db69281f59c803c646eb7e9 (packages/web/src/content/docs/). Note key: opencodeDocs.}
+}
+
+@misc{claudeCodeHooksDocs,
+  author       = {{Anthropic}},
+  title        = {Claude Code Hooks reference},
+  year         = {2026},
+  howpublished = {\url{https://docs.claude.com/en/docs/claude-code/hooks}},
+  note         = {Snapshot sources/docs/claudeCodeDocsHooks.md fetched 2026-08-20. Note key: claudeCodeDocsHooks.}
+}
+
+@misc{claudeCodeSubagentsDocs,
+  author       = {{Anthropic}},
+  title        = {Create custom subagents (Claude Code)},
+  year         = {2026},
+  howpublished = {\url{https://docs.claude.com/en/docs/claude-code/sub-agents}},
+  note         = {Snapshot sources/docs/claudeCodeDocsSubagents.md fetched 2026-08-20. Note key: claudeCodeDocsSubagents.}
+}
+
+@misc{claudeCodePluginsDocs,
+  author       = {{Anthropic}},
+  title        = {Create plugins (Claude Code)},
+  year         = {2026},
+  howpublished = {\url{https://docs.claude.com/en/docs/claude-code/plugins}},
+  note         = {Snapshot sources/docs/claudeCodeDocsPlugins.md fetched 2026-08-20. Note key: claudeCodeDocsPlugins.}
+}
+
+@misc{claudeCodeMcpDocs,
+  author       = {{Anthropic}},
+  title        = {Connect Claude Code to tools via MCP},
+  year         = {2026},
+  howpublished = {\url{https://docs.claude.com/en/docs/claude-code/mcp}},
+  note         = {Snapshot sources/docs/claudeCodeDocsMcp.md fetched 2026-08-20. Note key: claudeCodeDocsMcp.}
+}
+
+@misc{claudeCodeMemoryDocs,
+  author       = {{Anthropic}},
+  title        = {How Claude remembers your project (CLAUDE.md and auto memory)},
+  year         = {2026},
+  howpublished = {\url{https://docs.claude.com/en/docs/claude-code/memory}},
+  note         = {Snapshot sources/docs/claudeCodeDocsMemory.md fetched 2026-08-20. Note key: claudeCodeDocsMemory.}
+}
+
+@misc{claudeCodePermissionsDocs,
+  author       = {{Anthropic}},
+  title        = {Configure permissions (Claude Code)},
+  year         = {2026},
+  howpublished = {\url{https://code.claude.com/docs/en/permissions}},
+  note         = {Snapshot sources/docs/claudeCodeDocsPermissions.md fetched 2026-08-20. Note key: claudeCodeDocsPermissions.}
+}
+
+@misc{claudeCodeSandboxingDocs,
+  author       = {{Anthropic}},
+  title        = {Configure the sandboxed Bash tool (Claude Code)},
+  year         = {2026},
+  howpublished = {\url{https://code.claude.com/docs/en/sandboxing}},
+  note         = {Snapshot sources/docs/claudeCodeDocsSandboxing.md fetched 2026-08-20. Note key: claudeCodeDocsSandboxing.}
+}
+
+@misc{minusXTeardown,
+  author       = {vivek (MinusX)},
+  title        = {What makes Claude Code so damn good (and how to recreate that magic in your agent)!?},
+  year         = {2025},
+  howpublished = {\url{https://minusx.ai/blog/decoding-claude-code/}},
+  note         = {Third-party teardown of log traffic; context tier only, supports hedged claims. Note key: minusXClaudeCodeTeardown.}
+}
+
+@misc{agiflowInternals,
+  author       = {Ngo, Vuong},
+  title        = {Claude Code Internals: How Skills, Hooks, MCP, and Subagents Actually Work},
+  year         = {2025},
+  howpublished = {\url{https://agiflow.io/blog/claude-code-internals-reverse-engineering-prompt-augmentation}},
+  note         = {Third-party trace teardown; published 2025-10-18, refreshed 2026-07; context tier only, supports hedged claims. Note key: agiflowClaudeCodeInternals.}
+}
+
+@misc{tenguDecoded,
+  author       = {wtfwhs},
+  title        = {Tengu Decoded: reverse-engineering Claude Code's internals, version by version},
+  year         = {2026},
+  howpublished = {\url{https://github.com/wtfwhs/tengu-decoded}},
+  note         = {Third-party binary teardown (v2.1.32, v2.1.169, v2.1.197); snapshot of README at main 8b2060d fetched 2026-08-20; context tier only, supports hedged claims. Note key: tenguDecoded.}
+}
