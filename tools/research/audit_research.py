@@ -18,13 +18,13 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from research_state import (  # noqa: E402
+from research_state import (
     VALID_EVIDENCE_ELIGIBILITY,
     VALID_RESULT_KINDS,
     VALID_RUN_PHASES,
     VALID_RUN_STATUSES,
 )
-from research_state import (  # noqa: E402
+from research_state import (
     validate as validate_dossier,
 )
 
@@ -258,6 +258,8 @@ def main() -> int:
                     add(findings, "error", "unknown-claim-id", f"{relation}: {claim_id}", identifier)
                     continue
                 if claim_id in superseded_claims:
+                    continue
+                if relation == "contextualizes":
                     continue
                 linked_sources = claim_by_id[claim_id].get("evidence_ids")
                 if not isinstance(linked_sources, list) or identifier not in linked_sources:
@@ -562,7 +564,7 @@ def main() -> int:
                         findings,
                         "error",
                         "ineligible-run-supports-claim",
-                        f"run is not a complete measured full-run candidate: {linked_run_id}",
+                        f"run is not a completed, measured, full-phase candidate: {linked_run_id}",
                         identifier,
                     )
         if item.get("claim_type") in EMPIRICAL_TYPES and lifecycle_state in INDEPENDENT_CHECK_STATES:

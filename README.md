@@ -1,5 +1,7 @@
 # self-study-with-ai
 
+[![check](https://github.com/honghuy127/self-study-with-ai/actions/workflows/check.yml/badge.svg)](https://github.com/honghuy127/self-study-with-ai/actions/workflows/check.yml)
+
 A collaboration between a human and AI agents for structured self-study. You
 pose a topic, agents gather and analyze the literature, optionally run
 experiments, and draft a technical report in LaTeX (built to PDF). You review
@@ -8,7 +10,9 @@ reading git diffs.
 
 ## Requirements
 
-- Python 3.10+ (dossier scripts are standard-library only)
+- Python 3.10+ with PyYAML (`check_all.py`, `cleanup_study.py`, and
+  `verify_pins.py` read YAML); the vendored dossier scripts are
+  standard-library only
 - `latexmk` (or `tectonic`) for report builds
 - git with submodule support
 
@@ -32,7 +36,7 @@ through the OpenCode commands:
 |---|---|
 | `/new-study <topic>` | Wraps `new_study.py`, scaffolds the study |
 | `/gather <study-dir>` | Researcher agent collects sources into `sources/` |
-| `/draft <study-dir>` | Idempotent; summarizes unnoted sources, then (after you approve the notes) the writer drafts `report/main.tex` |
+| `/draft <study-dir>` | Idempotent; summarizes unnoted sources, runs experiments if the brief asks, then (after you approve each gate) the writer drafts `report/main.tex` |
 | `/review <study-dir>` | Reviewer agent audits claims, style, and traceability |
 
 Each stage ends by updating `study.yaml`; the next stage refuses to proceed
@@ -42,6 +46,7 @@ is your review surface.
 ## Repository layout
 
 ```
+.github/workflows/check.yml    # CI: tools/check_all.py on every push and PR
 .opencode/
 ├── agents/                    # specialist subagents (researcher, summarizer, writer, reviewer, experimenter)
 ├── commands/                  # lifecycle entry points (/new-study, /gather, /draft, /review)
@@ -49,7 +54,7 @@ is your review surface.
     └── conduct-cs-ai-research/   # git submodule: research discipline playbooks + gates
 studies/                       # one directory per study (see below)
 shared/
-├── templates/                 # brief, note, study.yaml, LaTeX report skeleton
+├── templates/                 # brief, note, note-codebase, comparison, study.yaml
 │   ├── latex/                 # NeurIPS 2025 preprint style (vendored neurips_2025.sty)
 │   └── slides/                # beamer deck skeleton
 ├── library.bib                # master bibliography merged from finished studies
@@ -60,7 +65,10 @@ tools/
 ├── build_report.sh            # latexmk/tectonic wrapper for report/
 ├── build_slides.sh            # latexmk/tectonic wrapper for slides/
 ├── lint_report.py             # prose/citation/marker linter (report + slides)
-├── check_all.py               # repo-wide: lint every study, audit dossiers, check vendored-script drift, run tests
+├── check_all.py               # repo-wide gate: lint, dossier audit, PDF hygiene, drift check, tests
+├── cleanup_study.py           # slim a signed-off study down to its knowledge core
+├── pin_repos.py               # pin local codebase checkouts into sources/repos.yaml
+├── verify_pins.py             # confirm pinned checkouts still hold their recorded commits
 └── research/                  # vendored dossier scripts (research_state, capture_run, audit) + research.sh
 ```
 
@@ -71,7 +79,8 @@ studies/<YYYY-MM_slug>/
 ├── brief.md                   # your input: question, scope, depth, deadline
 ├── study.yaml                 # manifest: workflow status + human gates
 ├── sources/registry.yaml      # every gathered source with bibtex key + trust tier
-├── sources/pdfs/
+├── sources/repos.yaml         # pinned local codebase checkouts (codebase studies)
+├── sources/docs/              # pdftotext and page snapshots; PDF binaries are never committed
 ├── notes/                     # one structured note per source + _synthesis.md
 ├── experiments/               # runnable code with pinned deps (optional)
 ├── report/main.tex + refs.bib # NeurIPS preprint report, tools/build_report.sh
@@ -92,7 +101,10 @@ studies/<YYYY-MM_slug>/
 
 Depth is set per study in `study.yaml`: `briefing` (notes + short synthesis,
 light gates) or `full` (novelty checks, frozen experiment plans, run manifests,
-audit-clean report).
+audit-clean report). After sign-off, `tools/cleanup_study.py` slims a `done`
+study to its knowledge core and stamps the `cleaned` date; the human-only
+`audit_waiver` field lets `check_all.py` report a failing dossier audit as
+waived once documented deviations are accepted.
 
 ## Build a report
 
@@ -110,25 +122,32 @@ exists.
 ## Lint and audit
 
 ```bash
-python3 tools/check_all.py            # everything below, plus tests and drift check
-python3 tools/lint_report.py studies/<slug>/report/main.tex
+python3 tools/check_all.py            # everything below, plus hygiene, drift, and tests
+python3 tools/lint_report.py studies/<slug>
 python3 tools/research/audit_research.py --root studies/<slug>
 ```
 
 The linter checks em-dashes, untied citations (`X \cite` without `~`),
 unresolved `[... NEEDED]` markers, and British spellings. The auditor checks
 claim/evidence/run traceability in the dossier. `check_all.py` is the
-pre-review gate: it lints every study, audits every `.research/` dossier,
-fails if the vendored `tools/research/*.py` drift from the skill submodule,
-and runs the unit tests.
+pre-review gate: it lints every study, audits every `.research/` dossier
+(honoring `audit_waiver`), fails on git-tracked PDF binaries, fails if the
+vendored `tools/research/*.py` drift from the skill submodule, and runs the
+unit tests. CI runs it on every push and pull request.
 
-Downloaded source PDFs are committed under each study's `sources/pdfs/` so the
-evidence base survives even if a URL rots.
+Source PDFs are never committed. The registry's `pdf` field holds a remote
+URL and the local evidence is a pdftotext snapshot under `sources/docs/`, so
+the evidence base survives URL rot without binaries in git.
 
 ## Update the research skill
 
 ```bash
 git submodule update --remote .opencode/skills/conduct-cs-ai-research
+cp .opencode/skills/conduct-cs-ai-research/scripts/{research_state,capture_run,audit_research}.py tools/research/
 ```
+
+The drift check in `check_all.py` requires `tools/research/*.py` to match the
+submodule's `scripts/*.py` byte-for-byte, so re-vendor the copies after every
+bump.
 
 Upstream: <https://github.com/honghuy127/cs-ai-research-skills> (MIT).
