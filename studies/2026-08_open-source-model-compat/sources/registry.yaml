@@ -1,0 +1,176 @@
+# sources/registry.yaml for study 2026-08_open-source-model-compat.
+# Schema per AGENTS.md Contracts: key, title, authors, year, url, pdf, venue,
+# tier (peer-reviewed | preprint | blog | codebase | docs), status
+# (to-read | noted | rejected), notes_file. Codebase entries add repo (key in
+# sources/repos.yaml) and component. Docs/blog entries add snapshot under
+# sources/docs/.
+
+provenance:
+  research_questions:
+    - "RQ1 (primary): How compatible are Claude Code, Codex, and OpenCode with open-source models, and through which integration surface (native provider code, generic OpenAI-compatible endpoint, or documentation only)?"
+    - "RQ2: What minimum contract must an OpenAI-compatible server satisfy for each agent (wire API shape, tool calling, context-window reporting, streaming)?"
+    - "RQ3: Where does support degrade with open models: model-ID-gated features, context accounting defaults, compaction behavior?"
+  evidence_cutoff: "2026-08-20"
+  scope:
+    - "Primary code: two pinned local checkouts (codex @ af70018, opencode @ d545d8fb dev) covering provider plumbing for Ollama, LM Studio, and generic OpenAI-compatible endpoints. claude-code @ c3d2e35 surface only."
+    - "Official documentation snapshots for Claude Code model configuration, Ollama's OpenAI compatibility, LM Studio's local server and OpenAI-compatible endpoints, and the llama.cpp reference server contract."
+    - "One blog-tier community router for Claude Code, context only, hedged."
+  queries:
+    - date: "2026-08-20"
+      query: "Repo pinning: tools/pin_repos.py pinned codex, opencode, claude-code checkouts (same commits as study 2026-08_coding-agent-harnesses: af70018, d545d8fb, c3d2e35)."
+    - date: "2026-08-20"
+      query: "Doc snapshots (curl, HTTP 200 unless noted): code.claude.com/docs/en/model-config.md and /amazon-bedrock.md (.md endpoints); ollama.com/blog/openai-compatibility (HTML); github.com/lmstudio-ai/docs raw files at main (server index, openai-compat chat-completions/tools/responses); github.com/ggml-org/llama.cpp master tools/server/README.md raw; github.com/musistudio/claude-code-router main README.md raw. LM Studio docs site (docs.lmstudio.ai) unreachable from this environment (transport error), mirrored via its public docs repo. vLLM's OpenAI-compatible-server docs page moved and could not be re-located within budget; dropped, coverage limit recorded."
+  inclusion:
+    - "Codebase components verified to exist at the pinned commits (grep before registration): codex-rs/ollama, codex-rs/lmstudio, codex-rs/model-provider-info; opencode src/provider/provider.ts, src/provider/transform.ts, src/tool/registry.ts, src/util/token.ts."
+    - "Docs entries limited to the compatibility surface: server contract, OpenAI-compatible endpoints, Claude Code model wiring."
+    - "claude-code-router admitted only as hedged community context for RQ1's Claude Code column; never carries a compatibility cell alone."
+  exclusion:
+    - "vLLM docs: page relocated and new slug not recovered within budget; generic-endpoint bar carried by llama.cpp and LM Studio instead."
+    - "llama.cpp and vLLM codebases: out of scope; the agents under study are the compatibility subject, not the servers."
+    - "Any behavioral test: no agent executed, no model API called (brief decision)."
+    - "Model quality comparisons, fine-tuning guidance, benchmark numbers."
+  coverage_limits:
+    - "[CLOSED] Claude Code's model wiring beyond docs: loader and fallback logic are not inspectable; cells are documentation-attested or surface-attested."
+    - "LM Studio snapshots come from the docs-repo mirror at main HEAD on 2026-08-20, not the live docs site (unreachable here); drift between mirror and shipped app is not assessed."
+    - "Ollama snapshot is the 2024 OpenAI-compatibility blog post plus current docs via that post; versioned Ollama behavior (current release notes) is not snapshot-pinned."
+    - "Findings are bounded to the three pinned commits and the fetch-date snapshots; nothing generalizes to newer releases."
+
+entries:
+  # ---------------- codebase: codex ----------------
+  - key: codexOssProviders
+    title: "Codex: Ollama and LM Studio providers and the Responses-wire mapping"
+    authors: "OpenAI"
+    year: 2026
+    url: "https://github.com/openai/codex"
+    pdf: ""
+    venue: "github.com/openai/codex"
+    tier: codebase
+    status: noted
+    notes_file: "notes/codexOssProviders.md"
+    repo: codex
+    component: "codex-rs/ollama/ (lib.rs, client.rs, url.rs, pull.rs, parser.rs, line_buffer.rs); codex-rs/lmstudio/ (lib.rs, client.rs); codex-rs/model-provider-info/src/lib.rs (ollama/lmstudio provider entries, wire types)"
+
+  - key: opencodeOssProviders
+    title: "OpenCode: generic OpenAI-compatible provider plumbing (baseURL, runtime install, hosted catalog)"
+    authors: "Anomaly (anomalyco)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: "notes/opencodeOssProviders.md"
+    repo: opencode
+    component: "packages/opencode/src/provider/provider.ts (@ai-sdk/openai-compatible factory, baseURL/endpoint resolution, autoload skip); packages/opencode/src/provider/auth.ts, model-status.ts; packages/opencode/package.json (bundled @ai-sdk provider list)"
+
+  - key: opencodeModelGating
+    title: "OpenCode: open-model path behavior (patch gating by model ID, token estimation, output caps)"
+    authors: "Anomaly (anomalyco)"
+    year: 2026
+    url: "https://github.com/anomalyco/opencode"
+    pdf: ""
+    venue: "github.com/anomalyco/opencode"
+    tier: codebase
+    status: noted
+    notes_file: "notes/opencodeModelGating.md"
+    repo: opencode
+    component: "packages/opencode/src/tool/registry.ts (gpt-* apply_patch gating); packages/opencode/src/util/token.ts (chars/4 estimate); packages/opencode/src/provider/transform.ts (OUTPUT_TOKEN_MAX); packages/opencode/src/tool/edit.ts (edit/write path open models receive); packages/opencode/src/session/overflow.ts (compaction reserve)"
+
+  # ---------------- docs: claude code ----------------
+  - key: claudeCodeModelDocs
+    title: "Claude Code docs: model configuration"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://code.claude.com/docs/en/model-config"
+    pdf: ""
+    venue: "code.claude.com/docs"
+    tier: docs
+    status: noted
+    notes_file: "notes/claudeCodeModelDocs.md"
+    snapshot: "sources/docs/claudeCodeModelConfig.md"
+
+  - key: claudeCodeBedrockDocs
+    title: "Claude Code docs: Amazon Bedrock integration"
+    authors: "Anthropic"
+    year: 2026
+    url: "https://code.claude.com/docs/en/amazon-bedrock"
+    pdf: ""
+    venue: "code.claude.com/docs"
+    tier: docs
+    status: noted
+    notes_file: "notes/claudeCodeBedrockDocs.md"
+    snapshot: "sources/docs/claudeCodeBedrock.md"
+
+  # ---------------- docs: open-model servers ----------------
+  - key: ollamaCompatDocs
+    title: "Ollama: OpenAI compatibility (chat completions surface)"
+    authors: "Ollama team"
+    year: 2024
+    url: "https://ollama.com/blog/openai-compatibility"
+    pdf: ""
+    venue: "ollama.com/blog"
+    tier: docs
+    status: noted
+    notes_file: "notes/ollamaCompatDocs.md"
+    snapshot: "sources/docs/ollamaOpenaiCompat.html"
+
+  - key: lmstudioServerDocs
+    title: "LM Studio docs: running the local LLM API server"
+    authors: "LM Studio (lmstudio-ai)"
+    year: 2026
+    url: "https://docs.lmstudio.ai/developers/local-server"
+    pdf: ""
+    venue: "docs.lmstudio.ai (snapshotted via github.com/lmstudio-ai/docs)"
+    tier: docs
+    status: noted
+    notes_file: "notes/lmstudioServerDocs.md"
+    snapshot: "sources/docs/lmstudioServer.md"
+
+  - key: lmstudioCompatToolsDocs
+    title: "LM Studio docs: OpenAI-compatible tool calling"
+    authors: "LM Studio (lmstudio-ai)"
+    year: 2026
+    url: "https://docs.lmstudio.ai/developers/openai-compat/tools"
+    pdf: ""
+    venue: "docs.lmstudio.ai (snapshotted via github.com/lmstudio-ai/docs)"
+    tier: docs
+    status: noted
+    notes_file: "notes/lmstudioCompatToolsDocs.md"
+    snapshot: "sources/docs/lmstudioTools.md"
+
+  - key: lmstudioCompatResponsesDocs
+    title: "LM Studio docs: OpenAI Responses API compatibility"
+    authors: "LM Studio (lmstudio-ai)"
+    year: 2026
+    url: "https://docs.lmstudio.ai/developers/openai-compat/responses"
+    pdf: ""
+    venue: "docs.lmstudio.ai (snapshotted via github.com/lmstudio-ai/docs)"
+    tier: docs
+    status: noted
+    notes_file: "notes/lmstudioCompatResponsesDocs.md"
+    snapshot: "sources/docs/lmstudioResponses.md"
+
+  - key: llamaCppServerDocs
+    title: "llama.cpp: reference server OpenAI-compatible contract"
+    authors: "ggml-org"
+    year: 2026
+    url: "https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md"
+    pdf: ""
+    venue: "github.com/ggml-org/llama.cpp"
+    tier: docs
+    status: noted
+    notes_file: "notes/llamaCppServerDocs.md"
+    snapshot: "sources/docs/llamaCppServer.md"
+
+  # ---------------- blog: context only ----------------
+  - key: claudeCodeRouterContext
+    title: "claude-code-router: community router bridging Claude Code to other providers (context only)"
+    authors: "musistudio"
+    year: 2026
+    url: "https://github.com/musistudio/claude-code-router"
+    pdf: ""
+    venue: "github.com/musistudio/claude-code-router"
+    tier: blog
+    status: noted
+    notes_file: "notes/claudeCodeRouterContext.md"
+    snapshot: "sources/docs/claudeCodeRouterReadme.md"
