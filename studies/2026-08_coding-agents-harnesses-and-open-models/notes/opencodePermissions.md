@@ -64,11 +64,11 @@ Shell pattern granularity is normalized by a command-prefix arity dictionary, `p
 
 `Agent.layer` constructs the base `defaults` ruleset via `Permission.fromConfig` (`packages/opencode/src/agent/agent.ts:119-136`):
 
-- `"*": "allow"` — the base is allow-all; every permission that has no more specific rule resolves to allow.
+- `"*": "allow"`: the base is allow-all; every permission that has no more specific rule resolves to allow.
 - `doom_loop: "ask"`.
-- `external_directory: { "*": "ask", ...whitelistedDirs: "allow" }` — paths outside the project prompt unless whitelisted. The whitelist is `Truncate.GLOB`, `<Global.Path.tmp>/*`, skill dirs `*`, and reference dirs `*` (`agent.ts:108-117`). `Truncate.GLOB` is `path.join(TRUNCATION_DIR, "*")` (`packages/opencode/src/tool/truncate.ts:17`) and `TRUNCATION_DIR` is `path.join(Global.Path.data, "tool-output")` (`packages/opencode/src/tool/truncation-dir.ts:4`).
+- `external_directory: { "*": "ask", ...whitelistedDirs: "allow" }`: paths outside the project prompt unless whitelisted. The whitelist is `Truncate.GLOB`, `<Global.Path.tmp>/*`, skill dirs `*`, and reference dirs `*` (`agent.ts:108-117`). `Truncate.GLOB` is `path.join(TRUNCATION_DIR, "*")` (`packages/opencode/src/tool/truncate.ts:17`) and `TRUNCATION_DIR` is `path.join(Global.Path.data, "tool-output")` (`packages/opencode/src/tool/truncation-dir.ts:4`).
 - `question: "deny"`, `plan_enter: "deny"`, `plan_exit: "deny"`.
-- `read: { "*": "allow", "*.env": "ask", "*.env.*": "ask", "*.env.example": "allow" }` — env-file reads prompt (`agent.ts:130-135`, with the gitignore-mirroring comment at `agent.ts:129`).
+- `read: { "*": "allow", "*.env": "ask", "*.env.*": "ask", "*.env.example": "allow" }`: env-file reads prompt (`agent.ts:130-135`, with the gitignore-mirroring comment at `agent.ts:129`).
 
 Each built-in agent layers more rules over `defaults` and then appends the user's config rules last (`Permission.merge(defaults, ...builtin..., user)`):
 
@@ -155,9 +155,9 @@ This is central to RQ3 ("How does each system trade capability against safety in
 
 ## Quotables for the report
 
-- Three-action literal: `Schema.Literals(["allow", "deny", "ask"])` — `packages/schema/src/v1/permission.ts:16`. Framing: "OpenCode reduces every tool decision to allow/deny/ask."
-- Default allow-all base: `"*": "allow"` — `packages/opencode/src/agent/agent.ts:120`. Framing: "OpenCode's base ruleset is allow-by-default with targeted asks."
-- Last-match-wins: `rulesets.flat().findLast(...)` with `ask` fallback — `packages/opencode/src/permission/index.ts:31-36`. Framing: "Precedence is positional; user config wins because it is merged last."
-- bash arity patterns: `scan.always.add(BashArity.prefix(tokens).join(" ") + " *")` — `packages/opencode/src/tool/shell.ts:409`. Framing: "`always` approvals generalize a command to its human-understandable prefix (e.g. `git checkout *`)."
-- No-OS-sandbox non-goal: "A filesystem or process sandbox for arbitrary JavaScript" — `packages/codemode/README.md:355`. Framing: "OpenCode's confinement is interpreter- and ruleset-level, not OS-level."
-- Confined-global allowlist: `globalScope.set("tools", ...)` with no `eval`/`process`/timers — `packages/codemode/src/interpreter/runtime.ts:629-661`. Framing: "The codemode interpreter seeds an explicit allowlist of globals and exposes only host-supplied tools."
+- Three-action literal: `Schema.Literals(["allow", "deny", "ask"])` (`packages/schema/src/v1/permission.ts:16`). Framing: "OpenCode reduces every tool decision to allow/deny/ask."
+- Default allow-all base: `"*": "allow"` (`packages/opencode/src/agent/agent.ts:120`). Framing: "OpenCode's base ruleset is allow-by-default with targeted asks."
+- Last-match-wins: `rulesets.flat().findLast(...)` with `ask` fallback (`packages/opencode/src/permission/index.ts:31-36`). Framing: "Precedence is positional; user config wins because it is merged last."
+- bash arity patterns: `scan.always.add(BashArity.prefix(tokens).join(" ") + " *")` (`packages/opencode/src/tool/shell.ts:409`). Framing: "`always` approvals generalize a command to its human-understandable prefix (e.g. `git checkout *`)."
+- No-OS-sandbox non-goal: "A filesystem or process sandbox for arbitrary JavaScript" (`packages/codemode/README.md:355`). Framing: "OpenCode's confinement is interpreter- and ruleset-level, not OS-level."
+- Confined-global allowlist: `globalScope.set("tools", ...)` with no `eval`/`process`/timers (`packages/codemode/src/interpreter/runtime.ts:629-661`). Framing: "The codemode interpreter seeds an explicit allowlist of globals and exposes only host-supplied tools."

@@ -52,8 +52,8 @@ into runnable, pinned, honest evidence inside `experiments/<name>/`.
   stated plainly (`depth: briefing`).
 - Every produced number traces to a run with a manifest; the human can rerun
   it from `experiments/<name>/README.md` alone.
-- A gate report (`PASS`/`CONDITIONAL`/`FAIL`) states what the results do and
-  do not support, and the next decisive action.
+- A gate report (`PASS`/`CONDITIONAL`/`FAIL`/`BLOCKED`/`NOT_ASSESSED`)
+  states what the results do and do not support, and the next decisive action.
 
 ## Boundaries
 

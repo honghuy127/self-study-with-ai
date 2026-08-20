@@ -14,7 +14,7 @@ sources:
     authors: "Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.; Gomez, A. N.; Kaiser, L.; Polosukhin, I."
     year: 2017
     url: "https://arxiv.org/abs/1706.03762"
-    pdf: "sources/pdfs/vaswani2017attention.pdf"
+    pdf: "https://arxiv.org/pdf/1706.03762"
     venue: "NeurIPS 2017"
     tier: peer-reviewed
     status: noted

@@ -346,6 +346,7 @@ entries:
     authors: "OpenAI"
     year: 2026
     url: "https://github.com/openai/codex/tree/main/docs"
+    snapshot: "in-repo at pinned commit (repo codex: docs/)"
     pdf: ""
     venue: "github.com/openai/codex docs directory (official)"
     tier: docs
@@ -356,6 +357,7 @@ entries:
     authors: "OpenAI"
     year: 2026
     url: "https://developers.openai.com/codex/sandboxing"
+    snapshot: "none retained; access recorded as EVD-022 in the pre-merge dossier (git history)"
     pdf: ""
     venue: "developers.openai.com Codex docs (official)"
     tier: docs

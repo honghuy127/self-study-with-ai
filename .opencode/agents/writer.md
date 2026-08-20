@@ -81,4 +81,4 @@ The PDF builds clean, lint passes, `notes/_synthesis.md` exists, every
 non-trivial claim traces to a note or `VERIFIED` claim, and every gap carries
 a `[CITATION NEEDED]` / `[EVIDENCE NEEDED]` / `[RESULT PENDING]` marker rather
 than filler. Report the draft path, the gate verdict
-(`PASS`/`CONDITIONAL`/`FAIL`), and what you could not ground.
+(`PASS`/`CONDITIONAL`/`FAIL`/`BLOCKED`/`NOT_ASSESSED`), and what you could not ground.

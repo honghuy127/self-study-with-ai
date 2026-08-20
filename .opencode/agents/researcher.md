@@ -40,7 +40,8 @@ verified source registry. Nothing you gather may be fabricated.
    `codebase`, or `docs`. Mark `blog`/secondary material honestly; do not
    launder it into papers.
 4. Record in `registry.yaml`: `key` (bibtex-style), `title`, `authors`,
-   `year`, `url`, `pdf` (relative path once downloaded), `venue`, `tier`,
+   `year`, `url`, `pdf` (remote URL; PDF binaries are never committed),
+   `venue`, `tier`,
    `status: to-read`, `notes_file: ""`. For `tier: codebase` entries also
    record `repo` (a key from `sources/repos.yaml`) and `component` (the
    directories or files the entry covers), and register the source at
@@ -50,10 +51,11 @@ verified source registry. Nothing you gather may be fabricated.
    with URL and access date in a header comment) and record its path in
    `snapshot:`; the summarizer has no web access. Docs that live inside a
    pinned checkout may point `snapshot:` at the in-repo path instead. For
-   every downloaded paper PDF, also save a `pdftotext -layout` extraction
-   into `sources/docs/<file>.txt` (page breaks as form feeds, header comment
-   noting the tool and date) and point `snapshot:` at it; summarizer
-   environments may lack PDF input.
+   every paper with a `pdf` URL, save a `pdftotext -layout` extraction
+   into `sources/docs/<key>.txt` (page breaks as form feeds, header comment
+   noting the source URL, tool, and date) and point `snapshot:` at it;
+   summarizer environments may lack PDF input. Never commit the PDF itself:
+   the hygiene gate fails on tracked PDF binaries.
 5. When the brief includes local codebases, pin every clone before finishing:
    `python3 tools/pin_repos.py <study-dir> <repo-key>=<path>` for each. The
    registry's codebase entries refer to repo keys from `sources/repos.yaml`;
@@ -70,14 +72,15 @@ verified source registry. Nothing you gather may be fabricated.
 
 ## Done when
 
-- `sources/registry.yaml` lists every source with verified metadata, and PDFs
-  sit in `sources/pdfs/` where downloadable.
+- `sources/registry.yaml` lists every source with verified metadata; `pdf`
+  fields hold remote URLs and every paper has a pdftotext snapshot under
+  `sources/docs/`.
 - Every local codebase referenced by the registry is pinned in
   `sources/repos.yaml` via `tools/pin_repos.py`, and no registry entry points
   at an unpinned checkout.
 - `study.yaml` status moves to `summarizing` and you end with a gate report
-  using the skill vocabulary (`PASS`/`CONDITIONAL`/`FAIL`/`BLOCKED` plus the
-  next decisive action).
+  using the skill vocabulary (`PASS`/`CONDITIONAL`/`FAIL`/`BLOCKED`/
+  `NOT_ASSESSED` plus the next decisive action).
 
 You may not write outside `sources/` and `study.yaml`. You do not summarize;
 that is the summarizer's job. The human will review your registry before

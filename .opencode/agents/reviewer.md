@@ -23,7 +23,7 @@ You are not the author; be independent.
    `.opencode/skills/conduct-cs-ai-research/references/paper-review-and-rebuttal.md`
    and `ethics-integrity-and-policy.md`.
 3. Run, if bash is permitted, and otherwise hand to the human:
-   `python3 tools/lint_report.py studies/<slug>/report/main.tex` and
+   `python3 tools/lint_report.py studies/<slug>` and
    `python3 tools/research/audit_research.py --root studies/<slug>`.
 4. Trace every numbered claim in the draft to a note or `.research` claim.
    Flag any that lack a trace, cite a superseded claim, or overreach the note
