@@ -1,5 +1,8 @@
-# Local source repositories pinned for this study. Written by tools/pin_repos.py.
-# Each entry records the exact checkout every codebase note must be anchored to.
+# Combined study: local source repositories pinned for every codebase note.
+# Written by tools/pin_repos.py; merged 2026-08-20 from the two source studies.
+# The harness study pinned these commits 2026-08-19; the compat study re-pinned
+# on 2026-08-20 and confirmed the identical commits, recorded in the entry
+# note. Each entry records the exact checkout every codebase note anchors to.
 pinned_at: "2026-08-19T15:56:51+00:00"
 repos:
   - key: claude-code
@@ -9,6 +12,7 @@ repos:
     commit: "c3d2e35e554060b5a20ee6b28140fbdbd4eb0048"
     dirty: false
     pinned_at: "2026-08-19T15:56:51+00:00"
+    note: "re-pinned 2026-08-20T05:33:50+00:00 by the open-model compatibility study; identical commit confirmed"
   - key: codex
     path: "/Users/hong.huy.nguyen/Work/Code/references/coding-agents/codex"
     remote: "https://github.com/openai/codex"
@@ -16,6 +20,7 @@ repos:
     commit: "af700180808cce2ce28a31aad0fbad4dc58b857a"
     dirty: false
     pinned_at: "2026-08-19T15:56:51+00:00"
+    note: "re-pinned 2026-08-20T05:33:50+00:00 by the open-model compatibility study; identical commit confirmed"
   - key: opencode
     path: "/Users/hong.huy.nguyen/Work/Code/references/coding-agents/opencode"
     remote: "https://github.com/anomalyco/opencode"
@@ -23,3 +28,4 @@ repos:
     commit: "d545d8fba57283528db69281f59c803c646eb7e9"
     dirty: false
     pinned_at: "2026-08-19T15:56:51+00:00"
+    note: "re-pinned 2026-08-20T05:33:50+00:00 by the open-model compatibility study; identical commit confirmed"

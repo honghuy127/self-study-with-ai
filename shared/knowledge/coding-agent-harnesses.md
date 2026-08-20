@@ -66,6 +66,7 @@ Known evidential status: all findings are bounded to the pinned commits
 and the 2026-08-20 documentation snapshots; no behavioral measurement was
 performed in the study.
 
-Source: studies/2026-08_coding-agent-harnesses (codexRepo, opencodeRepo,
-claudeCodeSurface, and the official documentation snapshots in
-shared/library.bib).
+Source: studies/2026-08_coding-agents-harnesses-and-open-models, Part I
+(merged 2026-08-20 from studies/2026-08_coding-agent-harnesses; codexRepo,
+opencodeRepo, claudeCodeSurface, and the official documentation snapshots
+in shared/library.bib).

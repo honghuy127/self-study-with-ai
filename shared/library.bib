@@ -9,7 +9,10 @@
   url       = {https://arxiv.org/abs/1706.03762}
 }
 
-% From studies/2026-08_coding-agent-harnesses (review signed off 2026-08-20).
+% From studies/2026-08_coding-agents-harnesses-and-open-models (review signed off 2026-08-20),
+% since merged into studies/2026-08_coding-agents-harnesses-and-open-models;
+% paths below point at the combined study, and its harness-era snapshots are
+% historical (kept in git history).
 % Codebase and docs entries carry pinned commits or snapshot locators; blog-tier
 % entries are context tier only.
 
@@ -19,7 +22,7 @@
   booktitle = {International Conference on Learning Representations (ICLR)},
   year      = {2023},
   url       = {https://arxiv.org/abs/2210.03629},
-  note      = {arXiv:2210.03629; study snapshot studies/2026-08_coding-agent-harnesses/sources/docs/react-2210.03629.txt}
+  note      = {arXiv:2210.03629; study snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/react-2210.03629.txt}
 }
 
 @article{yang2024sweagent,
@@ -28,7 +31,7 @@
   journal   = {arXiv preprint arXiv:2405.15793},
   year      = {2024},
   url       = {https://arxiv.org/abs/2405.15793},
-  note      = {study snapshot studies/2026-08_coding-agent-harnesses/sources/docs/swe-agent-2405.15793.txt}
+  note      = {study snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/swe-agent-2405.15793.txt}
 }
 
 @article{schick2023toolformer,
@@ -37,7 +40,7 @@
   journal   = {arXiv preprint arXiv:2302.04761},
   year      = {2023},
   url       = {https://arxiv.org/abs/2302.04761},
-  note      = {study snapshot studies/2026-08_coding-agent-harnesses/sources/docs/toolformer-2302.04761.txt}
+  note      = {study snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/toolformer-2302.04761.txt}
 }
 
 @misc{codexRepo,
@@ -45,7 +48,7 @@
   title        = {Codex CLI (codex-rs)},
   year         = {2026},
   howpublished = {\url{https://github.com/openai/codex}},
-  note         = {Repo key \texttt{codex}, pinned commit af700180808cce2ce28a31aad0fbad4dc58b857a (studies/2026-08_coding-agent-harnesses/sources/repos.yaml, pinned 2026-08-19); static read-only trace. Component notes: codexTurnLoop, codexToolsPatch, codexContextCompaction, codexSandboxPermissions, codexExtensibility, codexConfigProviders, codexStateRollout, codexInterfaces.}
+  note         = {Repo key \texttt{codex}, pinned commit af700180808cce2ce28a31aad0fbad4dc58b857a (studies/2026-08_coding-agents-harnesses-and-open-models/sources/repos.yaml, pinned 2026-08-19); static read-only trace. Component notes: codexTurnLoop, codexToolsPatch, codexContextCompaction, codexSandboxPermissions, codexExtensibility, codexConfigProviders, codexStateRollout, codexInterfaces.}
 }
 
 @misc{opencodeRepo,
@@ -53,7 +56,7 @@
   title        = {OpenCode},
   year         = {2026},
   howpublished = {\url{https://github.com/anomalyco/opencode}},
-  note         = {Repo key \texttt{opencode}, pinned commit d545d8fba57283528db69281f59c803c646eb7e9, dev branch (studies/2026-08_coding-agent-harnesses/sources/repos.yaml, pinned 2026-08-19); static read-only trace. Component notes: opencodeSessionLoop, opencodeTools, opencodeContextCompaction, opencodePermissions, opencodeExtensibility, opencodeConfigProviders, opencodeStateSnapshots, opencodeInterfaces.}
+  note         = {Repo key \texttt{opencode}, pinned commit d545d8fba57283528db69281f59c803c646eb7e9, dev branch (studies/2026-08_coding-agents-harnesses-and-open-models/sources/repos.yaml, pinned 2026-08-19); static read-only trace. Component notes: opencodeSessionLoop, opencodeTools, opencodeContextCompaction, opencodePermissions, opencodeExtensibility, opencodeConfigProviders, opencodeStateSnapshots, opencodeInterfaces.}
 }
 
 @misc{claudeCodeSurface,
@@ -61,7 +64,7 @@
   title        = {Claude Code public repository (plugin and example surface)},
   year         = {2026},
   howpublished = {\url{https://github.com/anthropics/claude-code}},
-  note         = {Repo key \texttt{claude-code}, pinned commit c3d2e35e554060b5a20ee6b28140fbdbd4eb0048 (studies/2026-08_coding-agent-harnesses/sources/repos.yaml, pinned 2026-08-19). Pinned tree carries plugins, examples, and scripts only; the agent core is closed source. Note key: claudeCodePluginSurface.}
+  note         = {Repo key \texttt{claude-code}, pinned commit c3d2e35e554060b5a20ee6b28140fbdbd4eb0048 (studies/2026-08_coding-agents-harnesses-and-open-models/sources/repos.yaml, pinned 2026-08-19). Pinned tree carries plugins, examples, and scripts only; the agent core is closed source. Note key: claudeCodePluginSurface.}
 }
 
 @misc{codexDocsRepo,
@@ -93,7 +96,7 @@
   title        = {Claude Code Hooks reference},
   year         = {2026},
   howpublished = {\url{https://docs.claude.com/en/docs/claude-code/hooks}},
-  note         = {Snapshot studies/2026-08_coding-agent-harnesses/sources/docs/claudeCodeDocsHooks.md fetched 2026-08-20. Note key: claudeCodeDocsHooks.}
+  note         = {Snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/claudeCodeDocsHooks.md fetched 2026-08-20. Note key: claudeCodeDocsHooks.}
 }
 
 @misc{claudeCodeSubagentsDocs,
@@ -101,7 +104,7 @@
   title        = {Create custom subagents (Claude Code)},
   year         = {2026},
   howpublished = {\url{https://docs.claude.com/en/docs/claude-code/sub-agents}},
-  note         = {Snapshot studies/2026-08_coding-agent-harnesses/sources/docs/claudeCodeDocsSubagents.md fetched 2026-08-20. Note key: claudeCodeDocsSubagents.}
+  note         = {Snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/claudeCodeDocsSubagents.md fetched 2026-08-20. Note key: claudeCodeDocsSubagents.}
 }
 
 @misc{claudeCodePluginsDocs,
@@ -109,7 +112,7 @@
   title        = {Create plugins (Claude Code)},
   year         = {2026},
   howpublished = {\url{https://docs.claude.com/en/docs/claude-code/plugins}},
-  note         = {Snapshot studies/2026-08_coding-agent-harnesses/sources/docs/claudeCodeDocsPlugins.md fetched 2026-08-20. Note key: claudeCodeDocsPlugins.}
+  note         = {Snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/claudeCodeDocsPlugins.md fetched 2026-08-20. Note key: claudeCodeDocsPlugins.}
 }
 
 @misc{claudeCodeMcpDocs,
@@ -117,7 +120,7 @@
   title        = {Connect Claude Code to tools via MCP},
   year         = {2026},
   howpublished = {\url{https://docs.claude.com/en/docs/claude-code/mcp}},
-  note         = {Snapshot studies/2026-08_coding-agent-harnesses/sources/docs/claudeCodeDocsMcp.md fetched 2026-08-20. Note key: claudeCodeDocsMcp.}
+  note         = {Snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/claudeCodeDocsMcp.md fetched 2026-08-20. Note key: claudeCodeDocsMcp.}
 }
 
 @misc{claudeCodeMemoryDocs,
@@ -125,7 +128,7 @@
   title        = {How Claude remembers your project (CLAUDE.md and auto memory)},
   year         = {2026},
   howpublished = {\url{https://docs.claude.com/en/docs/claude-code/memory}},
-  note         = {Snapshot studies/2026-08_coding-agent-harnesses/sources/docs/claudeCodeDocsMemory.md fetched 2026-08-20. Note key: claudeCodeDocsMemory.}
+  note         = {Snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/claudeCodeDocsMemory.md fetched 2026-08-20. Note key: claudeCodeDocsMemory.}
 }
 
 @misc{claudeCodePermissionsDocs,
@@ -133,7 +136,7 @@
   title        = {Configure permissions (Claude Code)},
   year         = {2026},
   howpublished = {\url{https://code.claude.com/docs/en/permissions}},
-  note         = {Snapshot studies/2026-08_coding-agent-harnesses/sources/docs/claudeCodeDocsPermissions.md fetched 2026-08-20. Note key: claudeCodeDocsPermissions.}
+  note         = {Snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/claudeCodeDocsPermissions.md fetched 2026-08-20. Note key: claudeCodeDocsPermissions.}
 }
 
 @misc{claudeCodeSandboxingDocs,
@@ -141,7 +144,7 @@
   title        = {Configure the sandboxed Bash tool (Claude Code)},
   year         = {2026},
   howpublished = {\url{https://code.claude.com/docs/en/sandboxing}},
-  note         = {Snapshot studies/2026-08_coding-agent-harnesses/sources/docs/claudeCodeDocsSandboxing.md fetched 2026-08-20. Note key: claudeCodeDocsSandboxing.}
+  note         = {Snapshot studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs/claudeCodeDocsSandboxing.md fetched 2026-08-20. Note key: claudeCodeDocsSandboxing.}
 }
 
 @misc{minusXTeardown,

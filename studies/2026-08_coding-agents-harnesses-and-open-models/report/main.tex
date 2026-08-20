@@ -10,21 +10,32 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{array}
+\usepackage[table]{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+
+% Okabe-Ito-derived palette for Part II status figures and the compatibility
+% matrix: status is always paired with a written label, never carried by
+% color alone.
+\definecolor{nativecol}{HTML}{0072B2}
+\definecolor{genericcol}{HTML}{009E73}
+\definecolor{partcol}{HTML}{E69F00}
+\definecolor{unattcol}{HTML}{D55E00}
+
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-% neurips_2025 preprint mode does not update \textwidth (see geometry
+% neurips_2025 preprint mode does not update \textwidth (see the geometry
 % \newgeometry caveat in neurips_2025.sty), so column widths are literal.
 \newlength{\dimcol}\setlength{\dimcol}{3.7cm}
 \newlength{\lblcol}\setlength{\lblcol}{1.9cm}
-\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
 
 \newcommand{\codex}[0]{Codex}
 \newcommand{\occ}[0]{OpenCode}
 \newcommand{\ccc}[0]{Claude Code}
 
-\title{How Claude Code, Codex, and OpenCode Build Their Coding-Agent Harnesses:\\
-A Static Source-Trace Comparison}
+\title{Claude Code, Codex, and OpenCode at the Source Level:\\
+Harness Architecture and Open-Source Model Support\\
+{\large A Static Source-Trace Study at Pinned Commits}}
 \author{self-study-with-ai}
 \date{\today}
 
@@ -34,27 +45,28 @@ A Static Source-Trace Comparison}
 \begin{abstract}
 A coding agent is a language model inside a loop: the model proposes,
 tools act on a repository, observations return, and the surrounding
-software, the harness, decides whether to continue. We study how three
-production harnesses, \ccc{}, \codex{}, and \occ{}, are built. Because
-the \ccc{} core is closed source, we pin all three repositories and
-restrict the study to static source traces and official documentation
-snapshots, with every extracted value carrying a file:line or
-snapshot-line anchor and 300 anchors re-verifying against the pinned
-commits. The three systems implement the same abstract loop and the same
-anti-loop instinct, then diverge at every level below the abstraction:
-\codex{} builds a typed state machine over abortable tasks, \occ{} runs a
-persistence-driven while loop whose continuation is recomputed from
-stored state, and \ccc{} exposes only hook cadences over a closed core.
-Three further lessons stand out. Safety postures split into three
-archetypes: prevention (OS sandbox under a rule engine in \codex{}),
-recovery (permissive defaults plus per-step snapshots in \occ{}), and
-layering (a permission layer with a Bash-only OS sandbox in \ccc{}).
-Wire formats converge even where control flow diverges: \occ{} ports the
-\codex{} patch grammar, and extension vocabularies settle on the
-\ccc{} design. And a documented contract is powerful: \ccc{}'s stop hook
-lets a plugin implement an unbounded agent loop with no core changes. We
-close with design lessons for anyone building or choosing a harness. All
-findings are bounded to the pinned commits (\path{af70018},
+software, the harness, decides whether to continue. This study examines
+the three production harnesses \ccc{}, \codex{}, and \occ{} with two
+questions. Part I asks how they are built: because the \ccc{} core is
+closed source, we pin all three repositories and restrict the study to
+static source traces and official documentation snapshots, with 300
+anchors re-verifying against the pinned commits. Part II asks what
+happens when the model on the other end is open source: through which
+surface each agent reaches Ollama, LM Studio, and generic
+OpenAI-compatible servers, and what degrades there. The three systems
+implement the same abstract loop and the same anti-loop instinct, then
+diverge structurally: \codex{} is a typed state machine with an OS
+sandbox and a rule engine, \occ{} a persistence-driven loop with
+permissive defaults and per-step revert, \ccc{} a documented contract
+over a closed core. Open-model support divides just as cleanly, and the
+dividing variable is the wire protocol each harness commits to:
+\codex{} ships native Responses-API providers for two local servers at
+the cost of its patch tool, \occ{} accepts anything
+chat-completions-shaped while its accounting defaults silently misbehave
+around zero limits, and \ccc{} documents no open-model surface at all.
+The architecture findings explain the compatibility findings: provider
+plumbing is where each harness's engineering culture shows through
+first. All findings are bounded to the pinned commits (\path{af70018},
 \path{d545d8f}, \path{c3d2e35}) and the documentation snapshots of
 2026-08-20.
 \end{abstract}
@@ -81,15 +93,29 @@ with GPT-4 Turbo, without changing the model~\citep{yang2024sweagent}.
 
 What the literature leaves open is how this interface layer is built in
 the shipping products that practitioners use. We study three of
-them, \ccc{}, \codex{}, and \occ{}, at pinned source versions, and ask four
-questions: what components make up a coding-agent harness; where the
-three systems genuinely differ; how each trades capability against safety;
-and what the closed \ccc{} core reveals through documentation, its plugin
-surface, and third-party teardowns. The answer, in one sentence: the
-abstraction has converged, an eight-dimension harness with one shared
-loop, but the engineering cultures have not, and the systems differ in
-where they place the trust boundary, how durable they make their state,
-and how much they hide.
+them, \ccc{}, \codex{}, and \occ{}, at pinned source versions, and ask
+two primary questions. \textbf{Part I} asks how the harnesses are built:
+what components make up a coding-agent harness, where the three systems
+genuinely differ, how each trades capability against safety, and what
+the closed \ccc{} core reveals through documentation, its plugin
+surface, and third-party teardowns. \textbf{Part II} asks what the same
+harnesses do with open-source models: whether each can reach a local or
+generic open-model server, through which integration surface (native
+provider code, generic OpenAI-compatible endpoint, or documentation
+only), and where support degrades, because a coding agent that can run
+against a local model is a platform in a way that one bound to a closed
+model list is not.
+
+The answer, in one sentence per part. Part I: the abstraction has
+converged, an eight-dimension harness with one shared loop, but the
+engineering cultures have not, and the systems differ in where they
+place the trust boundary, how durable they make their state, and how
+much they hide. Part II: compatibility is decided by the wire protocol
+each agent commits to, and each commitment has a matching price. The two
+readings reinforce each other: provider plumbing is the configuration
+dimension of Part I under stress, and each system's open-model behavior
+is exactly what Part I's architecture predicts
+(Section~\ref{sec:synthesis}).
 
 \paragraph{Systems under study.} \codex{} is OpenAI's open-source coding
 agent (Apache-2.0), a Rust core dispatched from one binary to a terminal
@@ -119,7 +145,11 @@ than findings. Contributions at the supported scope:
   Sections~\ref{sec:turnloop} to~\ref{sec:compaction});
   \item a dimension-by-dimension comparison that separates genuine
   structural differences from naming differences
-  (Sections~\ref{sec:extensibility} to~\ref{sec:convergence}).
+  (Sections~\ref{sec:extensibility} to~\ref{sec:state});
+  \item an open-source model compatibility trace covering three integration
+  surfaces per agent plus the server-side contract of three reference
+  servers, with every cell a code path, a documentation contract, or a
+  labeled gap (Sections~\ref{sec:servers} to~\ref{sec:matrix}).
 \end{itemize}
 
 \section{Background}
@@ -156,12 +186,13 @@ recovery, a tradeoff our three systems resolve differently
 \paragraph{Design.} Descriptive static source-trace study. The units of
 analysis are literal code constructs at pinned commits and quoted
 documentation text at pinned snapshots. There is no behavioral measurement:
-no agent CLI was invoked, no live API was called, and no code from the
-pinned repositories was executed. The pinned checkouts were treated as
-read-only untrusted data.
+no agent CLI was invoked, no live API was called, no server was started,
+and no code from the pinned repositories was executed. The pinned checkouts
+were treated as read-only untrusted data.
 
 \paragraph{Pins and sources.} Three local checkouts were pinned on
-2026-08-19 at commits \path{af700180808cce2ce28a31aad0fbad4dc58b857a} (\codex{},
+2026-08-19 and re-pinned on 2026-08-20, confirming the same commits:
+\path{af700180808cce2ce28a31aad0fbad4dc58b857a} (\codex{},
 Apache-2.0), \path{d545d8fba57283528db69281f59c803c646eb7e9} (\occ{}, MIT,
 \texttt{dev} branch), and \path{c3d2e35e554060b5a20ee6b28140fbdbd4eb0048}
 (\ccc{})~\citep{codexRepo,opencodeRepo,claudeCodeSurface}. Official
@@ -170,14 +201,15 @@ not version-pinned and can drift, so documentation claims cite the snapshot
 rather than a commit~\citep{claudeCodeHooksDocs,claudeCodeSubagentsDocs,%
 claudeCodePluginsDocs,claudeCodeMcpDocs,claudeCodeMemoryDocs,%
 claudeCodePermissionsDocs,claudeCodeSandboxingDocs,codexSandboxingDocs,%
-opencodeDocs,codexDocsRepo}. Evidence tiers: pinned code (primary for \codex{}
-and \occ{}), pinned plugin/example surface plus documentation snapshots
-(only tier available for the \ccc{} core), framing preprints
-(background), and third-party teardowns, \texttt{tier: blog}, admissible
-only for hedged contextual statements~\citep{minusXTeardown,agiflowInternals,%
-tenguDecoded}.
+opencodeDocs,codexDocsRepo,claudeCodeModelDocs,claudeCodeBedrockDocs}.
+Evidence tiers: pinned code (primary for \codex{} and \occ{}), pinned
+plugin/example surface plus documentation snapshots (the only tier
+available for the \ccc{} core), framing preprints (background), and
+third-party teardowns, \texttt{tier: blog}, admissible only for hedged
+contextual statements~\citep{minusXTeardown,agiflowInternals,%
+tenguDecoded,claudeCodeRouterContext}.
 
-\paragraph{Trace experiments.} Four experiments were frozen in a plan
+\paragraph{Part I trace experiments.} Four experiments were frozen in a plan
 before any full extraction (EXP-PLAN-2026-08-19-v1): E1 turns loops, E2
 tool surfaces, E3 safety policies, E4 compaction parameters. Each produced
 markdown and JSON artifacts in which every stated value carries a
@@ -191,13 +223,33 @@ ANALYZED with supported evidential status (\texttt{CLM-E1-1a} through
 \texttt{CLM-E4-3a} in the study's claim ledger, each superseding its
 EXECUTED counterpart; after review, \texttt{CLM-E2-1a} was itself
 superseded by \texttt{CLM-E2-1b} correcting a registration count from 33
-to 32).
+to 32). The claim ledger lived in the Part I study's dossier and is
+preserved in its git history.
+
+\paragraph{Part II traces.} Provider plumbing was traced in the same pinned
+trees: the dedicated \codex{} Ollama and LM Studio crates, and \occ{}'s
+provider module; \ccc{}'s loader is closed, so its column is filled from
+documentation snapshots (model configuration and Amazon
+Bedrock)~\citep{claudeCodeModelDocs,claudeCodeBedrockDocs}. The
+server-side contract came from the reference servers' own documentation:
+the 2024 Ollama OpenAI-compatibility post~\citep{ollamaCompatDocs}, LM
+Studio's developer docs snapshotted via its public docs repository because
+the live site was unreachable from the study
+environment~\citep{lmstudioApiDocs}, and the llama.cpp server README at
+master~\citep{llamaCppServerDocs}. Part II was scoped as a briefing:
+extraction was anchored but not pre-registered as an experiment plan; its
+12 notes (3 codebase, 8 documentation, 1 context) carry its evidence.
+The Part I extractions oriented Part II but were never cited for it: every
+Part II claim carries its own anchor.
 
 \paragraph{Closed-core protocol.} The \ccc{} column is filled exclusively
-from documentation quotes and the pinned plugin/example surface. Where no
-pinned source states a value, the text says so explicitly and the gap is
-listed in Section~\ref{sec:limitations}. Blog-tier teardowns never fill a
-comparison cell on their own~\citep{claudeCodeSurface,agiflowInternals}.
+from documentation quotes and the pinned plugin/example surface in both
+parts. Where no pinned source states a value, the text says so explicitly
+and the gap is listed in Section~\ref{sec:limitations}. Blog-tier teardowns
+and community routers never fill a comparison cell on
+their own~\citep{claudeCodeSurface,agiflowInternals,claudeCodeRouterContext}.
+
+\part{Harness architecture}
 
 \section{Findings}
 \label{sec:findings}
@@ -219,7 +271,7 @@ surface and its file-edit protocol; context assembly and compaction;
 persistent memory files; permission and sandbox policy; extensibility
 (hooks, plugins, skills, subagents, MCP servers); configuration and model
 provider plumbing; and session state with durable storage and user-facing
-transports. The decomposition is the study's first contribution: it
+transports. The decomposition is the Part I contribution: it
 reduces ``what is inside one of these products'' to eight questions that
 every implementation must have an answer to (Figure~\ref{fig:anatomy}).
 Table~\ref{tab:summary} summarizes the matrix; the details follow per
@@ -454,7 +506,10 @@ implementation'', \path{patch/index.ts:12}) and swaps it in for
 \path{edit} and \path{write} whenever the model ID contains
 \path{gpt-}, except \path{gpt-4} and
 \path{oss}~\citep{codexRepo,opencodeRepo}. Wire-format convergence is
-happening even while control flow diverges.
+happening even while control flow diverges. Part II turns out to hinge on
+this same gate: the patch-versus-edit choice is exactly what changes when
+the model stops being the vendor's own
+(Sections~\ref{sec:compatcodex},~\ref{sec:compatopencode}).
 
 Both open systems engineer around the edit-fragility that SWE-agent
 measured, in different places. \occ{} runs its \path{edit} tool through a
@@ -534,7 +589,11 @@ that project-root CLAUDE.md survives \path{/compact} by being re-read and
 re-injected, while nested CLAUDE.md files do
 not~\citep{claudeCodeHooksDocs,claudeCodeMemoryDocs}. No numeric trigger,
 summarization budget, or retention policy appears anywhere in the pinned
-snapshot set (Section~\ref{sec:limitations}).
+snapshot set (Section~\ref{sec:limitations}). With open models, these
+constants only matter once the accounting inputs are correct: Part II
+shows each system mis-accounting in a different way when the model on the
+other end is unknown to the harness
+(Section~\ref{sec:matrix}).
 
 \subsection{Permissions and sandboxing}
 \label{sec:safety}
@@ -718,6 +777,11 @@ connector) taken wholesale without field merging, and project-scoped
 \path{.mcp.json} servers require approval and are gated on workspace
 trust~\citep{claudeCodeMcpDocs}.
 
+Part II is this dimension under stress: the provider-plumbing culture
+each system built here is precisely what decides how far open-weight
+models get (Sections~\ref{sec:compatcodex}
+to~\ref{sec:compatccc}).
+
 \subsection{State, rollout, and interfaces}
 \label{sec:state}
 
@@ -774,7 +838,323 @@ confinement for untrusted work is a firewalled
 devcontainer~\citep{claudeCodePermissionsDocs,claudeCodeMcpDocs,%
 claudeCodeSurface}.
 
-\subsection{Convergence and divergence}
+\part{Open-source model support}
+
+\section{The compatibility question}
+\label{sec:compatintro}
+
+Whether a given harness supports open-source models is a concrete,
+answerable question: does the provider plumbing know about local servers,
+what wire protocol does it speak, and what degrades when the model on the
+other end is not the vendor's own? The question has three surfaces to
+hold constant while the agent varies: Ollama, LM Studio, and the generic
+OpenAI-compatible server class embodied by the llama.cpp reference
+server~\citep{ollamaCompatDocs,lmstudioApiDocs,llamaCppServerDocs}. We
+also ask the mirror question: what must a compatible server provide for
+an agent to survive against it?
+
+Part II is a static source trace under the same discipline as Part I:
+nothing was executed, no model API was called, and provider behavior is
+stated only as code paths and documentation contracts. Where a system's
+behavior is closed or unattested, the cell says so
+(Section~\ref{sec:limitations}).
+
+\subsection{What the servers themselves provide}
+\label{sec:servers}
+
+The compatibility bar is set by what a compatible server can actually
+do (Table~\ref{tab:servers}, Figure~\ref{fig:protocolbar}).
+
+\begin{table}[t]
+\centering
+\small
+\caption{Server-side contract, from each reference server's own
+documentation snapshots. Responses: whether an OpenAI Responses API
+route exists and how it is described.}
+\label{tab:servers}
+\setlength{\tabcolsep}{4pt}%
+\begin{tabular}{@{}L{1.7cm}L{3.9cm}L{3.9cm}L{3.5cm}@{}}
+\toprule
+Server & Baseline OpenAI surface & Tool calling & Responses API\\
+\midrule
+Ollama (2024 post) & \path{/v1/chat/completions} at \path{localhost:11434}; auth placeholder ``required, but unused'' (\texttt{ollama\-Compat\-Docs}) & listed as a possible future improvement at post time & not mentioned\\
+LM Studio & chat completions and more at \path{localhost:1234/v1} (\path{lmstudio\-Api\-Docs}) & on \path{/v1/chat/completions}; parallel calls and \path{tool_choice} undocumented; streaming deltas indexed & route exists; docs cover streaming, \path{reasoning.effort}, \path{previous_response_id}, remote MCP tools; no function tools documented on that page\\
+llama.cpp reference server & models, completions, chat completions, embeddings, plus health, props, metrics, slots; self-described: ``no strong claims of compatibility'' & template-gated via \path{--jinja}; \path{parallel_tool_calls} ``only supported on some models'' & exists but is a converter stub into chat completions; no streaming or tools documented for the route\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\scriptsize, scale=0.92, transform shape,
+  proto/.style={draw=black!70, line width=0.7pt, rounded corners=1pt,
+    fill=black!5, align=center, minimum width=3.85cm, minimum height=0.95cm,
+    inner sep=2.5pt, text=black},
+  reqlab/.style={draw=black!40, line width=0.5pt, rounded corners=1pt,
+    align=center, minimum width=3.85cm, minimum height=0.85cm,
+    inner sep=2.5pt, text=black},
+  chip/.style={rounded corners=1pt, align=center, minimum width=3.85cm,
+    minimum height=0.85cm, inner sep=2.5pt, text=black},
+  rowhead/.style={draw=black!50, line width=0.5pt, rounded corners=1pt,
+    fill=black!5, align=center, minimum width=2.3cm, inner sep=2.5pt,
+    text=black},
+  arr/.style={-{Stealth[length=1.8mm]}, draw=black!60, line width=0.5pt}]
+% protocol columns
+\node[proto] (p1) at (0,0) {\textbf{Chat completions}\\ plus tool calls};
+\node[proto] (p2) at (4.25,0) {\textbf{Responses API}\\ (OpenAI)};
+\node[proto] (p3) at (8.5,0) {\textbf{Anthropic}\\ \path{/v1/messages}};
+% agent requirements
+\node[reqlab, fill=genericcol!14] (oc) at (0,1.75) {\occ{} accepts any\\ chat-completions shape};
+\node[reqlab, fill=nativecol!14] (cx) at (4.25,1.75) {\codex{} pins Responses;\\ \path{chat} is a hard error};
+\node[reqlab, fill=unattcol!14] (ccreq) at (8.5,1.75) {\ccc{}: Anthropic protocol\\ only, as attested};
+\draw[arr] (oc.south) -- (p1.north);
+\draw[arr] (cx.south) -- (p2.north);
+% Ollama row
+\node[rowhead] at (-3.0,-1.4) {Ollama\\ 2024 snapshot};
+\node[chip, fill=partcol!16] at (0,-1.4) {partial: chat yes, tools\\ listed as future};
+\node[chip, fill=black!7] at (4.25,-1.4) {absent: not in snapshot};
+\node[chip, fill=black!7] at (8.5,-1.4) {absent: not in snapshot};
+% LM Studio row
+\node[rowhead] at (-3.0,-2.5) {LM Studio\\ docs mirror};
+\node[chip, fill=genericcol!14] at (0,-2.5) {supported: tools on chat\\ completions; no parallel flag};
+\node[chip, fill=partcol!16] at (4.25,-2.5) {partial: streaming, effort,\\ prior state, remote MCP only};
+\node[chip, fill=black!7] at (8.5,-2.5) {named only: shape\\ undocumented};
+% llama.cpp row
+\node[rowhead] at (-3.0,-3.6) {llama.cpp\\ reference server};
+\node[chip, fill=genericcol!14] at (0,-3.6) {supported: tools via\\ jinja templates, JSON schema};
+\node[chip, fill=partcol!16] at (4.25,-3.6) {partial: documented as a\\ converter to chat completions};
+\node[chip, fill=genericcol!14] at (8.5,-3.6) {supported:\\ \path{/v1/messages} documented};
+\end{tikzpicture}
+\caption{Wire protocols as a compatibility bar. Top row: the protocol each
+agent commits to. Bottom grid: what each reference server documents for
+that protocol. Every status is written into its chip; shading only
+repeats the status.}
+\label{fig:protocolbar}
+\end{figure}
+
+Two readings matter for the agents. First, the practical minimum for a
+coding agent is chat completions with tool calling; streaming is a
+comfort feature, and structured output support is uneven. Second, the
+Responses API surface is young and incomplete everywhere it exists: an
+agent that pins itself to Responses (Section~\ref{sec:compatcodex}) is
+betting on servers catching up. A separate fact becomes relevant in
+Section~\ref{sec:compatccc}: the llama.cpp reference server also exposes
+an Anthropic-shaped \path{/v1/messages} route, and LM Studio documents an
+Anthropic-compatible surface~\citep{llamaCppServerDocs,lmstudioApiDocs}.
+
+\subsection{Codex: a first-class Responses path, with caveats}
+\label{sec:compatcodex}
+
+\codex{}'s answer is structural: Ollama and LM Studio are not generic
+endpoints bolted on, they are provider entries. Both are registered with
+the responses wire type, and all model traffic is
+\path{POST <base_url>/responses}, \path{http://localhost:11434/v1/responses}
+and \path{http://localhost:1234/v1/responses}
+(\path{codex-rs/model-provider-info/src/lib.rs:514-521},
+\path{codex-rs/codex-api/src/endpoint/responses.rs:100-102}). The
+legacy chat wire is not a fallback: setting \path{wire_api = "chat"} is a
+hard deserialization error~\citep{codexRepo}.
+
+Three design details shape the experience. \emph{Version gating}: before
+use, \codex{} probes Ollama with \path{GET /api/version} and refuses
+servers that report a version older than 0.13.4, except dev builds that
+report \path{0.0.0} and servers whose version endpoint is missing or
+unparsable; the gate is consistent with Responses support landing in
+later Ollama releases, although the code does not state the
+reason~\citep{codexRepo,ollamaCompatDocs}. \emph{Logistics}: the LM
+Studio client probes \path{GET <base>/models}, downloads via
+\path{lms get --yes}, and warms up with a one-token responses request;
+the Ollama client pulls models over the native \path{/api/pull} NDJSON
+stream, reading success from the event stream rather than the HTTP
+status~\citep{codexRepo}. \emph{Defaults}: the default models are
+\path{gpt-oss:20b} (Ollama) and \path{openai/gpt-oss-20b} (LM Studio),
+slugs from the gpt-oss open-weight family~\citep{codexRepo}.
+
+The caveats are equally structural. Those default slugs are absent from
+the bundled catalog, so, provided the catalog refresh does not decode a
+richer listing from the server, they resolve to a fallback model
+description with no patch tool type, and the \path{apply_patch} tool is
+registered only when that type is set: open models on \codex{} lose the
+patch tool, while the rest of the registry is gated by feature and
+environment rather than provider~\citep{codexRepo}. Requests to local
+servers still carry the full field set, tools JSON,
+\path{tool_choice: "auto"}, \path{parallel_tool_calls}, schema-shaped
+output, \path{reasoning.summary} defaulting to auto, and
+\texttt{include: ["reasoning.encrypted\_content"]}; the server-side
+acceptance of each field is not checkable from either side of this
+trace~\citep{codexRepo,lmstudioApiDocs,llamaCppServerDocs}. Unknown
+models inherit, under the same fallback proviso, a context accounting
+of 272{,}000 tokens unless the user sets
+\path{model\_context\_window}, and overrides exist via
+\path{CODEX\_OSS\_BASE\_URL} and \path{CODEX\_OSS\_PORT}; no OSS provider
+entry carries authentication~\citep{codexRepo}.
+
+\subsection{OpenCode: generic compatibility, permissive defaults}
+\label{sec:compatopencode}
+
+\occ{} has the widest answer and the sharpest degradations. Any provider
+it does not know rides the generic OpenAI-compatible SDK: the factory is
+one of 24 bundled provider packages and is also the final fallback for
+catalog models and config-defined
+models~\citep{opencodeRepo}. The user-facing shape is a config
+block, \path{provider.<id>} with \path{options.baseURL} and
+\path{options.apiKey} plus per-model limits; an in-repo test example
+runs exactly the Ollama setup, \path{baseURL "http://localhost:11434/v1"}
+with limits context 8192, output 2048. Custom SDKs install at runtime
+from \path{npm}, or from a local path via \path{file://}, and the hosted
+catalog at models.opencode.ai (five-minute cache, overridable and
+disablable by flags) lists, in the pinned test fixture, an
+\path{lmstudio} provider at \path{http://127.0.0.1:1234/v1} and an
+\path{ollama-cloud} provider, though no bare local Ollama
+entry~\citep{opencodeRepo}.
+
+The degradations follow from the defaults. An unconfigured limit is
+zero: output limit zero silently becomes the 32{,}000-token request cap
+(\path{OUTPUT\_TOKEN\_MAX}), and context limit zero disables
+auto-compaction entirely, so a local session can drive straight into the
+wall without the harness budgeting anything~\citep{opencodeRepo}. Token
+counts for unknown models are estimated as characters over four; the
+compaction reserve on the v1 overflow path, when it runs, is
+min(20{,}000 tokens, \path{maxOutputTokens}); a second compaction path
+exists in the pinned tree and which one serves the default run is
+unresolved~\citep{opencodeRepo}. Tools are sent unconditionally with the
+capability flag defaulting to true, so a server without tool support is
+not discovered until the request fails, or, worse, the model simply
+never calls a tool and file editing quietly
+disappears~\citep{opencodeRepo}. An unknown model string is a hard error
+with fuzzy suggestions rather than a silent fallback, which is honest but
+unforgiving~\citep{opencodeRepo}. Two filters shape what open models
+see: \path{websearch} is dropped for every provider except the native
+ones, and the model-ID-keyed choice is the edit path, the
+\path{apply\_patch} port is gated to model IDs containing \path{gpt-},
+excluding \path{gpt-4} and \path{oss}, so open models get the
+\path{edit} and \path{write} tools instead~\citep{opencodeRepo}.
+
+\subsection{Claude Code: no documented surface, and a gray zone}
+\label{sec:compatccc}
+
+The documentation snapshots are unambiguous about what is supported:
+Anthropic-model clouds. The model page covers aliases, version pins, and
+provider-specific resolution across Anthropic's own infrastructure,
+Bedrock, Google's Agent Platform, and partner clouds, and the Bedrock
+page wires Claude Code to AWS with \path{CLAUDE\_CODE\_USE\_BEDROCK=1};
+every documented model example there is an Anthropic model, IDs prefixed
+or namespaced \path{anthropic.} plus inference-profile
+ARNs~\citep{claudeCodeModelDocs,claudeCodeBedrockDocs}. Neither snapshot
+mentions Ollama, LM Studio, open-weight models, or an OpenAI-compatible
+endpoint anywhere (verified absence).
+
+The gray zone is three documented mechanisms whose intended use is not
+open models but whose wording leaves a gap. \path{ANTHROPIC\_BASE\_URL}
+``changes where requests are sent, not which model answers them'', and
+behind a custom base URL the client ``passes any string through without
+checking it''; \path{ANTHROPIC\_CUSTOM\_MODEL\_OPTION} adds an
+unvalidated picker entry (``you can use any string your API endpoint
+accepts''); and \path{CLAUDE\_CODE\_MAX\_CONTEXT\_TOKENS} applies to
+model IDs that do not start with \path{claude-}, do not carry the
+\path{[1m]} marker, and do not resolve to a Claude
+model~\citep{claudeCodeModelDocs}.
+Capability gating is model-ID-shaped with override variables, and
+context-window enforcement for unknown IDs can be deferred to the
+server's too-long error, a mode documented as failing ``when a gateway
+rewrites the error''~\citep{claudeCodeModelDocs}. Whether an
+Anthropic-protocol server can actually drive a session is unattested in
+every source this study registered; the llama.cpp reference server
+documents an Anthropic messages route and LM Studio names an
+Anthropic-compatible surface, both unverified against \ccc{}, which makes
+the gap worth stating explicitly rather than
+closing~\citep{llamaCppServerDocs,lmstudioApiDocs}.
+A community router claims to bridge \ccc{} to a long list of providers
+from a local gateway, but the claim is self-reported, never names Ollama
+or LM Studio, and is held at context tier~\citep{claudeCodeRouterContext}.
+
+\subsection{The compatibility matrix}
+\label{sec:matrix}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Compatibility matrix at the pinned commits. Tier: native means
+dedicated provider code in the agent; generic means a config-driven
+compatible-endpoint path; none means no documented surface. Caveats
+abbreviate Sections~\ref{sec:servers} to~\ref{sec:compatccc}.}
+\label{tab:matrix}
+\setlength{\tabcolsep}{4pt}%
+\begin{tabular}{@{}L{1.7cm}L{4.0cm}L{4.0cm}L{3.3cm}@{}}
+\toprule
+Agent & Ollama & LM Studio & Generic server\\
+\midrule
+\cellcolor{nativecol!10}\codex{} & native, Responses wire, port 11434, refuses reported versions below 0.13.4, default \path{gpt-oss:20b} & native, Responses wire, port 1234, default \path{openai/gpt-oss-20b}, model pull via \path{lms} & via \path{model_providers} config, Responses wire only; \path{chat} is a hard error\\
+\cellcolor{genericcol!10}\occ{} & config-defined generic path; in-repo example \path{localhost:11434/v1}; catalog lists only \path{ollama-cloud} & generic path; catalog fixture at \path{127.0.0.1:1234/v1} & \path{@ai-sdk/openai-compatible} fallback; base URL config; runtime SDK install\\
+\cellcolor{unattcol!8}\ccc{} & none documented; base-URL pass-through is gray zone & none documented; same gray zone & none documented; Anthropic protocol only; gateway wire shape unattested\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\scriptsize,
+  agent/.style={draw=#1, line width=0.9pt, rounded corners=1pt, fill=#1!12,
+    text=black, minimum width=3.0cm, minimum height=1.05cm, align=center},
+  server/.style={draw=black!70, line width=0.7pt, rounded corners=1pt,
+    fill=black!6, text=black, minimum width=2.7cm, minimum height=1.05cm,
+    align=center},
+  nat/.style={-{Stealth[length=2.4mm]}, line width=1.1pt, nativecol},
+  gen/.style={-{Stealth[length=2.4mm]}, line width=1.1pt, genericcol},
+  unv/.style={-{Stealth[length=2mm]}, line width=0.8pt, black!45, loosely dotted}]
+% agents
+\node[agent=nativecol] (cx) at (0, 2.0) {\textbf{Codex}\\ Responses wire};
+\node[agent=genericcol] (oc) at (0, 0.0) {\textbf{OpenCode}\\ chat-completions wire};
+\node[agent=unattcol] (cc) at (0,-2.0) {\textbf{Claude Code}\\ Anthropic protocol};
+% servers
+\node[server] (ol) at (6.2, 2.0) {\textbf{Ollama}\\ port 11434};
+\node[server] (lm) at (6.2, 0.0) {\textbf{LM Studio}\\ port 1234};
+\node[server] (gn) at (6.2,-2.0) {\textbf{Generic server}\\ llama.cpp class};
+% Codex edges
+\draw[nat] (cx) to[out=0, in=180] (ol)
+  node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.5] {native; version gate 0.13.4};
+\draw[nat] (cx) to[out=-18, in=162] (lm)
+  node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.52] {native; model pull via lms};
+\draw[nat] (cx) to[out=-38, in=142] (gn)
+  node[sloped, midway, above, font=\tiny, text=nativecol, pos=0.58] {config; Responses wire only};
+% OpenCode edges
+\draw[gen] (oc) to[out=18, in=198] (ol)
+  node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.48] {generic; baseURL config};
+\draw[gen] (oc) to[out=0, in=180] (lm)
+  node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.5] {generic; catalog fixture};
+\draw[gen] (oc) to[out=-18, in=162] (gn)
+  node[sloped, midway, above, font=\tiny, text=genericcol, pos=0.52] {compat-SDK fallback};
+% Claude Code edges: unverified gray zone
+\draw[unv] (cc) to[out=24, in=216] (ol);
+\draw[unv] (cc) to[out=8, in=188] (lm);
+\draw[unv] (cc) to[out=0, in=180] (gn);
+\node[align=center, font=\tiny, text width=4.6cm] at (6.2,-3.35)
+  {dotted edges are the unverified gateway gray zone;\\ no documented surface connects the two sides};
+\node[align=left, font=\tiny] at (0,-3.35)
+  {\textcolor{nativecol}{solid blue: native provider}\\
+   \textcolor{genericcol}{solid green: generic path}\\
+   \textcolor{black!60}{dotted gray: unverified}};
+\end{tikzpicture}
+\caption{Support as a graph. Solid arrows are attested paths with their
+tier; dotted arrows mark the \ccc{} gray zone where no source attests the
+connection. Values match Table~\ref{tab:matrix}.}
+\label{fig:support}
+\end{figure}
+
+Read together, the matrix, the caveats, and Figure~\ref{fig:support}
+support one directional claim:
+compatibility with open models is decided by the wire protocol an agent
+commits to. \codex{} committed to Responses and built native plumbing
+for two local servers, accepting the patch-tool loss and betting on
+server-side adoption. \occ{} committed to nothing and accepts anything
+chat-completions-shaped, accepting that its accounting defaults misbehave
+around zero limits. \ccc{} commits to Anthropic's stack and leaves the
+rest to whatever the user can route through a gateway, unattested.
+
+\section{Synthesis: one architecture, three cultures, one stress test}
+\label{sec:synthesis}
+
+\subsection{Convergence and divergence in harness architecture}
 \label{sec:convergence}
 
 The evidence points to one shared architecture with three engineering
@@ -810,25 +1190,66 @@ against documented-only surfaces. Naming differences (hooks, skills,
 agents/subagents, plugins) overlay these structural differences rather than
 masking them.
 
-\paragraph{Design lessons.} Five takeaways for a reader building or
-choosing a harness, each supported by a section above. (1) Anti-loop
-machinery is not optional: the repetition failure modes ReAct measured
-reappear in production form, and every system has an explicit answer, a
-typed rejection taxonomy, an identical-call tripwire, or a stop-hook cap
+\subsection{Part II is Part I's configuration dimension under stress}
+\label{sec:crossreading}
+
+The compatibility findings do not add a ninth machinery dimension; they
+sharpen the configuration-and-providers dimension of
+Section~\ref{sec:config}, and each system's open-model behavior is what
+Part I's architecture predicts.
+
+\codex{}'s reserved provider IDs and Responses-only wire become, under
+open models, two native local-server entries with a version gate and a
+hard refusal of everything else; its protocol-first interface culture
+(Section~\ref{sec:state}) is the same instinct as pinning the Responses
+wire end to end. \occ{}'s widest-in-the-study provider layer becomes the
+widest open-model acceptance, and its permissive configuration culture
+reappears as permissive accounting defaults: zero limits silently disable
+compaction or balloon output requests. \ccc{}'s closed loader stays
+closed for model wiring, and Part I's advisory-against-enforcement split
+reappears as documented Anthropic-cloud enforcement plus pass-through
+variables whose wire behavior is unattested
+(Sections~\ref{sec:compatcodex} to~\ref{sec:compatccc}).
+
+One thread runs through both parts without branching: the patch tool.
+\occ{} selects between \path{apply_patch} and \path{edit}/\path{write} by
+model ID (Section~\ref{sec:tools}); for open models that gate resolves to
+the edit paths in \occ{} and to no patch tool at all under \codex{}'s
+fallback metadata (Sections~\ref{sec:compatcodex},~\ref{sec:compatopencode}).
+The compaction constants of Section~\ref{sec:compaction} compose with the
+Part II findings the same way: they only govern once the accounting
+inputs are corrected by hand, since \codex{} assumes a 272{,}000-token
+window on catalog misses, \occ{} disables auto-compaction at a zero
+context limit, and \ccc{} can defer enforcement to a server error a
+gateway may rewrite.
+
+\subsection{Design lessons}
+\label{sec:lessons}
+
+Seven takeaways for a reader building or choosing a harness, each
+supported by a section above. (1) Anti-loop machinery is not optional:
+the repetition failure modes ReAct measured reappear in production form,
+and every system has an explicit answer, a typed rejection taxonomy, an
+identical-call tripwire, or a stop-hook cap
 (Section~\ref{sec:turnloop}). (2) The edit protocol is worth engineering
 money: a grammar-parsed patch format and a nine-stage fuzzy replacer are
 two responses to the same measured fragility, and the patch format is
-already being ported across vendors
-(Sections~\ref{sec:tools}). (3) The kind of compaction trigger a system
-chooses, a fraction of the window or a reserved headroom, reveals its
-accounting philosophy, and tool output is where the bloat budget should
-go (Section~\ref{sec:compaction}). (4) Recoverability is a safety
+already being ported across vendors (Section~\ref{sec:tools}).
+(3) The kind of compaction trigger a system chooses, a fraction of the
+window or a reserved headroom, reveals its accounting philosophy, and
+tool output is where the bloat budget should go
+(Section~\ref{sec:compaction}). (4) Recoverability is a safety
 mechanism, not a feature: per-step snapshots with revert allow a
-permissive default policy
-(Sections~\ref{sec:safety},~\ref{sec:state}). (5) A good documented
-contract can substitute for a plugin API: \ccc{}'s stop hook carries an
-unbounded autonomous loop with no core changes
-(Section~\ref{sec:extensibility}).
+permissive default policy (Sections~\ref{sec:safety},~\ref{sec:state}).
+(5) A good documented contract can substitute for a plugin API: \ccc{}'s
+stop hook carries an unbounded autonomous loop with no core changes
+(Section~\ref{sec:extensibility}). (6) The wire protocol an agent commits
+to decides its open-model reach; every commitment has a matching price,
+paid in a different currency (Sections~\ref{sec:servers},~\ref{sec:matrix}).
+(7) For open models, fill in the accounting before the first session:
+limits, patch-tool expectations, and window enforcement defaults are the
+three places the studied harnesses misbehave silently
+(Section~\ref{sec:matrix}).
 
 \section{Related Work}
 \label{sec:related}
@@ -864,6 +1285,21 @@ the three pinned sources cross-references the academic literature in its
 policy design; the connection above is ours, grounded in the shared
 failure patterns each mechanism addresses.
 
+\paragraph{Distinction from nearest work.} The nearest verifiable work is
+the SWE-agent interface study, which ablates interface choices for one
+external agent on one benchmark~\citep{yang2024sweagent}. This study
+instead traces three closed-loop products at the implementation level,
+covers eight machinery dimensions plus an open-model compatibility trace
+against three reference servers, and treats a closed-source system with a
+documentation-tier protocol. Its bounds are correspondingly different:
+no behavior was executed, and every claim is version-pinned. For Part II,
+the compatibility question is ordinarily answered by community test
+reports; here it is answered by source traces, which trade runtime
+coverage for pinning and anchorability. The community router around
+\ccc{} sits in the nearest-work neighborhood as an existence proof that
+users route around the closed loader, not as
+evidence~\citep{claudeCodeRouterContext}.
+
 \paragraph{Third-party teardowns.} Three teardowns of \ccc{} were reviewed
 and held to contextual use only: an intercepted-log teardown reporting
 system-prompt and tool-token sizes and small-model routing
@@ -873,14 +1309,6 @@ trace-based breakdown of extension layers whose memory-delivery shape is
 cross-verified by official documentation~\citep{agiflowInternals}. None
 carries a comparison cell; their assertions are unverified against any
 primary source.
-
-\paragraph{Distinction from nearest work.} The nearest verifiable work is
-the SWE-agent interface study, which ablates interface choices for one
-external agent on one benchmark~\citep{yang2024sweagent}. This study
-instead traces three closed-loop products at the implementation level,
-covers eight machinery dimensions, and treats a closed-source system with a
-documentation-tier protocol. Its bounds are correspondingly different:
-no behavior was executed, and every claim is version-pinned.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -892,61 +1320,95 @@ newer releases, and the \occ{} pin is the \texttt{dev} branch of the
 rewrite, not a released version.
 
 \paragraph{No behavior was measured.} The study is static by design. No
-agent was run, no API was called, and no code from the pinned repositories
-was executed. Statements about defaults and triggers describe code paths
-and documentation contracts, not observed runtime behavior. The validation
-runs re-check anchors but are smoke-test plumbing, not evidence about the
-systems.
+agent was run, no API was called, no server served, and no code from the
+pinned repositories was executed. Statements about defaults and triggers
+describe code paths and documentation contracts, not observed runtime
+behavior. The validation runs re-check anchors but are smoke-test
+plumbing, not evidence about the systems. In Part II, the practical
+consequence is that server acceptance of agent request fields (tools
+JSON, parallel calls, reasoning fields) is the single largest uncheckable
+cell~\citep{codexRepo,lmstudioApiDocs}.
 
 \paragraph{Closed core.} The \ccc{} turn loop, tool registry, compaction
-thresholds, session storage, permission-enforcement internals, and sandbox
-mechanisms are not established by this study; all are documented contracts
-or surface attestations. The pinned documentation set also lacks the
-compaction-survival page referenced by the memory docs, so the survival
-rules beyond root CLAUDE.md are incomplete. Documentation describes
-intended behavior, not necessarily shipped behavior on every platform.
+thresholds, session storage, permission-enforcement internals, sandbox
+mechanisms, and model loader are not established by this study; all are
+documented contracts or surface attestations. The pinned documentation
+set also lacks the compaction-survival page referenced by the memory
+docs, so the survival rules beyond root CLAUDE.md are incomplete, and the
+wire shape of \ccc{} gateway traffic is nowhere attested, which leaves
+both the pass-through mechanism and any Anthropic-compatible-server
+hypothesis uncheckable (Section~\ref{sec:compatccc}). Documentation
+describes intended behavior, not necessarily shipped behavior on every
+platform.
 
-\paragraph{Teardown tier.} Third-party teardowns are unverified claims
-about captures and binaries this study cannot inspect; they appear only as
-hedged context (Section~\ref{sec:tools}). One blog assertion (the
-memory-delivery shape) is corroborated by official documentation, and only
-that overlap is treated as reinforced.
+\paragraph{Teardown and router tier.} Third-party teardowns and the
+community router are unverified claims about captures, binaries, and
+gateways this study cannot inspect; they appear only as hedged context.
+One blog assertion (the memory-delivery shape) is corroborated by
+official documentation, and only that overlap is treated as reinforced.
+
+\paragraph{Server snapshot coverage.} The Ollama snapshot is the 2024
+compatibility post, which predates the version \codex{} requires;
+current Ollama behavior beyond that gate is not covered. LM Studio
+snapshots came from its documentation repository because the live site
+was unreachable from the study environment, so drift from the shipped
+application is unassessed. The llama.cpp snapshot is master at fetch
+time, unversioned. vLLM's compatible-server documentation moved and could
+not be re-located within budget, so the generic bar is carried by
+llama.cpp and LM Studio alone.
+
+\paragraph{Catalog state and fallback metadata.} \occ{}'s live model
+catalog is runtime state; only the pinned test fixture is inspectable, so
+claims about catalog contents are fixture-scoped. \codex{}'s patch-tool
+loss and the 272{,}000-token accounting rest on catalog misses resolving
+to a fallback description; whether that fallback survives at runtime
+depends on the models-catalog refresh decoding against a plain
+\path{/v1/models} listing, which expects the rich catalog schema and is
+not exercised against a local server in the pinned
+tree~\citep{codexRepo,opencodeRepo}. Two compaction implementations
+coexist in the pinned \occ{} tree, and which one serves the default run
+was not traced; the reserve figures are attributed to the v1 overflow
+path~\citep{opencodeRepo}.
 
 \paragraph{Open cells.} Where no pinned source states a value, the
-dimensions above say so explicitly: \ccc{} compaction thresholds, loop
-implementation, full tool registry, and provider plumbing; \occ{}
-permission merge precedence and runtime enforcement of several schema
-defaults; \codex{} remote model-catalog and enterprise cloud-bundle
-contents, which are server-side state. These are evidence gaps, not
-findings of absence, except where stated (for example, the absence of an OS
-sandbox in the pinned \occ{} tree is a searched-scope result).
-
-\paragraph{Negative scope for Codex.} The extracted \codex{} registry has
-no dedicated read/glob/grep tools within the searched components; absence
-is bounded to the extraction scope and the pinned commit.
+sections above say so explicitly: \ccc{} compaction thresholds, loop
+implementation, full tool registry, provider plumbing, and gateway wire
+shape; \occ{} permission merge precedence, runtime enforcement of several
+schema defaults, and compaction path selection; \codex{} remote
+model-catalog and enterprise cloud-bundle contents, which are server-side
+state. These are evidence gaps, not findings of absence, except where
+stated (for example, the absence of an OS sandbox in the pinned \occ{}
+tree and the absence of any open-model mention in the \ccc{} snapshots
+are searched-scope results).
 
 \section{Conclusion}
 
 Three production harnesses implement the same abstract coding-agent loop
 and diverge at every level below it. \codex{} builds a typed state machine
 over abortable tasks, wraps shell access in an OS sandbox plus a rule
-engine, and persists threads as inspectable JSONL with an exact replay
-path. \occ{} builds a persistence-driven loop over a fixed tool array,
-keeps all policy in-process, and invests its safety budget in recoverable
-state, per-step snapshots with revert, rather than prevention. \ccc{}
-presents a documentation-defined contract over a closed core: a wide hook
-lifecycle, a two-layer permission model with a Bash-only OS sandbox, and an
-extension surface whose stop-hook escape hatches already implement
-autonomous loops outside the core. Read as a catalog, this paper
-describes three systems; read as design material, it is eight questions,
-each carrying two concrete answers and one boundary. For a reader
-choosing or building a harness, the comparison indicates that the
-abstraction is settled (loop, tools, compaction, permissions,
-extensions) while the engineering culture is not: trust boundary
-placement, state durability, and interface unification are the axes on
-which these systems genuinely differ. All conclusions are
-bounded to the pinned commits and documentation snapshots named in
-Section~\ref{sec:methods}.
+engine, persists threads as inspectable JSONL with an exact replay path,
+and gives open models the deepest first-class support via native
+Responses-API providers, at the cost of the patch tool on those defaults.
+\occ{} builds a persistence-driven loop over a fixed tool array, keeps all
+policy in-process, invests its safety budget in recoverable state, and
+gives open models the broadest support at the cost of accounting defaults
+that misbehave around zero limits. \ccc{} presents a documentation-defined
+contract over a closed core: a wide hook lifecycle, a two-layer
+permission model with a Bash-only OS sandbox, an extension surface whose
+stop-hook escape hatches already implement autonomous loops outside the
+core, and no documented open-model path at all. Read as a catalog, this
+report describes three systems twice: once as harnesses, once as
+platforms for open-weight models. Read as design material, it is eight
+questions carrying two concrete answers and one boundary each, plus one
+variable, the wire protocol, that predicts where each system lands on the
+compatibility matrix. For a reader choosing today: the abstraction is
+settled (loop, tools, compaction, permissions, extensions) while the
+engineering culture is not, and if open models are in scope, point
+\occ{} at anything OpenAI-compatible after setting limits by hand, run
+\codex{} against Ollama 0.13.4 or newer or LM Studio with gpt-oss models,
+and treat \ccc{} with local models as a community-project problem until
+the vendor says otherwise. All conclusions are bounded to the pinned
+commits and documentation snapshots named in Section~\ref{sec:methods}.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}

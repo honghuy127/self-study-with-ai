@@ -1,0 +1,34 @@
+# Study manifest. Agents do not edit gate fields; humans flip gates after review.
+id: "2026-08_coding-agents-harnesses-and-open-models"
+title: "Claude Code, Codex, and OpenCode: harness architecture and open-source model support, traced statically"
+created: "2026-08-20"
+status: drafting       # proposed | gathering | summarizing | experimenting | drafting | review | done
+depth: full            # briefing | full
+cleaned: ""            # set to a date by tools/cleanup_study.py at done-time cleanup
+audit_waiver: ""       # human-only reason to waive residual dossier-audit errors; agents never set this
+merged_from:           # provenance only; agents never edit
+  studies:
+    - "2026-08_coding-agent-harnesses"   # done + cleaned 2026-08-20, all gates passed
+    - "2026-08_open-source-model-compat" # was in review, unsigned, 2026-08-20
+  merged_on: "2026-08-20"
+  note: "Gates reset for the combined deliverable: the integrated brief, report, and slides are new content and need fresh human approval. Original reviews preserved under reviews/ and both prior syntheses under notes/."
+
+# Workflow gates. Agents refuse to pass until the human flips these by hand.
+gates:
+  sources_approved: false
+  notes_approved: false
+  experiments_approved: false
+  draft_approved: false
+  review_signed_off: false
+
+# What the pipeline produced, relative paths.
+artifacts:
+  brief: brief.md
+  registry: sources/registry.yaml
+  notes_dir: notes/
+  report: report/main.tex
+  pdf: report/build/main.pdf
+  dossier: .research/
+
+# Skill verdict from the last completed stage, if any.
+last_gate_verdict: ""      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED
