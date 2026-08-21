@@ -1,0 +1,266 @@
+\documentclass{article}
+
+% NeurIPS 2025 style (vendored in neurips/neurips_2025.sty), preprint mode:
+% these are self-study reports, not conference submissions.
+\PassOptionsToPackage{numbers,sort&compress}{natbib}
+\usepackage[preprint]{neurips/neurips_2025}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+
+\title{Attention logit scaling: a controlled empirical mechanism check}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The Transformer scales query-key dot products by $1/\sqrt{d_k}$, and
+Vaswani et al.~\citep{vaswani2017attention} motivate the factor by the
+suspicion that large dot products push the softmax into regions of small
+gradients, but the paper provides no ablation isolating the scale. We check
+that stated mechanism
+under controlled synthetic sampling. Drawing independent zero-mean Gaussian
+query and key coordinates, we measure logit variance, softmax concentration,
+and softmax Jacobian norm with and without the scale across
+$d_k \in \{8, 64, 512\}$. Scaling holds the logit standard deviation near one
+while the unscaled standard deviation grows as $\sqrt{d_k}$, keeps softmax
+entropy and max-probability roughly constant while the unscaled softmax
+saturates, and prevents the decay of the Jacobian norm toward zero. Relaxing
+the unit-variance assumption shifts the normalizing scale to
+$\sqrt{d_k}\,\sigma_q\sigma_k$. Boundary: the results establish the mechanism
+under idealized assumptions and do not establish the behavior of trained
+Transformers.
+\end{abstract}
+
+\section{Introduction}
+
+Scaled dot-product attention divides query-key dot products by $\sqrt{d_k}$
+before the softmax~\citep{vaswani2017attention}. The stated motivation is that
+for large $d_k$ the dot products grow large in magnitude and push the softmax
+into regions of extremely small gradients, and that the division counteracts
+this effect~\citep{vaswani2017attention}. The source offers this as an
+analytical suspicion rather than a measured result, and reports no controlled
+comparison of scaled versus unscaled attention, so the mechanism is stated
+rather than measured in the primary source (dossier claim CLM-001).
+
+This study supplies that controlled check on synthetic data. We ask whether,
+under independent zero-mean Gaussian query and key coordinates, dividing by
+$\sqrt{d_k}$ normalizes the logit variance and reduces softmax concentration
+and gradient attenuation, as the standard derivation predicts. Contributions,
+each tied to a ledgered claim and the run artifact:
+
+\begin{itemize}
+  \item We confirm variance normalization: the unscaled logit standard
+    deviation grows as $\sqrt{d_k}$ and the scaled standard deviation is held
+    near one (CLM-002).
+  \item We quantify the reduction in softmax concentration: unscaled max-probability
+    rises and entropy falls with $d_k$, while the scaled softmax stays roughly
+    constant (CLM-003).
+  \item We quantify the prevention of gradient attenuation: the unscaled
+    softmax Jacobian norm decays toward zero with $d_k$ while the scaled norm
+    stays roughly constant (CLM-004).
+  \item We characterize the normalizing scale under relaxed variance:
+    $\sqrt{d_k}\,\sigma_q\sigma_k$ (CLM-005).
+\end{itemize}
+
+Scope: the study tests the mechanism on idealized synthetic vectors. It does
+not train or load a neural network, and it makes no claim about trained
+Transformers.
+
+\section{Background}
+
+Scaled dot-product attention maps a query and a set of key-value pairs to an
+output as a weighted sum of values, with weights from a softmax over scaled
+query-key dot products~\citep{vaswani2017attention}:
+\begin{equation}
+\mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d_k}}\right) V .
+\end{equation}
+
+Let each query and key coordinate be independent with zero mean and variances
+$\sigma_q^2$ and $\sigma_k^2$. The dot product $q \cdot k = \sum_{i=1}^{d_k}
+q_i k_i$ is a sum of $d_k$ independent terms, each with variance
+$\sigma_q^2 \sigma_k^2$, so
+\begin{equation}
+\mathrm{Var}(q \cdot k) = d_k\, \sigma_q^2 \sigma_k^2,
+\qquad
+\mathrm{std}(q \cdot k) = \sqrt{d_k}\, \sigma_q \sigma_k .
+\end{equation}
+Dividing by $\sqrt{d_k}$ yields a standard deviation of $\sigma_q\sigma_k$,
+independent of $d_k$; under unit variances this is one. This is the
+normalization the scaling factor is meant to provide. Large-magnitude logits
+concentrate the softmax: as logit spread grows, the max-probability approaches
+one, the entropy approaches zero, and the softmax Jacobian, whose entries are
+$p_i(\delta_{ij} - p_j)$, shrinks toward zero. The primary source states this
+motivation but does not measure it~\citep{vaswani2017attention}.
+
+\section{Methods and Sources}
+
+\paragraph{Sources.} We reuse the single primary source already gathered in
+the companion concept study, Vaswani et al.~\citep{vaswani2017attention}, for
+framing only: it states the scaling motivation this study checks. The declared
+source budget is two; no new sources were retrieved. The primary evidence is
+the synthetic run, not the source.
+
+\paragraph{Synthetic protocol.} We sample query and key vectors with
+independent zero-mean Gaussian coordinates using
+\texttt{numpy.random.default\_rng} at seed $0$, on CPU only. Dot-product
+statistics use $20000$ query-key pairs per $d_k$. Softmax statistics use
+$2000$ attention rows, each a query attending to $64$ keys. The grid is
+$d_k \in \{8, 64, 512\}$, and the relaxation arm varies the coordinate
+standard deviation over $\sigma \in \{0.5, 1.0, 2.0\}$. The run is recorded as
+manifest RUN-001-full with its config, script, and output under
+\texttt{.research/runs/}; the result artifact is
+\texttt{experiments/results/full/summary.json}. All reported results are for
+the single seed $0$ with no error bars; sampling-noise deviations from the
+closed form are at most about $1.2\%$.
+
+\paragraph{Metrics.} For each setting we measure the empirical standard
+deviation of the logits; the softmax max-probability and entropy in nats,
+averaged over rows; and the Frobenius norm of the softmax Jacobian, computed in
+closed form as the square root of
+$\sum_i p_i^2(1-p_i)^2 + (\sum_i p_i^2)^2 - \sum_i p_i^4$ and
+averaged over rows. The Jacobian norm is a proxy for gradient magnitude, not a
+training gradient.
+
+\section{Findings}
+
+\subsection{Scaling normalizes logit variance}
+
+Table~\ref{tab:logit-std} reports the logit standard deviation. The unscaled
+standard deviation grows as $\sqrt{d_k}$ and matches the closed form to within
+about $1.2$ percent; dividing by $\sqrt{d_k}$ holds it near one, independent of
+$d_k$ (CLM-002).
+
+\begin{table}[h]
+\centering
+\caption{Logit standard deviation versus $d_k$, $20000$ pairs, unit-variance
+coordinates. Measured values from RUN-001-full.}
+\label{tab:logit-std}
+\begin{tabular}{r r r r}
+\toprule
+$d_k$ & unscaled std & theory $\sqrt{d_k}$ & scaled std \\
+\midrule
+8 & 2.862 & 2.828 & 1.012 \\
+64 & 8.023 & 8.000 & 1.003 \\
+512 & 22.570 & 22.627 & 0.997 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Scaling reduces softmax concentration}
+
+Table~\ref{tab:concentration} reports softmax concentration over $64$ keys. The
+unscaled max-probability rises with $d_k$ and the entropy falls, approaching
+the saturated limits of one and zero; the scaled softmax stays roughly
+constant, with max-probability near $0.107$ and entropy near $3.69$ nats
+(CLM-003).
+
+\begin{table}[h]
+\centering
+\caption{Softmax concentration over $64$ keys, $2000$ rows, unit-variance
+coordinates. Measured values from RUN-001-full.}
+\label{tab:concentration}
+\begin{tabular}{r r r r r}
+\toprule
+$d_k$ & unscaled max-prob & unscaled entropy & scaled max-prob & scaled entropy \\
+\midrule
+8 & 0.428 & 2.053 & 0.106 & 3.689 \\
+64 & 0.785 & 0.597 & 0.107 & 3.687 \\
+512 & 0.923 & 0.193 & 0.107 & 3.684 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Scaling prevents gradient attenuation}
+
+Table~\ref{tab:gradient} reports the mean Frobenius norm of the softmax
+Jacobian. The unscaled norm decays with $d_k$ toward the saturated limit of
+zero, while the scaled norm stays roughly constant near $0.18$ (CLM-004). This
+is the gradient-attenuation effect the primary source states
+qualitatively~\citep{vaswani2017attention}, here measured under controlled
+sampling.
+
+\begin{table}[h]
+\centering
+\caption{Mean Frobenius norm of the softmax Jacobian over $64$ keys, $2000$
+rows, unit-variance coordinates. Measured values from RUN-001-full.}
+\label{tab:gradient}
+\begin{tabular}{r r r}
+\toprule
+$d_k$ & unscaled Jacobian norm & scaled Jacobian norm \\
+\midrule
+8 & 0.2946 & 0.1820 \\
+64 & 0.2185 & 0.1833 \\
+512 & 0.0972 & 0.1837 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Relaxed variance shifts the normalizing scale}
+
+With coordinate standard deviation $\sigma$, the unscaled logit standard
+deviation is $\sqrt{d_k}\,\sigma^2$, so dividing by $\sqrt{d_k}$ alone leaves
+$\sigma^2$ rather than one. Table~\ref{tab:relaxation} reports the $d_k = 64$
+slice. The scale that yields unit-variance logits is
+$\sqrt{d_k}\,\sigma_q\sigma_k$ (CLM-005). The relaxation arm sets
+$\sigma_q = \sigma_k = \sigma$; the asymmetric form follows from the
+derivation in the Background and reduces to the symmetric instance that is
+measured.
+
+\begin{table}[h]
+\centering
+\caption{Logit standard deviation under relaxed coordinate variance, $d_k=64$,
+$20000$ pairs. Measured values from RUN-001-full.}
+\label{tab:relaxation}
+\begin{tabular}{r r r r r}
+\toprule
+$\sigma$ & unscaled std & theory $\sqrt{d_k}\,\sigma^2$ & scaled std & theory $\sigma^2$ \\
+\midrule
+0.5 & 2.001 & 2.000 & 0.250 & 0.250 \\
+1.0 & 7.998 & 8.000 & 1.000 & 1.000 \\
+2.0 & 32.217 & 32.000 & 4.027 & 4.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Related Work}
+
+The nearest material is the primary source itself, which states the scaling
+motivation as an analytical argument and provides no ablation isolating the
+scale factor~\citep{vaswani2017attention}. This study differs by supplying a
+controlled synthetic measurement of exactly that stated mechanism, separating
+what the source asserts from what is measured under explicit assumptions. A
+survey of the broader literature on attention-scaling variants was declared out
+of scope by the source budget, so no further sources are compared here.
+
+\section{Limitations}
+
+The evidence does not establish the behavior of trained Transformers. All
+results are on independent zero-mean Gaussian coordinates, an idealization that
+learned query and key distributions may violate through non-unit variance,
+non-zero mean, and coordinate dependence. The relaxation arm covers a bounded
+$\sigma$ grid and varies variance only. The Jacobian norm is a proxy for
+gradient magnitude, not a measured training gradient. The study checks the
+mechanism the source states; it is not a trained-model ablation of scaled
+versus unscaled attention, which the source itself omits.
+
+\section{Conclusion}
+
+Under controlled synthetic sampling, the $1/\sqrt{d_k}$ factor does what the
+primary source states it is meant to do: it normalizes the logit variance
+independently of $d_k$, keeps the softmax from saturating, and prevents the
+softmax Jacobian from decaying toward zero. When the unit-variance assumption
+is relaxed, the normalizing scale generalizes to $\sqrt{d_k}\,\sigma_q\sigma_k$.
+These findings hold within the stated synthetic scope and do not extend to
+trained Transformers, which remain an empirical question this study does not
+address.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

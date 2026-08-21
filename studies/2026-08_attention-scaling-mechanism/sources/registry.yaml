@@ -1,0 +1,31 @@
+# provenance: reuse of the primary source already gathered and noted in
+# studies/2026-08_scaled-dot-product-attention; no new search was run.
+provenance:
+  queries:
+    - text: reuse vaswani2017attention from 2026-08_scaled-dot-product-attention
+      date: 2026-08-21
+      scope: no new retrieval; existing registry record and anchored note reused
+  inclusion: the Transformer paper states the scaling motivation this study checks empirically
+  exclusion: attention variants and secondary derivations (out of scope per brief)
+  coverage_limits: single primary source reused for framing; primary evidence is synthetic runs, not sources
+
+sources:
+  - key: vaswani2017attention
+    title: "Attention Is All You Need"
+    authors: "Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.; Gomez, A. N.; Kaiser, L.; Polosukhin, I."
+    year: 2017
+    url: "https://arxiv.org/abs/1706.03762"
+    pdf: "https://arxiv.org/pdf/1706.03762"
+    venue: "NeurIPS 2017"
+    tier: peer-reviewed
+    status: noted
+    notes_file: "notes/vaswani2017attention.md"
+    snapshot: "sources/docs/vaswani2017attention.txt"
+    bibtex: |
+      @inproceedings{vaswani2017attention,
+        author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, {\L}ukasz and Polosukhin, Illia},
+        title     = {Attention Is All You Need},
+        booktitle = {Advances in Neural Information Processing Systems 30 (NeurIPS 2017)},
+        year      = {2017},
+        url       = {https://arxiv.org/abs/1706.03762}
+      }

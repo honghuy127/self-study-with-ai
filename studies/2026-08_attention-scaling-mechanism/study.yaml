@@ -1,0 +1,43 @@
+# Study manifest. Agents do not edit gate fields or status; lifecycle state
+# changes only through `python3 tools/study.py` (status-set and approve),
+# which appends every decision to events.jsonl.
+schema_version: 2          # bumped on breaking manifest changes
+id: "2026-08_attention-scaling-mechanism"                     # e.g., 2026-08_transformer-length-extrapolation
+title: "Attention logit scaling: a controlled empirical mechanism check"
+created: "2026-08-21"                # YYYY-MM-DD
+
+# Study dimensions. mode is required and explicit; the others have defaults.
+mode: delegated            # interactive (tutored mastery) | delegated (agent-run investigation)
+intent: understand             # understand | solve | build | compare | decide | refresh | survey
+assurance: audited        # quick | grounded | audited; audited adds a .research dossier and claims ledger
+methodology: experimental   # source-only | static-code | experimental | mixed
+deliverables:              # learning-note | implementation | decision-brief | report | slides | none
+  - report
+report_style: neurips      # neurips | plain; used only when report is a deliverable
+
+status: done           # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
+                           # interactive: scoped | diagnosing | learning | practicing | assessing | retained
+cleaned: ""                # set to a date by tools/cleanup_study.py at done-time cleanup
+audit_waiver: ""           # human-only reason to waive residual dossier-audit errors; agents never set this
+
+# Workflow gates. Agents refuse to pass until the human approves them via
+# tools/study.py. Delegated mode uses the block below; interactive mode uses:
+#   scope_approved, evidence_approved, experiments_approved, mastery_approved
+gates:
+  sources_approved: true
+  notes_approved: true
+  experiments_approved: true   # n_a unless methodology is experimental or mixed
+  draft_approved: true
+  review_signed_off: true
+
+# What the pipeline produced, relative paths.
+artifacts:
+  brief: brief.md
+  registry: sources/registry.yaml
+  notes_dir: notes/
+  report: report/main.tex
+  pdf: report/build/main.pdf
+  dossier: .research/
+
+# Skill verdict from the last completed stage, if any.
+last_gate_verdict: ""      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED

@@ -33,3 +33,11 @@ worth reusing, and link the study that established it.
   teardowns are context-tier only, and unattested internals are recorded
   as "undisclosed" rather than inferred.
   Source: studies/2026-08_coding-agents-harnesses-and-open-models (merged 2026-08-20 from 2026-08_coding-agent-harnesses)
+- **attention-scaling mechanism check**: a controlled synthetic verification
+  that dividing query-key dot products by sqrt(d_k) normalizes the logit
+  standard deviation, keeps the softmax from saturating, and prevents the
+  softmax Jacobian norm from decaying toward zero. Under relaxed coordinate
+  standard deviation sigma the unit-variance scale generalizes to
+  sqrt(d_k) sigma_q sigma_k. Establishes the mechanism under idealized
+  Gaussian assumptions; it does not establish trained-Transformer behavior.
+  Source: studies/2026-08_attention-scaling-mechanism

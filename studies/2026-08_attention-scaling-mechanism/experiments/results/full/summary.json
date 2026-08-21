@@ -1,0 +1,197 @@
+{
+  "config": {
+    "dk_grid": [
+      8,
+      64,
+      512
+    ],
+    "n_keys": 64,
+    "n_pairs": 20000,
+    "n_rows": 2000,
+    "sigma_grid": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "seed": 0
+  },
+  "logit_stats": [
+    {
+      "d_k": 8,
+      "unscaled": {
+        "mean": 0.013654899718142403,
+        "std": 2.861538594206592,
+        "theory_std": 2.8284271247461903
+      },
+      "scaled": {
+        "mean": 0.004827736093560383,
+        "std": 1.0117066722952508,
+        "theory_std": 1.0
+      }
+    },
+    {
+      "d_k": 64,
+      "unscaled": {
+        "mean": 0.014041462671652502,
+        "std": 8.02346863993025,
+        "theory_std": 8.0
+      },
+      "scaled": {
+        "mean": 0.0017551828339565628,
+        "std": 1.0029335799912813,
+        "theory_std": 1.0
+      }
+    },
+    {
+      "d_k": 512,
+      "unscaled": {
+        "mean": 0.016196004658107346,
+        "std": 22.57022569276536,
+        "theory_std": 22.627416997969522
+      },
+      "scaled": {
+        "mean": 0.0007157690451172918,
+        "std": 0.9974724775165765,
+        "theory_std": 1.0
+      }
+    }
+  ],
+  "softmax_concentration": [
+    {
+      "d_k": 8,
+      "unscaled": {
+        "entropy_nats": 2.0527936431137057,
+        "max_prob": 0.4283722029660389
+      },
+      "scaled": {
+        "entropy_nats": 3.6892352651620253,
+        "max_prob": 0.10617397132206058
+      }
+    },
+    {
+      "d_k": 64,
+      "unscaled": {
+        "entropy_nats": 0.5974076122375246,
+        "max_prob": 0.7849696073785896
+      },
+      "scaled": {
+        "entropy_nats": 3.6873671987053664,
+        "max_prob": 0.10737394421236912
+      }
+    },
+    {
+      "d_k": 512,
+      "unscaled": {
+        "entropy_nats": 0.19264694138745933,
+        "max_prob": 0.9225800367480751
+      },
+      "scaled": {
+        "entropy_nats": 3.6840997843198737,
+        "max_prob": 0.10726613459727484
+      }
+    }
+  ],
+  "gradient_magnitude": [
+    {
+      "d_k": 8,
+      "unscaled": {
+        "jacobian_frobenius": 0.2945742206486673
+      },
+      "scaled": {
+        "jacobian_frobenius": 0.18196450808210698
+      }
+    },
+    {
+      "d_k": 64,
+      "unscaled": {
+        "jacobian_frobenius": 0.2185245708193043
+      },
+      "scaled": {
+        "jacobian_frobenius": 0.1832638684792937
+      }
+    },
+    {
+      "d_k": 512,
+      "unscaled": {
+        "jacobian_frobenius": 0.09718791245245643
+      },
+      "scaled": {
+        "jacobian_frobenius": 0.18373445595115204
+      }
+    }
+  ],
+  "assumption_relaxation": [
+    {
+      "d_k": 8,
+      "sigma": 0.5,
+      "unscaled_std": 0.7096886988924156,
+      "scaled_std": 0.2509128457591424,
+      "theory_unscaled_std": 0.7071067811865476,
+      "theory_scaled_std": 0.25
+    },
+    {
+      "d_k": 8,
+      "sigma": 1.0,
+      "unscaled_std": 2.8469098083053215,
+      "scaled_std": 1.0065346154395935,
+      "theory_unscaled_std": 2.8284271247461903,
+      "theory_scaled_std": 1.0
+    },
+    {
+      "d_k": 8,
+      "sigma": 2.0,
+      "unscaled_std": 11.347439377272321,
+      "scaled_std": 4.011925666386255,
+      "theory_unscaled_std": 11.313708498984761,
+      "theory_scaled_std": 4.0
+    },
+    {
+      "d_k": 64,
+      "sigma": 0.5,
+      "unscaled_std": 2.001488561436072,
+      "scaled_std": 0.250186070179509,
+      "theory_unscaled_std": 2.0,
+      "theory_scaled_std": 0.25
+    },
+    {
+      "d_k": 64,
+      "sigma": 1.0,
+      "unscaled_std": 7.997782032049472,
+      "scaled_std": 0.999722754006184,
+      "theory_unscaled_std": 8.0,
+      "theory_scaled_std": 1.0
+    },
+    {
+      "d_k": 64,
+      "sigma": 2.0,
+      "unscaled_std": 32.217128245236445,
+      "scaled_std": 4.027141030654556,
+      "theory_unscaled_std": 32.0,
+      "theory_scaled_std": 4.0
+    },
+    {
+      "d_k": 512,
+      "sigma": 0.5,
+      "unscaled_std": 5.643921035841947,
+      "scaled_std": 0.24942842730782772,
+      "theory_unscaled_std": 5.656854249492381,
+      "theory_scaled_std": 0.25
+    },
+    {
+      "d_k": 512,
+      "sigma": 1.0,
+      "unscaled_std": 22.52593223978768,
+      "scaled_std": 0.9955149649564089,
+      "theory_unscaled_std": 22.627416997969522,
+      "theory_scaled_std": 1.0
+    },
+    {
+      "d_k": 512,
+      "sigma": 2.0,
+      "unscaled_std": 89.83542022418436,
+      "scaled_std": 3.9702021769539924,
+      "theory_unscaled_std": 90.50966799187809,
+      "theory_scaled_std": 4.0
+    }
+  ]
+}

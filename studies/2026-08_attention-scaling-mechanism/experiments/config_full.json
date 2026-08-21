@@ -1,0 +1,9 @@
+{
+  "dk_grid": [8, 64, 512],
+  "n_keys": 64,
+  "n_pairs": 20000,
+  "n_rows": 2000,
+  "sigma_grid": [0.5, 1.0, 2.0],
+  "seed": 0,
+  "sampler": "numpy.random.default_rng, independent zero-mean Gaussian coordinates"
+}
