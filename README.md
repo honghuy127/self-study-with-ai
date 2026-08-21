@@ -262,18 +262,29 @@ the evidence base survives URL rot without binaries in git.
 
 ## Completed studies in this repo
 
-Two finished delegated studies show the workflow end to end:
+Four finished studies show the workflow end to end across both modes:
 
 - [`studies/2026-08_scaled-dot-product-attention`](studies/2026-08_scaled-dot-product-attention):
-  a delegated `understand` study answering why attention scores are divided
-  by the square root of the head dimension.
+  a delegated `understand` study (grounded, source-only) answering why
+  attention scores are divided by the square root of the head dimension.
 - [`studies/2026-08_coding-agents-harnesses-and-open-models`](studies/2026-08_coding-agents-harnesses-and-open-models):
-  a delegated `compare` study tracing the harness architecture and
-  open-source model support of Claude Code, Codex, and OpenCode from pinned
-  checkouts and official docs, without running experiments.
+  a delegated `compare` study (grounded, static-code) tracing the harness
+  architecture and open-source model support of Claude Code, Codex, and
+  OpenCode from pinned checkouts and official docs, without running
+  experiments.
+- [`studies/2026-08_attention-scaling-mechanism`](studies/2026-08_attention-scaling-mechanism):
+  a delegated `understand` study (audited, experimental) running controlled
+  synthetic checks of the `1/sqrt(d_k)` mechanism, logit variance
+  normalization, softmax concentration, and gradient magnitude, with a full
+  claims dossier and independent review.
+- [`studies/2026-08_attention-scaling-interactive`](studies/2026-08_attention-scaling-interactive):
+  an interactive `understand` study (grounded, source-only) in which the
+  learner derives the scale under tutoring and passes an unaided mastery
+  assessment; the artifact is the recorded learner performance, not a report.
 
-Both are cleaned to their knowledge core. The full evidence chain (source
-snapshots, dossier, review drafts) is preserved in git history.
+The three delegated studies are cleaned to their knowledge core; the full
+evidence chain (source snapshots, dossier, review drafts) is preserved in git
+history. The interactive study keeps its `learning/` record by design.
 
 ## Adapting this repo
 
