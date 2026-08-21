@@ -9,14 +9,18 @@ Runs, in order:
      assurance, methodology, deliverables, schema_version, a mode-consistent
      status and gate block, and completion-consistent verdicts;
   3. an artifact check that every manifest artifact path resolves (build
-     outputs and post-cleanup dossiers are exempt by design);
-  4. audit_research.py over every study that has a .research/ dossier,
+     outputs and post-cleanup dossiers are exempt by design), that audited
+     studies hold a live dossier, and that uncleaned delegated studies at
+     done still hold their review record;
+  4. a brief check that no template guidance remains and that the declared
+     source budget is not exceeded (warning);
+  5. audit_research.py over every study that has a .research/ dossier,
      honoring the human-owned `audit_waiver` field in study.yaml;
-  5. a hygiene check that fails on git-tracked PDF binaries and warns on
+  6. a hygiene check that fails on git-tracked PDF binaries and warns on
      oversized tracked files;
-  6. a drift check that tools/research/*.py match the skill submodule's
+  7. a drift check that tools/research/*.py match the skill submodule's
      scripts/*.py byte-for-byte;
-  7. the repo unit tests under tests/.
+  8. the repo unit tests under tests/.
 
 Groups that find nothing to check report NOT_ASSESSED instead of collapsing
 into PASS. Exits non-zero on any FAIL, after printing a summary of every
@@ -24,6 +28,7 @@ group. Usage: python3 tools/check_all.py
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -169,6 +174,8 @@ def validate_artifacts(study: Path) -> list[str]:
     `pdf` is build output (gitignored, rebuilt on demand) and is never
     required in the tree. Cleaned studies drop the dossier by design, so its
     path is exempt there; the chain stays recoverable in git history.
+    Audited assurance additionally requires a live dossier, and an uncleaned
+    delegated study at done must still hold its review record.
     """
     manifest = study / "study.yaml"
     if not manifest.is_file():
@@ -189,7 +196,58 @@ def validate_artifacts(study: Path) -> list[str]:
             continue
         if not (study / rel).exists():
             errors.append(f"artifact {name} points at missing path {rel}")
+    if data.get("assurance") == "audited" and not cleaned and not (study / ".research").is_dir():
+        errors.append("audited assurance requires a .research/ dossier")
+    if data.get("mode") == "delegated" and data.get("status") == "done" and not cleaned:
+        reviews = study / "reviews"
+        if not reviews.is_dir() or not any(reviews.iterdir()):
+            errors.append("delegated done requires a non-empty reviews/ record before cleanup")
     return errors
+
+
+BRIEF_SENTINELS = (
+    "[one sentence, answerable]",
+    "[Why this study matters",
+    "[topics, methods, time range]",
+    "[max sources to open",
+    "[saturation or kill criterion",
+    "Keep only the subsection matching this study's mode",
+    "Keep only the checklist matching this study's mode",
+)
+
+
+def validate_brief(study: Path) -> tuple[list[str], list[str]]:
+    """The brief must be filled in, and the source budget must hold.
+
+    Template guidance left in place fails the check: agents refuse to act on
+    a templated brief, and so does CI. A registered source count above the
+    brief's declared source budget is a warning, because the stop rule is a
+    human decision, not an automatic block.
+    """
+    errors: list[str] = []
+    warnings: list[str] = []
+    brief = study / "brief.md"
+    if not brief.is_file():
+        return errors, warnings
+    text = brief.read_text(encoding="utf-8")
+    for sentinel in BRIEF_SENTINELS:
+        if sentinel in text:
+            errors.append(f"brief.md still contains template guidance ({sentinel!r})")
+    budget_match = re.search(r"(?im)^-\s*source budget:\s*(\d+)", text)
+    if budget_match:
+        budget = int(budget_match.group(1))
+        registry = study / "sources" / "registry.yaml"
+        if registry.is_file():
+            try:
+                data = yaml.safe_load(registry.read_text(encoding="utf-8"))
+            except yaml.YAMLError:
+                data = None
+            entries = (data or {}).get("sources") if isinstance(data, dict) else None
+            if isinstance(entries, list):
+                kept = sum(1 for e in entries if isinstance(e, dict) and e.get("status") != "rejected")
+                if kept > budget:
+                    warnings.append(f"source budget {budget} exceeded: {kept} sources registered")
+    return errors, warnings
 
 
 def check_manifests() -> str:
@@ -221,6 +279,25 @@ def check_artifacts() -> str:
         print(f"artifacts {study.name}: {status}")
         for error in errors:
             print(f"artifacts {study.name}: {error}")
+        if errors:
+            ok = False
+    return "PASS" if ok else "FAIL"
+
+
+def check_briefs() -> str:
+    studies = list_studies()
+    if not studies:
+        print("briefs: no studies found")
+        return "NOT_ASSESSED"
+    ok = True
+    for study in studies:
+        errors, warnings = validate_brief(study)
+        status = "PASS" if not errors else "FAIL"
+        print(f"briefs {study.name}: {status}")
+        for error in errors:
+            print(f"briefs {study.name}: {error}")
+        for warning in warnings:
+            print(f"briefs {study.name}: WARN {warning}")
         if errors:
             ok = False
     return "PASS" if ok else "FAIL"
@@ -356,6 +433,7 @@ def main() -> int:
         "lint": check_lint(),
         "manifest": check_manifests(),
         "artifacts": check_artifacts(),
+        "briefs": check_briefs(),
         "audit": check_audit(),
         "hygiene": check_hygiene(),
         "drift": check_drift(),

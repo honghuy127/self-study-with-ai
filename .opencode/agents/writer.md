@@ -58,11 +58,13 @@ through the human-approved gates:
 4. Compile with `tools/build_report.sh <study-dir>` (bash is ask: run it
    when the human permits, otherwise hand them the command). The PDF must
    build clean.
-5. Generate `report/refs.bib` by pulling the cited keys from
-   `shared/library.bib` or from note frontmatter; never hand-edit a bib entry
-   that conflicts with the registry. Cite codebases and official docs as
-   `@misc` entries whose `note` or `version` field carries the repo key and
-   the commit pinned in `sources/repos.yaml`.
+5. Generate `report/refs.bib` with `python3 tools/gen_bib.py <study-dir>`
+   from the registry's `bibtex` blocks; never hand-author a bib entry that
+   conflicts with the registry. If a block is missing or wrong, the durable
+   fix goes in `sources/registry.yaml`, then rerun the generator. Cite
+   codebases and official docs as `@misc` entries whose `note` or
+   `version` field carries the repo key and the commit pinned in
+   `sources/repos.yaml`.
 6. Run `python3 tools/lint_report.py <study-dir>` (or hand the command to
    the human) and fix every finding. The path is the study directory, not a
    bare `report/main.tex`.

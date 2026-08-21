@@ -337,9 +337,95 @@ class ValidateArtifactsTests(unittest.TestCase):
         errors = check_all.validate_artifacts(self.study)
         self.assertTrue(any("dossier" in e for e in errors))
 
+    def test_audited_assurance_requires_dossier(self) -> None:
+        (self.study / "study.yaml").write_text("assurance: audited\nartifacts: {}\n", encoding="utf-8")
+        errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("audited assurance requires" in e for e in errors))
+
+    def test_audited_assurance_with_dossier_passes(self) -> None:
+        (self.study / ".research").mkdir()
+        (self.study / "study.yaml").write_text("assurance: audited\nartifacts: {}\n", encoding="utf-8")
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_audited_cleaned_exempt(self) -> None:
+        (self.study / "study.yaml").write_text(
+            'assurance: audited\ncleaned: "2026-08-21"\nartifacts: {}\n', encoding="utf-8"
+        )
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_delegated_done_requires_review_record(self) -> None:
+        (self.study / "study.yaml").write_text(
+            "mode: delegated\nstatus: done\nartifacts: {}\n", encoding="utf-8"
+        )
+        errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("reviews/" in e for e in errors))
+
+    def test_delegated_done_with_reviews_passes(self) -> None:
+        (self.study / "reviews").mkdir()
+        (self.study / "reviews" / "r1-agent.md").write_text("x\n", encoding="utf-8")
+        (self.study / "study.yaml").write_text(
+            "mode: delegated\nstatus: done\nartifacts: {}\n", encoding="utf-8"
+        )
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_delegated_done_cleaned_exempt(self) -> None:
+        (self.study / "study.yaml").write_text(
+            'mode: delegated\nstatus: done\ncleaned: "2026-08-21"\nartifacts: {}\n', encoding="utf-8"
+        )
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
     def test_missing_manifest_is_silent(self) -> None:
         (self.study / "study.yaml").unlink(missing_ok=True)
         self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+
+class ValidateBriefTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.study = Path(self._tmp.name) / "2026-08_test"
+        (self.study / "sources").mkdir(parents=True)
+
+    def write_brief(self, text: str) -> None:
+        (self.study / "brief.md").write_text(text, encoding="utf-8")
+
+    def write_registry(self, keys: list[tuple[str, str]]) -> None:
+        lines = ["sources:"]
+        for key, status in keys:
+            lines.append(f"  - key: {key}")
+            lines.append(f"    status: {status}")
+        (self.study / "sources" / "registry.yaml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def test_filled_brief_passes(self) -> None:
+        self.write_brief("# Brief\n\n- Source budget: 5 sources.\n\nFilled prose.\n")
+        self.write_registry([("a2026", "noted")])
+        errors, warnings = check_all.validate_brief(self.study)
+        self.assertEqual(errors, [])
+        self.assertEqual(warnings, [])
+
+    def test_template_sentinel_fails(self) -> None:
+        self.write_brief("# Brief\n\n- Primary question: [one sentence, answerable]\n")
+        errors, _ = check_all.validate_brief(self.study)
+        self.assertTrue(any("template guidance" in e for e in errors))
+
+    def test_budget_exceeded_warns(self) -> None:
+        self.write_brief("# Brief\n\n- Source budget: 2 sources.\n")
+        self.write_registry([("a2026", "noted"), ("b2026", "noted"), ("c2026", "to-read")])
+        errors, warnings = check_all.validate_brief(self.study)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("source budget 2 exceeded: 3 sources" in w for w in warnings))
+
+    def test_rejected_sources_not_counted(self) -> None:
+        self.write_brief("# Brief\n\n- Source budget: 2 sources.\n")
+        self.write_registry([("a2026", "noted"), ("b2026", "noted"), ("c2026", "rejected")])
+        errors, warnings = check_all.validate_brief(self.study)
+        self.assertEqual(errors, [])
+        self.assertEqual(warnings, [])
+
+    def test_missing_brief_is_silent(self) -> None:
+        errors, warnings = check_all.validate_brief(self.study)
+        self.assertEqual(errors, [])
+        self.assertEqual(warnings, [])
 
 
 class NotAssessedTests(unittest.TestCase):
@@ -354,6 +440,7 @@ class NotAssessedTests(unittest.TestCase):
         self.assertEqual(check_all.check_lint(), "NOT_ASSESSED")
         self.assertEqual(check_all.check_manifests(), "NOT_ASSESSED")
         self.assertEqual(check_all.check_artifacts(), "NOT_ASSESSED")
+        self.assertEqual(check_all.check_briefs(), "NOT_ASSESSED")
 
     def test_no_dossiers_reports_not_assessed(self) -> None:
         (Path(self._tmp.name) / "2026-08_test").mkdir()

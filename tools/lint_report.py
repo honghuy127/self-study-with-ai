@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lint a LaTeX report for the repo's hard style and integrity rules.
+r"""Lint a LaTeX report for the repo's hard style and integrity rules.
 
 Checks:
   1. Unresolved markers: [CITATION NEEDED], [EVIDENCE NEEDED], [RESULT PENDING]
@@ -8,6 +8,10 @@ Checks:
      \cite/\cref/\ref command (missing ~); and a cite/ref command that opens a
      line whose preceding content line does not end with a tie.
   4. British spellings from the project style rules.
+  5. Study-level citation discipline (when given a study directory): every
+     cited key resolves in report/refs.bib, no key the registry marked
+     rejected is cited, and bib entries absent from the registry are warned
+     about (the registry is the canonical source record).
 
 Exit 1 on any finding; print findings with line numbers.
 
@@ -18,6 +22,8 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+
+import yaml
 
 MARKERS = ("[CITATION NEEDED]", "[EVIDENCE NEEDED]", "[RESULT PENDING]")
 
@@ -76,14 +82,79 @@ def resolve(target: str) -> list[Path]:
     return [p]
 
 
+CITE_KEYS = re.compile(r"\\(?:no)?[a-zA-Z]*cite[a-zA-Z]*\*?(?:\[[^\]]*\])*\{([^}]+)\}")
+BIB_ENTRIES = re.compile(r"@\w+\{\s*([^,\s]+)\s*,")
+
+
+def strip_comments(text: str) -> str:
+    return "\n".join(line.split("%", 1)[0] for line in text.splitlines())
+
+
+def registry_key_sets(study: Path) -> tuple[set[str], set[str]] | None:
+    """Return (all keys, rejected keys) from the registry, or None if absent."""
+    registry = study / "sources" / "registry.yaml"
+    if not registry.is_file():
+        return None
+    try:
+        data = yaml.safe_load(registry.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return None
+    entries = (data or {}).get("sources") if isinstance(data, dict) else None
+    if not isinstance(entries, list):
+        return None
+    keys = {e.get("key") for e in entries if isinstance(e, dict) and e.get("key")}
+    rejected = {e.get("key") for e in entries if isinstance(e, dict) and e.get("status") == "rejected"}
+    return keys, rejected
+
+
+def citation_findings(study: Path) -> tuple[list[str], list[str]]:
+    """Cross-check citations against the bib and the canonical registry."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    bib = study / "report" / "refs.bib"
+    bib_keys: set[str] = set()
+    if bib.is_file():
+        bib_keys = set(BIB_ENTRIES.findall(strip_comments(bib.read_text(encoding="utf-8"))))
+    cited: list[tuple[Path, str]] = []
+    for tex in (study / "report" / "main.tex", study / "slides" / "main.tex"):
+        if not tex.is_file():
+            continue
+        for match in CITE_KEYS.finditer(strip_comments(tex.read_text(encoding="utf-8"))):
+            for key in match.group(1).split(","):
+                key = key.strip()
+                if key:
+                    cited.append((tex, key))
+    for tex, key in cited:
+        if bib.is_file() and key not in bib_keys:
+            errors.append(f"{tex}: cited key '{key}' missing from report/refs.bib")
+    registry = registry_key_sets(study)
+    if registry is not None:
+        all_keys, rejected = registry
+        for tex, key in cited:
+            if key in rejected:
+                errors.append(f"{tex}: cites registry-rejected source '{key}'")
+        if all_keys:
+            for key in sorted(bib_keys - all_keys):
+                warnings.append(f"{bib}: entry '{key}' has no registry record")
+    return errors, warnings
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
     all_findings: list[str] = []
+    all_warnings: list[str] = []
     for arg in sys.argv[1:]:
+        target = Path(arg)
+        if target.is_dir():
+            errors, warnings = citation_findings(target)
+            all_findings.extend(errors)
+            all_warnings.extend(warnings)
         for tex in resolve(arg):
             all_findings.extend(lint(tex))
+    for warning in all_warnings:
+        print(f"WARN {warning}")
     if all_findings:
         print("\n".join(all_findings))
         return 1

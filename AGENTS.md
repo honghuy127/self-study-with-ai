@@ -94,6 +94,13 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   `audit_waiver` is human-only and lets `check_all.py` report a failing
   dossier audit as `WAIVED` once documented deviations are accepted. Fields
   documented inline in `shared/templates/study.yaml`.
+- Evidence assurance profiles. `quick`: registry entries with canonical
+  metadata; notes only where the study needs them. `grounded` (default):
+  local snapshots for every cited doc, blog, and paper, plus anchored
+  source notes. `audited`: grounded plus a `.research` dossier with
+  evidence and claims ledgers plus independent review; the only profile
+  that pays dossier cost. Experiments follow methodology, never assurance,
+  and `check_all.py` fails an audited study that lacks a live dossier.
 - `sources/registry.yaml`: top-level `sources:` list, one entry per source:
   `key`, `title`, `authors`,
   `year`, `url`, `pdf`, `venue`, `tier` (`peer-reviewed`, `preprint`,
@@ -104,6 +111,9 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   For `tier: docs` and `tier: blog` also: `snapshot`, a local copy of the
   page saved under `sources/docs/` at gathering time (the summarizer has no
   web access); in-repo docs may point `snapshot` at the pinned checkout.
+  Optional `bibtex` block: the canonical citation record; studies with a
+  report deliverable generate `report/refs.bib` from these blocks via
+  `python3 tools/gen_bib.py <study-dir>` instead of hand-authoring the bib.
   PDF binaries are never committed: `pdf` holds a remote URL and the local
   evidence is a pdftotext snapshot under `sources/docs/`. The hygiene check
   in `tools/check_all.py` fails on any tracked PDF.
@@ -130,7 +140,9 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   experimenter, one JSON object per line.
 - `report/`: `main.tex` + `refs.bib` in the NeurIPS 2025 preprint style
   (vendored `neurips/neurips_2025.sty`); build only via
-  `tools/build_report.sh <study-dir>`.
+  `tools/build_report.sh <study-dir>`. `refs.bib` is a generated view of
+  the registry's `bibtex` blocks; durable fixes go in the registry, then
+  rerun `tools/gen_bib.py`.
 - `slides/`: beamer deck citing `report/refs.bib`; build via
   `tools/build_slides.sh <study-dir>` after the report's bib exists.
 - `learning/` (interactive mode): `baseline.md` (unaided attempt, recorded

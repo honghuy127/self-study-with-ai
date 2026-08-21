@@ -51,6 +51,12 @@ entirely; their `experiments_approved` gate is `n_a` rather than a checkbox
 nobody can honestly flip. Experiments are chosen because the question needs
 execution evidence, never because a mode implies them.
 
+Assurance sets how much verification the study pays for: `quick` needs only
+registry entries with canonical metadata, `grounded` adds local snapshots
+and anchored notes, and `audited` adds a claims dossier plus independent
+review. Quick and grounded studies pay no dossier cost; `check_all.py`
+fails an audited study that lacks a live dossier.
+
 When a study reaches `done` and you sign off, `tools/cleanup_study.py` slims
 it to its knowledge core (brief, notes, report sources, registry) and drops
 the working evidence chain from the tree. The chain stays recoverable in git
@@ -200,7 +206,8 @@ tools/
 ├── study.py                   # lifecycle CLI: status, approve, practice, assess, revisit
 ├── build_report.sh            # latexmk/tectonic wrapper for report/
 ├── build_slides.sh            # latexmk/tectonic wrapper for slides/
-├── lint_report.py             # prose/citation/marker linter (report + slides)
+├── lint_report.py             # prose/citation/marker linter (report + slides); cross-checks citations against the registry
+├── gen_bib.py                 # generate report/refs.bib from registry bibtex blocks
 ├── check_all.py               # repo-wide gate: lint, manifest, dossier audit, PDF hygiene, drift check, tests
 ├── cleanup_study.py           # slim a signed-off study down to its knowledge core
 ├── pin_repos.py               # pin local codebase checkouts into sources/repos.yaml

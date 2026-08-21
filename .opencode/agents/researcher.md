@@ -41,7 +41,10 @@ verified source registry. Nothing you gather may be fabricated.
 4. Record in `registry.yaml`: `key` (bibtex-style), `title`, `authors`,
    `year`, `url`, `pdf` (remote URL; PDF binaries are never committed),
    `venue`, `tier`,
-   `status: to-read`, `notes_file: ""`. For `tier: codebase` entries also
+   `status: to-read`, `notes_file: ""`. For studies with a report
+   deliverable also record a `bibtex` block per entry, copied from the
+   canonical page or DOI, never from memory; `tools/gen_bib.py` builds
+   `report/refs.bib` from these blocks. For `tier: codebase` entries also
    record `repo` (a key from `sources/repos.yaml`) and `component` (the
    directories or files the entry covers), and register the source at
    component granularity, one entry per harness subsystem rather than one
