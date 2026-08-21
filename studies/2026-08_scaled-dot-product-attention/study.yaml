@@ -29,7 +29,6 @@ artifacts:
   notes_dir: notes/
   report: report/main.tex
   pdf: report/build/main.pdf
-  dossier: .research/
 
 # Skill verdict from the last completed stage, if any.
 last_gate_verdict: "PASS"

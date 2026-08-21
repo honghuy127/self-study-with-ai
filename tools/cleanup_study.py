@@ -12,6 +12,10 @@ Kept:    brief.md, study.yaml, notes/, report/ (sources), slides/ (sources),
          sources/registry.yaml, sources/repos.yaml
 Removed: sources/docs/, sources/pdfs/, experiments/, .research/, reviews/
 
+Every removal is recorded in archive.yaml with the git commit where the
+content last existed, file counts, and a retrieval command, so declared
+evidence locators stay resolvable without mining history by hand.
+
 Run manifests reference paths that existed at capture time; after cleanup
 those paths are historical. Registry `snapshot` entries likewise become
 historical references that re-fetch from `url`. Gitignored build outputs
@@ -30,6 +34,7 @@ import argparse
 import datetime as dt
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -42,6 +47,20 @@ def tree_size(path: Path) -> int:
     if path.is_file():
         return path.stat().st_size
     return sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
+
+
+def tree_file_count(path: Path) -> int:
+    if path.is_file():
+        return 1
+    return sum(1 for p in path.rglob("*") if p.is_file())
+
+
+def head_commit(path: Path) -> str:
+    """Commit where the removed content last existed (cleanup is uncommitted)."""
+    proc = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True
+    )
+    return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
 def load_manifest(study: Path) -> dict:
@@ -79,6 +98,45 @@ def stamp_cleaned(study: Path, text: str) -> str:
     return line
 
 
+def write_archive_record(study: Path, removed: list[tuple[str, int, int]]) -> None:
+    """Record what left the tree so locators stay resolvable.
+
+    The commit recorded is HEAD at cleanup time: cleanup runs before its own
+    commit, so that commit is where the removed content last exists.
+    """
+    commit = head_commit(study)
+    record = {
+        "archived_at": dt.date.today().isoformat(),
+        "git_commit": commit,
+        "note": (
+            "Removed paths stay recoverable from git history. "
+            + (
+                "git_commit is where the content last exists."
+                if commit
+                else "git_commit unknown: not a git repository at cleanup time."
+            )
+        ),
+        "removed": [
+            {
+                "path": rel,
+                "size_kb": size // 1024,
+                "files": files,
+                "retrieve": (
+                    f"git show {commit}:{study.parent.name}/{study.name}/{rel}"
+                    if commit
+                    else f"git log -- {study.parent.name}/{study.name}/{rel}"
+                ),
+            }
+            for rel, size, files in removed
+        ],
+    }
+    (study / "archive.yaml").write_text(
+        "# Archive record written by tools/cleanup_study.py. Do not edit by hand.\n"
+        + yaml.dump(record, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+
+
 def clean(study: Path, dry_run: bool) -> list[tuple[str, int]]:
     manifest = study / "study.yaml"
     data = load_manifest(study)
@@ -89,12 +147,17 @@ def clean(study: Path, dry_run: bool) -> list[tuple[str, int]]:
         if not target.exists():
             continue
         size = tree_size(target)
+        files = tree_file_count(target)
         if not dry_run:
             shutil.rmtree(target)
-        removed.append((rel, size))
-    if removed and not dry_run:
+        removed.append((rel, size, files))
+    # Always write the archive record and stamp cleaned, even when nothing was
+    # removed, so a cleaned study can be reopened without guessing whether the
+    # absence of evidence means "archived" or "never existed".
+    if not dry_run:
+        write_archive_record(study, removed)
         stamp_cleaned(study, manifest.read_text(encoding="utf-8"))
-    return removed
+    return [(rel, size) for rel, size, _ in removed]
 
 
 def main() -> int:

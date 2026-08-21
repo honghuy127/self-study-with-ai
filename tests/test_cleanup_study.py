@@ -97,6 +97,38 @@ class CleanupStudyTests(unittest.TestCase):
         text = (study / "study.yaml").read_text(encoding="utf-8")
         self.assertEqual(text.count("cleaned:"), 1)
 
+    def test_writes_archive_record(self) -> None:
+        study = make_study(self.tmp)
+        cleanup_study.clean(study, dry_run=False)
+        archive = study / "archive.yaml"
+        self.assertTrue(archive.is_file())
+        record = yaml.safe_load(archive.read_text(encoding="utf-8"))
+        self.assertEqual(
+            sorted(entry["path"] for entry in record["removed"]),
+            sorted(cleanup_study.REMOVABLE),
+        )
+        for entry in record["removed"]:
+            self.assertIn("retrieve", entry)
+            self.assertGreaterEqual(entry["files"], 1)
+        self.assertIn("archived_at", record)
+        self.assertIn("git_commit", record)
+
+    def test_dry_run_writes_no_archive(self) -> None:
+        study = make_study(self.tmp)
+        cleanup_study.clean(study, dry_run=True)
+        self.assertFalse((study / "archive.yaml").exists())
+
+    def test_cleanup_with_nothing_to_remove_still_records(self) -> None:
+        study = make_study(self.tmp)
+        for rel in cleanup_study.REMOVABLE:
+            shutil.rmtree(study / rel, ignore_errors=True)
+        removed = cleanup_study.clean(study, dry_run=False)
+        self.assertEqual(removed, [])
+        record = yaml.safe_load((study / "archive.yaml").read_text(encoding="utf-8"))
+        self.assertEqual(record["removed"], [])
+        data = yaml.safe_load((study / "study.yaml").read_text(encoding="utf-8"))
+        self.assertTrue(data.get("cleaned"))
+
     def test_refuses_interactive_mode(self) -> None:
         study = make_study(self.tmp, mode="interactive")
         with self.assertRaises(SystemExit):

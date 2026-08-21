@@ -1,0 +1,8 @@
+# Archive record backfilled for a pre-archive-regime cleanup. Do not edit by hand.
+archived_at: '2026-08-20'
+git_commit: ''
+note: >-
+  Cleaned under the pre-archive regime. Git history confirms no process
+  material (sources/docs, experiments, .research, reviews) was ever committed
+  for this study, so nothing was removed and nothing needs retrieval.
+removed: []

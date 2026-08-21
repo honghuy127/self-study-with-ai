@@ -59,9 +59,11 @@ fails an audited study that lacks a live dossier.
 
 When a study reaches `done` and you sign off, `tools/cleanup_study.py` slims
 it to its knowledge core (brief, notes, report sources, registry) and drops
-the working evidence chain from the tree. The chain stays recoverable in git
-history. Distilled understanding is merged into `shared/` so later studies
-start smarter.
+the working evidence chain from the tree. It writes an `archive.yaml` record
+naming every removed path, its file count, a retrieval command, and the commit
+where the content last exists, so a finished study can be reopened from the
+current checkout without mining git history. Distilled understanding is merged
+into `shared/` so later studies start smarter.
 
 ## Getting started
 
@@ -121,6 +123,7 @@ Both modes, driven by the lifecycle CLI:
 | `python3 tools/study.py practice <id>` | Interactive: shows practice items without exposing answers |
 | `python3 tools/study.py assess <id>` | Interactive: administers the unaided mastery task |
 | `python3 tools/study.py revisit <id>` | Interactive: lists due delayed-review items |
+| `python3 tools/study.py reopen <id>` | Read-only report of what a finished study needs to reopen (pins, archive, snapshots) |
 
 After each stage you review the output, approve the gate, and re-run the
 command to continue. One branch per study keeps the pull request as your
@@ -200,16 +203,16 @@ shared/
 │   └── slides/                # beamer deck skeleton
 ├── library.bib                # master bibliography merged from finished studies
 ├── glossary.md                # cross-study terms
-└── knowledge/                 # distilled cross-study concept pages
+└── knowledge/                 # distilled cross-study concept pages (structured frontmatter)
 tools/
 ├── new_study.py               # study scaffolder (--mode required)
-├── study.py                   # lifecycle CLI: status, approve, practice, assess, revisit
+├── study.py                   # lifecycle CLI: status, approve, practice, assess, revisit, reopen
 ├── build_report.sh            # latexmk/tectonic wrapper for report/
 ├── build_slides.sh            # latexmk/tectonic wrapper for slides/
 ├── lint_report.py             # prose/citation/marker linter (report + slides); cross-checks citations against the registry
 ├── gen_bib.py                 # generate report/refs.bib from registry bibtex blocks
-├── check_all.py               # repo-wide gate: lint, manifest, dossier audit, PDF hygiene, drift check, tests
-├── cleanup_study.py           # slim a signed-off study down to its knowledge core
+├── check_all.py               # repo-wide gate: lint, manifest, artifacts, briefs, knowledge, dossier audit, PDF hygiene, drift check, tests
+├── cleanup_study.py           # slim a signed-off study to its knowledge core; writes archive.yaml
 ├── pin_repos.py               # pin local codebase checkouts into sources/repos.yaml
 ├── verify_pins.py             # confirm pinned checkouts still hold their recorded commits
 └── research/                  # vendored dossier scripts (research_state, capture_run, audit) + research.sh

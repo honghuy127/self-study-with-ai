@@ -28,6 +28,7 @@ group. Usage: python3 tools/check_all.py
 """
 from __future__ import annotations
 
+import datetime as dt
 import re
 import subprocess
 import sys
@@ -168,14 +169,52 @@ def validate_manifest(manifest: Path) -> list[str]:
     return errors
 
 
+def load_archive_record(study: Path) -> dict | None:
+    archive = study / "archive.yaml"
+    if not archive.is_file():
+        return None
+    try:
+        data = yaml.safe_load(archive.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def commit_resolvable(cwd: Path, sha: str) -> bool | None:
+    """True or False when git can answer, None outside a git repository."""
+    if not sha:
+        return None
+    probe = subprocess.run(
+        ["git", "-C", str(cwd), "cat-file", "-e", f"{sha}^{{commit}}"], capture_output=True
+    )
+    if probe.returncode == 0:
+        return True
+    repo = subprocess.run(["git", "-C", str(cwd), "rev-parse", "--git-dir"], capture_output=True)
+    if repo.returncode != 0:
+        return None
+    return False
+
+
+def is_archived(rel: str, record: dict | None) -> bool:
+    if not record:
+        return False
+    for entry in record.get("removed") or []:
+        path = str((entry or {}).get("path", ""))
+        if path and (rel == path or rel.startswith(path.rstrip("/") + "/")):
+            return True
+    return False
+
+
 def validate_artifacts(study: Path) -> list[str]:
     """Every manifest artifact path must resolve, with designed exemptions.
 
     `pdf` is build output (gitignored, rebuilt on demand) and is never
-    required in the tree. Cleaned studies drop the dossier by design, so its
-    path is exempt there; the chain stays recoverable in git history.
-    Audited assurance additionally requires a live dossier, and an uncleaned
-    delegated study at done must still hold its review record.
+    required in the tree. Artifacts listed in archive.yaml left the tree at
+    cleanup on purpose; they pass while their archive commit stays
+    resolvable and fail if that commit disappears. Cleaned studies without
+    an archive record keep the older dossier exemption. Audited assurance
+    additionally requires a live dossier, and an uncleaned delegated study
+    at done must still hold its review record.
     """
     manifest = study / "study.yaml"
     if not manifest.is_file():
@@ -187,15 +226,22 @@ def validate_artifacts(study: Path) -> list[str]:
     if not isinstance(data, dict):
         return []
     cleaned = bool(data.get("cleaned"))
+    record = load_archive_record(study)
     errors: list[str] = []
     for name, rel in (data.get("artifacts") or {}).items():
         rel = str(rel)
         if name == "pdf":
             continue
-        if cleaned and name == "dossier":
+        if (study / rel).exists():
             continue
-        if not (study / rel).exists():
-            errors.append(f"artifact {name} points at missing path {rel}")
+        if is_archived(rel, record):
+            resolvable = commit_resolvable(study, str((record or {}).get("git_commit", "")))
+            if resolvable is False:
+                errors.append(f"artifact {name} archived but archive commit is not resolvable")
+            continue
+        if cleaned and name == "dossier" and record is None:
+            continue
+        errors.append(f"artifact {name} points at missing path {rel}")
     if data.get("assurance") == "audited" and not cleaned and not (study / ".research").is_dir():
         errors.append("audited assurance requires a .research/ dossier")
     if data.get("mode") == "delegated" and data.get("status") == "done" and not cleaned:
@@ -203,6 +249,40 @@ def validate_artifacts(study: Path) -> list[str]:
         if not reviews.is_dir() or not any(reviews.iterdir()):
             errors.append("delegated done requires a non-empty reviews/ record before cleanup")
     return errors
+
+
+def snapshot_warnings(study: Path) -> list[str]:
+    """Cleaned studies keep historical snapshot references; flag them once."""
+    if not (study / "study.yaml").is_file():
+        return []
+    try:
+        manifest = yaml.safe_load((study / "study.yaml").read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return []
+    if not isinstance(manifest, dict) or not manifest.get("cleaned"):
+        return []
+    registry = study / "sources" / "registry.yaml"
+    if not registry.is_file():
+        return []
+    try:
+        data = yaml.safe_load(registry.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return []
+    entries = (data or {}).get("sources") if isinstance(data, dict) else None
+    if not isinstance(entries, list):
+        return []
+    missing = 0
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        snapshot = entry.get("snapshot")
+        if isinstance(snapshot, str) and snapshot and not (study / snapshot).exists():
+            missing += 1
+    if missing:
+        return [
+            f"{missing} registry snapshot paths are historical (removed at cleanup); refetch from url when needed"
+        ]
+    return []
 
 
 BRIEF_SENTINELS = (
@@ -279,6 +359,8 @@ def check_artifacts() -> str:
         print(f"artifacts {study.name}: {status}")
         for error in errors:
             print(f"artifacts {study.name}: {error}")
+        for warning in snapshot_warnings(study):
+            print(f"artifacts {study.name}: WARN {warning}")
         if errors:
             ok = False
     return "PASS" if ok else "FAIL"
@@ -298,6 +380,95 @@ def check_briefs() -> str:
             print(f"briefs {study.name}: {error}")
         for warning in warnings:
             print(f"briefs {study.name}: WARN {warning}")
+        if errors:
+            ok = False
+    return "PASS" if ok else "FAIL"
+
+
+def parse_frontmatter(text: str) -> tuple[dict | None, str]:
+    """Return (meta, error). meta is None when no frontmatter block exists."""
+    if not text.startswith("---\n"):
+        return None, ""
+    end = text.find("\n---", 4)
+    if end == -1:
+        return None, "frontmatter opened but never closed"
+    try:
+        data = yaml.safe_load(text[4:end])
+    except yaml.YAMLError as exc:
+        return None, f"invalid YAML frontmatter: {exc}"
+    if not isinstance(data, dict):
+        return None, "frontmatter did not parse to a mapping"
+    return data, ""
+
+
+def _is_iso_date(value: object) -> bool:
+    try:
+        dt.date.fromisoformat(str(value))
+        return True
+    except ValueError:
+        return False
+
+
+def validate_knowledge_unit(meta: dict) -> list[str]:
+    errors: list[str] = []
+    for field in ("id", "question"):
+        value = meta.get(field)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"frontmatter field {field!r} is required and must be a non-empty string")
+    for field in ("prerequisites", "source_ids", "misconceptions"):
+        value = meta.get(field)
+        if value is not None and (not isinstance(value, list) or not all(isinstance(item, str) for item in value)):
+            errors.append(f"frontmatter field {field!r} must be a list of strings when present")
+    mastery = meta.get("mastery")
+    if mastery is not None:
+        if not isinstance(mastery, dict):
+            errors.append("frontmatter field 'mastery' must be a mapping when present")
+        else:
+            assessed = mastery.get("last_assessed")
+            if assessed not in (None, "") and not _is_iso_date(assessed):
+                errors.append(f"mastery.last_assessed {assessed!r} is not an ISO date")
+    review = meta.get("review")
+    if review is not None:
+        if not isinstance(review, dict):
+            errors.append("frontmatter field 'review' must be a mapping when present")
+        else:
+            due = review.get("next_due")
+            if due not in (None, "") and not _is_iso_date(due):
+                errors.append(f"review.next_due {due!r} is not an ISO date")
+    superseded = meta.get("superseded_by")
+    if superseded is not None and not isinstance(superseded, str):
+        errors.append("frontmatter field 'superseded_by' must be a string when present")
+    return errors
+
+
+def check_knowledge(knowledge_dir: Path | None = None) -> str:
+    """Validate knowledge-unit frontmatter in shared/knowledge.
+
+    Every new page carries the structured header from
+    shared/templates/knowledge-unit.md so mastery and review state live
+    next to the prose. Legacy pages without frontmatter warn rather than
+    fail; malformed frontmatter fails.
+    """
+    directory = knowledge_dir or ROOT / "shared" / "knowledge"
+    pages = sorted(directory.glob("*.md")) if directory.is_dir() else []
+    if not pages:
+        print("knowledge: no pages found")
+        return "NOT_ASSESSED"
+    ok = True
+    for page in pages:
+        text = page.read_text(encoding="utf-8")
+        meta, error = parse_frontmatter(text)
+        if error:
+            print(f"knowledge {page.name}: FAIL {error}")
+            ok = False
+            continue
+        if meta is None:
+            print(f"knowledge {page.name}: WARN no frontmatter (new pages require a knowledge-unit header)")
+            continue
+        errors = validate_knowledge_unit(meta)
+        print(f"knowledge {page.name}: " + ("PASS" if not errors else "FAIL"))
+        for message in errors:
+            print(f"knowledge {page.name}: {message}")
         if errors:
             ok = False
     return "PASS" if ok else "FAIL"
@@ -434,6 +605,7 @@ def main() -> int:
         "manifest": check_manifests(),
         "artifacts": check_artifacts(),
         "briefs": check_briefs(),
+        "knowledge": check_knowledge(),
         "audit": check_audit(),
         "hygiene": check_hygiene(),
         "drift": check_drift(),

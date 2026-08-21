@@ -83,17 +83,29 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   approve gates via `python3 tools/study.py approve`; every gate decision
   and status transition appends an event to the study's `events.jsonl`
   (append-only; never rewrite it). Status changes go through
-  `python3 tools/study.py status-set`; the engine allows forward and
-  backward edges (review can return to drafting, assessment to practice)
-  and refuses anything else. Entering `drafting` requires the sources and
-  notes gates (plus experiments on experimental methodologies), `review`
-  requires the draft gate, `done` requires review sign-off; `diagnosing`
-  requires the scope gate, `learning` the evidence gate, `retained` the
-  mastery gate. `cleaned` is stamped by
-  `tools/cleanup_study.py` at done-time cleanup (delegated studies only);
-  `audit_waiver` is human-only and lets `check_all.py` report a failing
-  dossier audit as `WAIVED` once documented deviations are accepted. Fields
-  documented inline in `shared/templates/study.yaml`.
+   `python3 tools/study.py status-set`; the engine allows forward and
+   backward edges (review can return to drafting, assessment to practice,
+   and a delegated `done` reopens to `review` for refresh work) and refuses
+   anything else. Entering `drafting` requires the sources and
+   notes gates (plus experiments on experimental methodologies), `review`
+   requires the draft gate, `done` requires review sign-off; `diagnosing`
+   requires the scope gate, `learning` the evidence gate, `retained` the
+   mastery gate. `cleaned` is stamped by
+   `tools/cleanup_study.py` at done-time cleanup (delegated studies only);
+   `audit_waiver` is human-only and lets `check_all.py` report a failing
+   dossier audit as `WAIVED` once documented deviations are accepted. Fields
+   documented inline in `shared/templates/study.yaml`.
+ - `archive.yaml`: written by `tools/cleanup_study.py` whenever a delegated
+   study is cleaned, even if nothing was removed. It records, per removed
+   path, the file count and a `git show` retrieval command, plus the single
+   `git_commit` where all removed content last exists (cleanup runs before
+   its own commit, so that commit is HEAD at cleanup time). This keeps every
+   declared evidence locator resolvable without mining history by hand, so a
+   finished study can be reopened from the current checkout.
+   `python3 tools/study.py reopen <study-id>` reports pinned-checkout health,
+   archive resolvability, and stale registry snapshots before any reopen, and
+   exits non-zero if the archive commit is gone or a cleaned study has no
+   record. It never changes state; the move itself goes through `status-set`.
 - Evidence assurance profiles. `quick`: registry entries with canonical
   metadata; notes only where the study needs them. `grounded` (default):
   local snapshots for every cited doc, blog, and paper, plus anchored
@@ -201,7 +213,11 @@ declared deliverables.
 
 1. Merge the study's `refs.bib` entries into `shared/library.bib`, add new
    terms to `shared/glossary.md`, and write or update a concept page in
-   `shared/knowledge/` if the study produced reusable understanding.
+   `shared/knowledge/` if the study produced reusable understanding. New
+   pages start from `shared/templates/knowledge-unit.md` and carry the
+   structured frontmatter (`id`, `question`, `prerequisites`, `source_ids`,
+   `misconceptions`, plus `mastery` and `review` state for interactive
+   studies) so review scheduling lives next to the prose.
 2. Run `tools/cleanup_study.py <study-dir>` to slim the signed-off study down
    to its knowledge core. This repo stores self-study, not academic
    publication: while a study is open, the full evidence chain (source
@@ -211,14 +227,21 @@ declared deliverables.
    `study.yaml`, `notes/`, `report/` and `slides/` sources,
    `sources/registry.yaml`, `sources/repos.yaml`. The tool refuses to run
    unless `status: done`, `review_signed_off: true`, and the study is not
-   already cleaned, and it stamps a `cleaned` date into `study.yaml`.
-   Registry `snapshot` paths become historical after cleanup; re-fetch from
-   `url` if a snapshot is ever needed again. Cleanup slims the tree, not the
-   git history; the evidence commits stay reachable until an explicitly
-   approved rewrite, and purging history removes them entirely.
-3. Stop and hand back to the human.
+   already cleaned, and it stamps a `cleaned` date into `study.yaml` and
+   writes `archive.yaml` naming every removed path, its file count, a
+   retrieval command, and the commit where the content last exists. Registry
+   `snapshot` paths become historical after cleanup; re-fetch from `url` if
+   a snapshot is ever needed again. Cleanup slims the tree, not the git
+   history; the evidence commits stay reachable until an explicitly approved
+   rewrite, and purging history removes them entirely.
+3. To refresh a finished study later, run `python3 tools/study.py reopen
+   <study-id>` first (read-only health report), then
+   `status-set <study-id> review` to move it back into the graph.
+4. Stop and hand back to the human.
 
 When an interactive study reaches `retained`, merge new terms into
-`shared/glossary.md` and update `shared/knowledge/` if the study produced
-reusable understanding, then stop. Interactive studies keep their
-`learning/` record; `tools/cleanup_study.py` refuses them.
+`shared/glossary.md` and write or update a concept page in
+`shared/knowledge/` from `shared/templates/knowledge-unit.md`, filling the
+`mastery` and `review` frontmatter from the mastery record so the delayed
+review is scheduled next to the prose, then stop. Interactive studies keep
+their `learning/` record; `tools/cleanup_study.py` refuses them.

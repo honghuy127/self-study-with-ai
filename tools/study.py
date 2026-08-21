@@ -10,6 +10,7 @@ Usage: python3 tools/study.py <command> [args]
   practice    <id>                    interactive: show practice items without exposing answers
   assess      <id>                    interactive: administer the mastery task
   revisit     <id>                    interactive: list due delayed-review items
+  reopen      <id>                    report what reopening a finished study needs (read-only)
 
 This CLI is the only writer of lifecycle state and gate decisions. Every
 change appends an event to the study's events.jsonl. Agents propose; the
@@ -21,10 +22,13 @@ import argparse
 import datetime as dt
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 import yaml
+
+import check_all
 
 ROOT = Path(__file__).resolve().parent.parent
 STUDIES = ROOT / "studies"
@@ -35,7 +39,8 @@ MODE_GATES = {
 }
 
 # One state engine, two allowed transition graphs. Backward edges exist on
-# purpose: assessment can return to practice, review can return to drafting.
+# purpose: assessment can return to practice, review can return to drafting,
+# and a finished delegated study can reopen into review for refresh work.
 TRANSITIONS = {
     "delegated": {
         "proposed": {"gathering"},
@@ -44,7 +49,7 @@ TRANSITIONS = {
         "experimenting": {"drafting", "summarizing"},
         "drafting": {"review", "summarizing", "experimenting"},
         "review": {"done", "gathering", "summarizing", "experimenting", "drafting"},
-        "done": set(),
+        "done": {"review"},
     },
     "interactive": {
         "scoped": {"diagnosing"},
@@ -91,7 +96,7 @@ NEXT_ACTION = {
     "experimenting": "run the approved experiments, then stop for experiments approval",
     "drafting": "synthesize and draft the report, then stop for draft approval",
     "review": "independent review, then stop for review sign-off",
-    "done": "merge shared/ knowledge, then tools/cleanup_study.py",
+    "done": "merge shared/ knowledge, then tools/cleanup_study.py; reopen later via study.py reopen",
     "scoped": "record the unaided baseline in learning/baseline.md, then approve scope",
     "diagnosing": "plan the concept path in learning/map.md from the baseline",
     "learning": "tutor one link at a time; journal every exchange in learning/journal.md",
@@ -294,6 +299,99 @@ def cmd_revisit(study: Path) -> int:
     return 0
 
 
+def cmd_reopen(study: Path) -> int:
+    """Report what reopening a finished study needs. Read-only.
+
+    Checks pinned checkouts, archive-record resolvability, and registry
+    snapshot availability so a completed study can be evaluated from the
+    current checkout without mining git history. State itself only moves
+    through status-set.
+    """
+    data = load_manifest(study)
+    mode = data.get("mode")
+    status = data.get("status")
+    cleaned = data.get("cleaned") or ""
+    print(f"{data.get('id', study.name)}: {data.get('title', '')}")
+    print(f"mode: {mode}  status: {status}" + (f" (cleaned {cleaned})" if cleaned else ""))
+    if mode == "interactive":
+        print("interactive studies stay terminal; retrieval reviews run via study.py revisit")
+        return 0
+
+    problems: list[str] = []
+
+    repos = study / "sources" / "repos.yaml"
+    if repos.is_file():
+        proc = subprocess.run(
+            [sys.executable, str(ROOT / "tools" / "verify_pins.py"), str(study)],
+            capture_output=True,
+            text=True,
+        )
+        print(proc.stdout.strip())
+        if proc.returncode != 0:
+            if proc.stderr.strip():
+                print(proc.stderr.strip())
+            problems.append("pinned checkouts no longer match the recorded commits")
+    else:
+        print("pinned checkouts: none recorded")
+
+    archive = study / "archive.yaml"
+    if archive.is_file():
+        try:
+            record = yaml.safe_load(archive.read_text(encoding="utf-8"))
+        except yaml.YAMLError:
+            record = None
+        if not isinstance(record, dict):
+            problems.append("archive.yaml is unreadable")
+        else:
+            commit = str(record.get("git_commit", ""))
+            removed = record.get("removed") or []
+            if not removed:
+                print("archive: cleaned, nothing was removed; knowledge core complete")
+            else:
+                resolvable = check_all.commit_resolvable(study, commit)
+                if resolvable is False:
+                    problems.append(f"archive commit {commit[:12]} is not resolvable in this checkout")
+                elif resolvable is None:
+                    print(f"archive: {len(removed)} removed paths recorded; commit not verifiable outside a git checkout")
+                else:
+                    print(f"archive: {len(removed)} removed paths recoverable at commit {commit[:12]}")
+    elif cleaned:
+        problems.append("cleaned study has no archive.yaml; evidence locators are not resolvable")
+    else:
+        print("archive: study not cleaned, all declared paths should be live")
+
+    registry = study / "sources" / "registry.yaml"
+    if registry.is_file():
+        try:
+            reg = yaml.safe_load(registry.read_text(encoding="utf-8"))
+            entries = (reg or {}).get("sources") if isinstance(reg, dict) else []
+        except yaml.YAMLError:
+            entries = []
+        missing = []
+        for entry in entries or []:
+            if not isinstance(entry, dict):
+                continue
+            snapshot = entry.get("snapshot")
+            if isinstance(snapshot, str) and snapshot and not (study / snapshot).exists():
+                missing.append(str(entry.get("key", "?")))
+        if missing:
+            shown = ", ".join(missing[:5]) + (" ..." if len(missing) > 5 else "")
+            print(f"snapshots: {len(missing)} historical (refetch from url when current behavior matters): {shown}")
+        else:
+            print("snapshots: all present")
+
+    if status == "done":
+        print(f"reopen with: python3 tools/study.py status-set {study.name} review --note \"reopen: <reason>\"")
+    elif status == "review":
+        print("already reopened; resume drafting, gathering, or experimenting as the review directs")
+    if problems:
+        print("problems:")
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] == "new":
@@ -323,6 +421,7 @@ def main(argv: list[str] | None = None) -> int:
         ("practice", "interactive: show practice items without exposing answers"),
         ("assess", "interactive: administer the mastery task"),
         ("revisit", "interactive: list due delayed-review items"),
+        ("reopen", "report what reopening a finished study needs (read-only)"),
     ):
         p = sub.add_parser(name, help=help_text)
         p.add_argument("study", help="study id or directory")
@@ -341,6 +440,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_assess(study)
     if args.command == "revisit":
         return cmd_revisit(study)
+    if args.command == "reopen":
+        return cmd_reopen(study)
     parser.error(f"unknown command {args.command}")
     return 2
 

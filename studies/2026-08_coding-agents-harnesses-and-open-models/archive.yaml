@@ -1,0 +1,17 @@
+# Archive record backfilled for a pre-archive-regime cleanup. Do not edit by hand.
+archived_at: '2026-08-21'
+git_commit: 1691c774ee373d24463281dcd6ff66688982c1ab
+note: >-
+  Cleaned under the pre-archive regime; record reconstructed from git history.
+  git_commit is the last commit where all removed content exists; deletions
+  landed in c20f5df (sources/docs) and afb5ce0 (.research, reviews).
+removed:
+  - path: sources/docs
+    files: 9
+    retrieve: git show 1691c774ee373d24463281dcd6ff66688982c1ab:studies/2026-08_coding-agents-harnesses-and-open-models/sources/docs
+  - path: .research
+    files: 5
+    retrieve: git show 1691c774ee373d24463281dcd6ff66688982c1ab:studies/2026-08_coding-agents-harnesses-and-open-models/.research
+  - path: reviews
+    files: 3
+    retrieve: git show 1691c774ee373d24463281dcd6ff66688982c1ab:studies/2026-08_coding-agents-harnesses-and-open-models/reviews

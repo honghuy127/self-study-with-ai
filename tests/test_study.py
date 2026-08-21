@@ -162,10 +162,64 @@ class StudyCliTests(unittest.TestCase):
         self.assertEqual(study.cmd_status_set(self.interactive, "diagnosing", "re-diagnose weak prerequisite"), 0)
 
     def test_status_set_rejects_terminal_state(self) -> None:
+        # Interactive retained is genuinely terminal; only delegated done reopens.
+        text = self.read_manifest(self.interactive).replace("status: scoped", "status: retained")
+        (self.interactive / "study.yaml").write_text(text, encoding="utf-8")
+        with self.assertRaises(SystemExit):
+            study.cmd_status_set(self.interactive, "practicing", "reopen")
+        self.assertIn("status: retained", self.read_manifest(self.interactive))
+
+    def test_status_set_reopen_delegated_done_to_review(self) -> None:
+        text = self.read_manifest(self.delegated).replace("status: proposed", "status: done")
+        text = text.replace("draft_approved: false", "draft_approved: true")
+        (self.delegated / "study.yaml").write_text(text, encoding="utf-8")
+        self.assertEqual(study.cmd_status_set(self.delegated, "review", "reopen for refresh"), 0)
+        self.assertIn("status: review", self.read_manifest(self.delegated))
+
+    def test_status_set_reopen_requires_draft_gate(self) -> None:
         text = self.read_manifest(self.delegated).replace("status: proposed", "status: done")
         (self.delegated / "study.yaml").write_text(text, encoding="utf-8")
         with self.assertRaises(SystemExit):
-            study.cmd_status_set(self.delegated, "review", "reopen")
+            study.cmd_status_set(self.delegated, "review", "reopen without draft gate")
+        self.assertIn("status: done", self.read_manifest(self.delegated))
+
+    def make_done_delegated(self, cleaned: bool) -> Path:
+        text = self.read_manifest(self.delegated).replace("status: proposed", "status: done")
+        text = text.replace("draft_approved: false", "draft_approved: true")
+        if cleaned:
+            text = text.replace('cleaned: ""', 'cleaned: "2026-08-21"')
+        (self.delegated / "study.yaml").write_text(text, encoding="utf-8")
+        return self.delegated
+
+    def test_reopen_interactive_is_terminal(self) -> None:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(study.cmd_reopen(self.interactive), 0)
+        self.assertIn("stay terminal", out.getvalue())
+
+    def test_reopen_reports_recoverable_archive(self) -> None:
+        done = self.make_done_delegated(cleaned=True)
+        (done / "archive.yaml").write_text(
+            "archived_at: '2026-08-21'\n"
+            "git_commit: abc123\n"
+            "removed:\n"
+            "  - path: .research\n"
+            "    size_kb: 1\n"
+            "    files: 1\n"
+            "    retrieve: git show abc123:studies/x/.research\n",
+            encoding="utf-8",
+        )
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(study.cmd_reopen(done), 0)
+        self.assertIn("archive: 1 removed paths", out.getvalue())
+
+    def test_reopen_flags_cleaned_study_without_archive(self) -> None:
+        done = self.make_done_delegated(cleaned=True)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(study.cmd_reopen(done), 1)
+        self.assertIn("no archive.yaml", out.getvalue())
 
     def test_status_set_via_main(self) -> None:
         study.main(["approve", str(self.interactive), "scope", "--note", "ok"])

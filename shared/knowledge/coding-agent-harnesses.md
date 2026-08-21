@@ -1,3 +1,18 @@
+---
+id: coding-agent-harnesses.eight-dimensions
+question: How do coding-agent harnesses decompose, and where do Claude Code, Codex, and OpenCode converge?
+prerequisites: []
+source_ids: [codexRepo, opencodeRepo, claudeCodePluginSurface]
+misconceptions: []
+mastery:
+  last_assessed: ""
+  level: ""
+  help: ""
+review:
+  next_due: ""
+superseded_by: ""
+---
+
 # Coding-agent harnesses
 
 Distilled understanding from finished studies. Agents read relevant pages

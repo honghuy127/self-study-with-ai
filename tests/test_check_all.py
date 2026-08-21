@@ -447,5 +447,167 @@ class NotAssessedTests(unittest.TestCase):
         self.assertEqual(check_all.check_audit(), "NOT_ASSESSED")
 
 
+class ArchiveRecordTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.study = Path(self._tmp.name) / "2026-08_test"
+        self.study.mkdir()
+
+    def write_archive(self, commit: str = "abc1234") -> None:
+        (self.study / "archive.yaml").write_text(
+            f"archived_at: '2026-08-21'\ngit_commit: {commit}\n"
+            "removed:\n  - path: .research\n    size_kb: 1\n    files: 1\n"
+            "    retrieve: git show abc:studies/x/.research\n",
+            encoding="utf-8",
+        )
+
+    def test_archived_missing_artifact_passes_when_commit_unverifiable(self) -> None:
+        # Temp dir is not a git repo, so commit_resolvable returns None and the
+        # archived path is accepted rather than reported missing.
+        (self.study / "study.yaml").write_text("artifacts:\n  dossier: .research/\n", encoding="utf-8")
+        self.write_archive()
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_missing_artifact_not_archived_fails(self) -> None:
+        (self.study / "study.yaml").write_text("artifacts:\n  dossier: .research/\n", encoding="utf-8")
+        errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("missing path .research/" in e for e in errors))
+
+    def test_archived_artifact_fails_when_commit_unresolvable(self) -> None:
+        from unittest import mock
+
+        (self.study / "study.yaml").write_text("artifacts:\n  dossier: .research/\n", encoding="utf-8")
+        self.write_archive()
+        with mock.patch.object(check_all, "commit_resolvable", return_value=False):
+            errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("archive commit" in e for e in errors))
+
+    def test_nested_archived_path_matches(self) -> None:
+        record = {"removed": [{"path": "sources/docs"}]}
+        self.assertTrue(check_all.is_archived("sources/docs/page.txt", record))
+        self.assertTrue(check_all.is_archived("sources/docs", record))
+        self.assertFalse(check_all.is_archived("sources/registry.yaml", record))
+        self.assertFalse(check_all.is_archived("sources/docs", None))
+
+
+class CommitResolvableTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_empty_sha_returns_none(self) -> None:
+        self.assertIsNone(check_all.commit_resolvable(Path(self._tmp.name), ""))
+
+    def test_non_repo_returns_none(self) -> None:
+        self.assertIsNone(check_all.commit_resolvable(Path(self._tmp.name), "abc1234"))
+
+    def test_real_repo_head_resolves(self) -> None:
+        self.assertIs(check_all.commit_resolvable(ROOT, "HEAD"), True)
+
+    def test_real_repo_bad_sha_unresolvable(self) -> None:
+        self.assertIs(check_all.commit_resolvable(ROOT, "f" * 40), False)
+
+
+class SnapshotWarningsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.study = Path(self._tmp.name) / "2026-08_test"
+        (self.study / "sources").mkdir(parents=True)
+
+    def write_registry(self, snapshot: str) -> None:
+        (self.study / "sources" / "registry.yaml").write_text(
+            "sources:\n  - key: a2026\n    status: noted\n"
+            + (f"    snapshot: {snapshot}\n" if snapshot else ""),
+            encoding="utf-8",
+        )
+
+    def test_cleaned_missing_snapshot_warns(self) -> None:
+        (self.study / "study.yaml").write_text('cleaned: "2026-08-21"\n', encoding="utf-8")
+        self.write_registry("sources/docs/a.txt")
+        warnings = check_all.snapshot_warnings(self.study)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("historical", warnings[0])
+
+    def test_cleaned_present_snapshot_silent(self) -> None:
+        (self.study / "sources" / "docs").mkdir()
+        (self.study / "sources" / "docs" / "a.txt").write_text("x\n", encoding="utf-8")
+        (self.study / "study.yaml").write_text('cleaned: "2026-08-21"\n', encoding="utf-8")
+        self.write_registry("sources/docs/a.txt")
+        self.assertEqual(check_all.snapshot_warnings(self.study), [])
+
+    def test_uncleaned_missing_snapshot_silent(self) -> None:
+        (self.study / "study.yaml").write_text("status: drafting\n", encoding="utf-8")
+        self.write_registry("sources/docs/a.txt")
+        self.assertEqual(check_all.snapshot_warnings(self.study), [])
+
+
+VALID_UNIT = (
+    "---\n"
+    "id: topic.concept\n"
+    "question: Why?\n"
+    "source_ids: [a2026]\n"
+    "mastery:\n  last_assessed: '2026-08-21'\n  level: explained\n  help: none\n"
+    "review:\n  next_due: '2026-09-21'\n"
+    "---\n\n# Topic\n\nProse.\n"
+)
+
+
+class KnowledgeUnitTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+
+    def write_page(self, name: str, text: str) -> None:
+        (self.dir / name).write_text(text, encoding="utf-8")
+
+    def test_parse_no_frontmatter(self) -> None:
+        meta, error = check_all.parse_frontmatter("# Title\n")
+        self.assertIsNone(meta)
+        self.assertEqual(error, "")
+
+    def test_parse_unclosed_frontmatter(self) -> None:
+        _, error = check_all.parse_frontmatter("---\nid: x\n")
+        self.assertIn("never closed", error)
+
+    def test_parse_invalid_yaml(self) -> None:
+        _, error = check_all.parse_frontmatter("---\nid: [unclosed\n---\n")
+        self.assertIn("invalid YAML", error)
+
+    def test_validate_valid_unit(self) -> None:
+        meta, error = check_all.parse_frontmatter(VALID_UNIT)
+        self.assertEqual(error, "")
+        self.assertEqual(check_all.validate_knowledge_unit(meta), [])
+
+    def test_validate_missing_id_fails(self) -> None:
+        meta, _ = check_all.parse_frontmatter("---\nquestion: Why?\n---\n")
+        errors = check_all.validate_knowledge_unit(meta)
+        self.assertTrue(any("'id'" in e for e in errors))
+
+    def test_validate_bad_date_fails(self) -> None:
+        meta, _ = check_all.parse_frontmatter(
+            "---\nid: a.b\nquestion: Why?\nreview:\n  next_due: not-a-date\n---\n"
+        )
+        errors = check_all.validate_knowledge_unit(meta)
+        self.assertTrue(any("next_due" in e for e in errors))
+
+    def test_check_knowledge_valid_page_passes(self) -> None:
+        self.write_page("topic.md", VALID_UNIT)
+        self.assertEqual(check_all.check_knowledge(self.dir), "PASS")
+
+    def test_check_knowledge_legacy_page_warns_but_passes(self) -> None:
+        self.write_page("legacy.md", "# Legacy\n\nNo frontmatter.\n")
+        self.assertEqual(check_all.check_knowledge(self.dir), "PASS")
+
+    def test_check_knowledge_malformed_fails(self) -> None:
+        self.write_page("broken.md", "---\nid: [unclosed\n---\n")
+        self.assertEqual(check_all.check_knowledge(self.dir), "FAIL")
+
+    def test_check_knowledge_empty_not_assessed(self) -> None:
+        self.assertEqual(check_all.check_knowledge(self.dir), "NOT_ASSESSED")
+
+
 if __name__ == "__main__":
     unittest.main()

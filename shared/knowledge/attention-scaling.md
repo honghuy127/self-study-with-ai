@@ -1,3 +1,19 @@
+---
+id: attention.logit-scaling
+question: Why divide attention logits by sqrt(d_k)?
+prerequisites: []
+source_ids: [vaswani2017attention]
+misconceptions:
+  - "The factor was measured experimentally rather than asserted analytically"
+mastery:
+  last_assessed: ""
+  level: ""
+  help: ""
+review:
+  next_due: ""
+superseded_by: ""
+---
+
 # Attention scaling
 
 Distilled understanding from finished studies. Agents read relevant pages
