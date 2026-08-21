@@ -1,9 +1,15 @@
-# Study manifest. Agents do not edit gate fields; humans flip gates after review.
+# Study manifest. Agents do not edit gate fields; humans approve gates via
+# `python3 tools/study.py approve <study-id> <gate> --note "..."`.
 id: "2026-08_scaled-dot-product-attention"
 title: "Why does scaled dot-product attention divide by the square root of d_k?"
 created: "2026-08-19"
-depth: full
-track: concept         # review | concept | experimental; concept exposition, no experiments
+mode: delegated          # interactive | delegated
+intent: understand       # single-concept exposition
+assurance: grounded      # retained evidence supports grounded; no audited dossier survives cleanup
+methodology: source-only
+deliverables:
+  - report
+  - slides
 status: done
 cleaned: "2026-08-20"
 

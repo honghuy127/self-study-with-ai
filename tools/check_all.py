@@ -5,8 +5,9 @@ Runs, in order:
   0. recreate empty dossier runtime dirs (.research/runs) that git cannot
      store, so a fresh clone does not fail the dossier audit;
   1. lint_report.py over every study directory (report + slides);
-  2. a manifest check that every study.yaml has valid status/depth/track
-     and a track-consistent experiments_approved gate;
+  2. a manifest check that every study.yaml declares a valid mode, intent,
+     assurance, methodology, deliverables, a mode-consistent status, and a
+     mode-consistent gate block;
   3. audit_research.py over every study that has a .research/ dossier,
      honoring the human-owned `audit_waiver` field in study.yaml;
   4. a hygiene check that fails on git-tracked PDF binaries and warns on
@@ -33,9 +34,22 @@ SKILL_SCRIPTS = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research" / "scri
 VENDORED = TOOLS / "research"
 VENDORED_SCRIPTS = ("research_state.py", "capture_run.py", "audit_research.py")
 
-VALID_STATUSES = {"proposed", "gathering", "summarizing", "experimenting", "drafting", "review", "done"}
-VALID_DEPTHS = {"briefing", "full"}
-VALID_TRACKS = {"review", "concept", "experimental"}
+MODES = {"interactive", "delegated"}
+INTENTS = {"understand", "solve", "build", "compare", "decide", "refresh", "survey"}
+ASSURANCES = {"quick", "grounded", "audited"}
+METHODOLOGIES = {"source-only", "static-code", "experimental", "mixed"}
+DELIVERABLE_VALUES = {"learning-note", "implementation", "decision-brief", "report", "slides", "none"}
+EXPERIMENTAL_METHODOLOGIES = {"experimental", "mixed"}
+DEPRECATED_FIELDS = ("track", "depth")
+
+VALID_STATUSES = {
+    "delegated": {"proposed", "gathering", "summarizing", "experimenting", "drafting", "review", "done"},
+    "interactive": {"scoped", "diagnosing", "learning", "practicing", "assessing", "retained"},
+}
+MODE_GATES = {
+    "delegated": ("sources_approved", "notes_approved", "experiments_approved", "draft_approved", "review_signed_off"),
+    "interactive": ("scope_approved", "evidence_approved", "experiments_approved", "mastery_approved"),
+}
 
 
 def run(cmd: list[str]) -> tuple[int, str]:
@@ -62,9 +76,11 @@ def check_lint() -> bool:
 def validate_manifest(manifest: Path) -> list[str]:
     """Return manifest field errors; empty list when the manifest is consistent.
 
-    Checks the status/depth/track enums and that the experiments_approved gate
-    matches the track: boolean on experimental tracks, `n_a` on review and
-    concept tracks (which never enter the experimenting state).
+    Checks the mode/intent/assurance/methodology/deliverables dimensions,
+    the mode-specific status enum, and the mode-specific gate block:
+    boolean gates plus an experiments_approved gate that is boolean only
+    when the methodology runs experiments and `n_a` otherwise. The retired
+    track and depth fields fail validation until migrated.
     """
     errors: list[str] = []
     if not manifest.is_file():
@@ -75,24 +91,48 @@ def validate_manifest(manifest: Path) -> list[str]:
         return [f"invalid YAML in {manifest.name}: {exc}"]
     if not isinstance(data, dict):
         return [f"{manifest.name} did not parse to a mapping"]
-    status = data.get("status")
-    if status not in VALID_STATUSES:
-        errors.append(f"invalid status: {status!r}")
-    if data.get("depth") not in VALID_DEPTHS:
-        errors.append(f"invalid depth: {data.get('depth')!r}")
-    track = data.get("track")
-    if track not in VALID_TRACKS:
-        errors.append(f"invalid or missing track: {track!r}")
+
+    for field in DEPRECATED_FIELDS:
+        if field in data:
+            errors.append(f"deprecated field {field!r}; migrate to mode/intent/assurance/methodology/deliverables")
+
+    mode = data.get("mode")
+    if mode not in MODES:
+        errors.append(f"invalid or missing mode: {mode!r}")
         return errors
-    gate = (data.get("gates") or {}).get("experiments_approved")
-    if track == "experimental":
-        if not isinstance(gate, bool):
-            errors.append(f"experimental track requires a boolean experiments_approved, got {gate!r}")
+    if data.get("intent") not in INTENTS:
+        errors.append(f"invalid or missing intent: {data.get('intent')!r}")
+    if data.get("assurance") not in ASSURANCES:
+        errors.append(f"invalid or missing assurance: {data.get('assurance')!r}")
+    methodology = data.get("methodology")
+    if methodology not in METHODOLOGIES:
+        errors.append(f"invalid or missing methodology: {methodology!r}")
+    deliverables = data.get("deliverables")
+    if not isinstance(deliverables, list) or not deliverables:
+        errors.append(f"deliverables must be a non-empty list, got {deliverables!r}")
     else:
-        if gate != "n_a":
-            errors.append(f"{track} track requires experiments_approved: n_a, got {gate!r}")
-        if status == "experimenting":
-            errors.append(f"{track} track entered the experimenting state")
+        for item in deliverables:
+            if item not in DELIVERABLE_VALUES:
+                errors.append(f"invalid deliverable: {item!r}")
+
+    status = data.get("status")
+    if status not in VALID_STATUSES[mode]:
+        errors.append(f"invalid status for {mode} mode: {status!r}")
+
+    gates = data.get("gates") or {}
+    experimental = methodology in EXPERIMENTAL_METHODOLOGIES
+    for name in MODE_GATES[mode]:
+        value = gates.get(name)
+        if name == "experiments_approved":
+            if experimental:
+                if not isinstance(value, bool):
+                    errors.append(f"{methodology} methodology requires a boolean experiments_approved, got {value!r}")
+            elif value != "n_a":
+                errors.append(f"{methodology} methodology requires experiments_approved: n_a, got {value!r}")
+        elif not isinstance(value, bool):
+            errors.append(f"{mode} mode requires a boolean {name}, got {value!r}")
+    if status == "experimenting" and not experimental:
+        errors.append(f"status experimenting requires an experimental or mixed methodology, got {methodology!r}")
     return errors
 
 

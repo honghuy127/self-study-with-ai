@@ -24,11 +24,12 @@ through the human-approved gates:
 - Eligible evidence: notes in `notes/`, `sources/registry.yaml`,
   `sources/repos.yaml`, `shared/glossary.md`, `shared/knowledge/`, and
   experiment outputs the human approved.
-- Match the study's `track`. On `review` and `concept` tracks there are no
-  experiment outputs, no experiments section, and no `[RESULT PENDING]`
-  markers: ground every claim in a note or a `VERIFIED` claim and structure
-  the report around synthesis or exposition. On `experimental` tracks, cite
-  results only from approved experiment outputs.
+- Match the study's methodology. On `source-only` and `static-code`
+  methodologies there are no experiment outputs, no experiments section, and
+  no `[RESULT PENDING]` markers: ground every claim in a note or a
+  `VERIFIED` claim and structure the report around synthesis or exposition.
+  On `experimental` and `mixed` methodologies, cite results only from
+  approved experiment outputs.
 - A claim enters the report only if it traces to an eligible note or to a
   `VERIFIED` claim in `.research/claims.jsonl`. Anything else becomes
   `[CITATION NEEDED]`, `[EVIDENCE NEEDED]`, or `[RESULT PENDING]`.

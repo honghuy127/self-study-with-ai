@@ -18,8 +18,9 @@ historical references that re-fetch from `url`. Gitignored build outputs
 (report/build, slides/build) are not touched.
 
 Refuses to run unless study.yaml records `status: done`,
-`gates.review_signed_off: true`, and no `cleaned` stamp yet. Stamps
-`cleaned: "YYYY-MM-DD"` on success.
+`gates.review_signed_off: true`, and no `cleaned` stamp yet. Interactive
+studies are refused outright: their archive path arrives with the Phase 4
+archive records. Stamps `cleaned: "YYYY-MM-DD"` on success.
 
 Usage: python3 tools/cleanup_study.py <study-dir> [--dry-run]
 """
@@ -54,6 +55,8 @@ def load_manifest(study: Path) -> dict:
 
 
 def check_gates(data: dict) -> None:
+    if data.get("mode") == "interactive":
+        raise SystemExit("refusing: interactive studies keep their learning record; cleanup handles delegated studies")
     if data.get("status") != "done":
         raise SystemExit(f"refusing: status is {data.get('status')!r}, expected 'done'")
     gates = data.get("gates") or {}

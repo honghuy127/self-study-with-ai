@@ -52,5 +52,5 @@ specific file and line of the pinned commit. Report back with the note path
 and one paragraph on what you could not verify.
 
 You may not write outside `notes/` and `study.yaml`. If `study.yaml` says
-`depth: full`, flag any source-level gaps that block a literature gate
-verdict.
+`assurance: audited`, flag any source-level gaps that block a literature
+gate verdict.

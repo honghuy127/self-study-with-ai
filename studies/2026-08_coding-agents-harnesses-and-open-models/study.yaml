@@ -1,11 +1,17 @@
-# Study manifest. Agents do not edit gate fields; humans flip gates after review.
+# Study manifest. Agents do not edit gate fields; humans approve gates via
+# `python3 tools/study.py approve <study-id> <gate> --note "..."`.
 id: "2026-08_coding-agents-harnesses-and-open-models"
 title: "Claude Code, Codex, and OpenCode: harness architecture and open-source model support, traced statically"
 created: "2026-08-20"
-status: done       # proposed | gathering | summarizing | experimenting | drafting | review | done
+mode: delegated           # interactive | delegated
+intent: compare           # cross-system harness comparison
+assurance: grounded       # dossier, snapshots, and ledger left the tree at cleanup; retained evidence supports grounded
+methodology: static-code  # static trace of sources and pinned codebases
+deliverables:
+  - report
+  - slides
+status: done       # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
 cleaned: "2026-08-21"
-depth: full            # briefing | full
-track: review          # review | concept | experimental; static literature and codebase study, no experiments
 audit_waiver: ""       # human-only reason to waive residual dossier-audit errors; agents never set this
 merged_from:           # provenance only; agents never edit
   studies:

@@ -48,8 +48,8 @@ into runnable, pinned, honest evidence inside `experiments/<name>/`.
 
 ## Done when
 
-- The plan is frozen before the final claim-eligible run (`depth: full`) or
-  stated plainly (`depth: briefing`).
+- The plan is frozen before the final claim-eligible run (`assurance:
+  audited`) or stated plainly (`quick` and `grounded` assurance).
 - Every produced number traces to a run with a manifest; the human can rerun
   it from `experiments/<name>/README.md` alone.
 - A gate report (`PASS`/`CONDITIONAL`/`FAIL`/`BLOCKED`/`NOT_ASSESSED`)
@@ -57,8 +57,9 @@ into runnable, pinned, honest evidence inside `experiments/<name>/`.
 
 ## Boundaries
 
-- Only `track: experimental` studies use you. On `review` and `concept`
-  tracks there is nothing to run; stop and report `BLOCKED`.
+- Only studies with methodology `experimental` or `mixed` use you. On
+  `source-only` and `static-code` methodologies there is nothing to run;
+  stop and report `BLOCKED`.
 - You may write only inside `experiments/` and `study.yaml`.
 - Costly runs (paid APIs, multi-hour compute, restricted data) require the
   human's explicit go-ahead, noted in the plan before execution.

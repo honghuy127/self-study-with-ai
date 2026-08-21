@@ -1,18 +1,18 @@
 # Study manifest. Agents do not edit gate fields; humans approve gates via
 # `python3 tools/study.py approve <study-id> <gate> --note "..."`.
-id: ""                     # e.g., 2026-08_transformer-length-extrapolation
-title: ""
-created: ""                # YYYY-MM-DD
+id: "2026-08_attention-scaling-interactive"                     # e.g., 2026-08_transformer-length-extrapolation
+title: "Derive and transfer the sqrt(d_k) attention scale"
+created: "2026-08-21"                # YYYY-MM-DD
 
 # Study dimensions. mode is required and explicit; the others have defaults.
-mode: delegated            # interactive (tutored mastery) | delegated (agent-run investigation)
-intent: survey             # understand | solve | build | compare | decide | refresh | survey
+mode: interactive            # interactive (tutored mastery) | delegated (agent-run investigation)
+intent: understand             # understand | solve | build | compare | decide | refresh | survey
 assurance: grounded        # quick | grounded | audited; audited adds a .research dossier and claims ledger
 methodology: source-only   # source-only | static-code | experimental | mixed
 deliverables:              # learning-note | implementation | decision-brief | report | slides | none
-  - report
+  - learning-note
 
-status: proposed           # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
+status: scoped           # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
                            # interactive: scoped | diagnosing | learning | practicing | assessing | retained
 cleaned: ""                # set to a date by tools/cleanup_study.py at done-time cleanup
 audit_waiver: ""           # human-only reason to waive residual dossier-audit errors; agents never set this
@@ -21,20 +21,18 @@ audit_waiver: ""           # human-only reason to waive residual dossier-audit e
 # tools/study.py. Delegated mode uses the block below; interactive mode uses:
 #   scope_approved, evidence_approved, experiments_approved, mastery_approved
 gates:
-  sources_approved: false
-  notes_approved: false
+  scope_approved: false
+  evidence_approved: false
   experiments_approved: n_a   # n_a unless methodology is experimental or mixed
-  draft_approved: false
-  review_signed_off: false
+  mastery_approved: false
 
 # What the pipeline produced, relative paths.
 artifacts:
   brief: brief.md
   registry: sources/registry.yaml
   notes_dir: notes/
-  report: report/main.tex
-  pdf: report/build/main.pdf
-  dossier: .research/
+  learning_dir: learning/
+  learning_note: outputs/learning-note.md
 
 # Skill verdict from the last completed stage, if any.
 last_gate_verdict: ""      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED

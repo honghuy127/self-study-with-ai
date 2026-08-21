@@ -14,13 +14,17 @@ sys.path.insert(0, str(ROOT / "tools"))
 import cleanup_study  # noqa: E402
 
 
-def manifest_text(status: str = "done", signed_off: bool = True, cleaned: str | None = None) -> str:
+def manifest_text(status: str = "done", signed_off: bool = True, cleaned: str | None = None, mode: str = "delegated") -> str:
     lines = [
         "id: \"2026-08_test\"",
         "title: \"Test study\"",
         "created: \"2026-08-20\"",
-        "depth: briefing",
-        "track: review",
+        f"mode: {mode}",
+        "intent: survey",
+        "assurance: grounded",
+        "methodology: source-only",
+        "deliverables:",
+        "  - report",
         f"status: {status}",
         f'cleaned: "{cleaned or ""}"',
         "",
@@ -92,6 +96,12 @@ class CleanupStudyTests(unittest.TestCase):
         self.assertTrue(data.get("cleaned"))
         text = (study / "study.yaml").read_text(encoding="utf-8")
         self.assertEqual(text.count("cleaned:"), 1)
+
+    def test_refuses_interactive_mode(self) -> None:
+        study = make_study(self.tmp, mode="interactive")
+        with self.assertRaises(SystemExit):
+            cleanup_study.clean(study, dry_run=False)
+        self.assertTrue((study / "experiments").is_dir())
 
     def test_refuses_when_not_done(self) -> None:
         study = make_study(self.tmp, status="review")

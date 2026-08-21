@@ -17,7 +17,7 @@ verified source registry. Nothing you gather may be fabricated.
 
 ## Required reading, in order
 
-1. The study's `brief.md` and `study.yaml` (respect `depth`).
+1. The study's `brief.md` and `study.yaml` (respect `assurance`).
 2. `shared/glossary.md` and relevant `shared/knowledge/` pages: skip sources
    the repo already understands, and note which pages you reused.
 3. The `conduct-cs-ai-research` skill at
@@ -64,8 +64,8 @@ verified source registry. Nothing you gather may be fabricated.
 6. Rank candidates against the brief's research questions and record queries,
    dates, and inclusion/exclusion reasons at the top of `registry.yaml` under
    `provenance`. State coverage limits; never imply exhaustive coverage.
-7. If `depth: full`, append one JSON object per line for each included source to
-   `.research/evidence.jsonl`, with the fields that
+7. If `assurance: audited`, append one JSON object per line for each included
+   source to `.research/evidence.jsonl`, with the fields that
    `tools/research/research.sh <study-dir> research_state.py validate` checks.
    `research_state.py` only initializes, validates, and transitions the dossier;
    the evidence ledger is written directly by you.
