@@ -1,7 +1,8 @@
 # Brief: Derive and transfer the sqrt(d_k) attention scale
 
-Drafted from the study contract in SELF_STUDY_REDESIGN.md. Human-owned:
-edit any field before approving the scope gate.
+Drafted from the study contract in the since-removed SELF_STUDY_REDESIGN.md
+(recoverable from git history). Human-owned: edit any field before approving
+the scope gate.
 
 ## Mode and dimensions
 
