@@ -65,15 +65,19 @@ def write_manifest(
     experiments_gate: str = "n_a",
     gates: str | None = None,
     extra: str = "",
+    schema_version: str = "2",
+    verdict: str = "PASS",
 ) -> Path:
     if gates is None:
         gates = (DELEGATED_GATES if mode == "delegated" else INTERACTIVE_GATES).format(exp=experiments_gate)
     manifest = study / "study.yaml"
     manifest.parent.mkdir(parents=True, exist_ok=True)
+    schema_line = f"schema_version: {schema_version}\n" if schema_version else ""
     manifest.write_text(
         'id: "x"\n'
         'title: "t"\n'
         'created: "2026-08-21"\n'
+        f"{schema_line}"
         f"mode: {mode}\n"
         f"intent: {intent}\n"
         f"assurance: {assurance}\n"
@@ -81,6 +85,7 @@ def write_manifest(
         f"deliverables:\n{deliverables}"
         f"status: {status}\n"
         f"gates:\n{gates}"
+        f'last_gate_verdict: "{verdict}"\n'
         f"{extra}",
         encoding="utf-8",
     )
@@ -120,6 +125,16 @@ class ValidateManifestTests(unittest.TestCase):
         manifest = write_manifest(self.study, extra="depth: full\n")
         errors = check_all.validate_manifest(manifest)
         self.assertTrue(any("deprecated field 'depth'" in e for e in errors))
+
+    def test_missing_schema_version_fails(self) -> None:
+        manifest = write_manifest(self.study, schema_version="")
+        errors = check_all.validate_manifest(manifest)
+        self.assertTrue(any("schema_version" in e for e in errors))
+
+    def test_wrong_schema_version_fails(self) -> None:
+        manifest = write_manifest(self.study, schema_version="1")
+        errors = check_all.validate_manifest(manifest)
+        self.assertTrue(any("schema_version must be 2" in e for e in errors))
 
     def test_missing_mode_fails(self) -> None:
         manifest = self.study / "study.yaml"
@@ -217,6 +232,62 @@ class ValidateManifestTests(unittest.TestCase):
         errors = check_all.validate_manifest(self.study / "study.yaml")
         self.assertEqual(len(errors), 1)
 
+    def test_done_without_signoff_fails(self) -> None:
+        manifest = write_manifest(
+            self.study,
+            status="done",
+            gates=(
+                "  sources_approved: true\n"
+                "  notes_approved: true\n"
+                "  experiments_approved: n_a\n"
+                "  draft_approved: true\n"
+                "  review_signed_off: false\n"
+            ),
+        )
+        errors = check_all.validate_manifest(manifest)
+        self.assertTrue(any("review_signed_off" in e for e in errors))
+
+    def test_done_with_empty_verdict_fails(self) -> None:
+        manifest = write_manifest(
+            self.study,
+            status="done",
+            gates=(
+                "  sources_approved: true\n"
+                "  notes_approved: true\n"
+                "  experiments_approved: n_a\n"
+                "  draft_approved: true\n"
+                "  review_signed_off: true\n"
+            ),
+            verdict="",
+        )
+        errors = check_all.validate_manifest(manifest)
+        self.assertTrue(any("empty last_gate_verdict" in e for e in errors))
+
+    def test_done_signed_off_with_verdict_passes(self) -> None:
+        manifest = write_manifest(
+            self.study,
+            status="done",
+            gates=(
+                "  sources_approved: true\n"
+                "  notes_approved: true\n"
+                "  experiments_approved: n_a\n"
+                "  draft_approved: true\n"
+                "  review_signed_off: true\n"
+            ),
+        )
+        self.assertEqual(check_all.validate_manifest(manifest), [])
+
+    def test_retained_without_mastery_gate_fails(self) -> None:
+        manifest = write_manifest(
+            self.study,
+            mode="interactive",
+            status="retained",
+            intent="understand",
+            deliverables="  - learning-note\n",
+        )
+        errors = check_all.validate_manifest(manifest)
+        self.assertTrue(any("mastery_approved" in e for e in errors))
+
     def test_repo_studies_pass(self) -> None:
         studies = ROOT / "studies"
         if not studies.is_dir():
@@ -226,6 +297,67 @@ class ValidateManifestTests(unittest.TestCase):
                 continue
             with self.subTest(study=study.name):
                 self.assertEqual(check_all.validate_manifest(study / "study.yaml"), [])
+
+
+class ValidateArtifactsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.study = Path(self._tmp.name) / "2026-08_test"
+        self.study.mkdir()
+
+    def write(self, artifacts: str, cleaned: str = "") -> None:
+        (self.study / "study.yaml").write_text(
+            'id: "x"\n'
+            f'cleaned: "{cleaned}"\n'
+            f"artifacts:\n{artifacts}",
+            encoding="utf-8",
+        )
+
+    def test_resolved_artifacts_pass(self) -> None:
+        (self.study / "brief.md").write_text("x\n", encoding="utf-8")
+        self.write("  brief: brief.md\n")
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_missing_artifact_fails(self) -> None:
+        self.write("  report: report/main.tex\n")
+        errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("missing path report/main.tex" in e for e in errors))
+
+    def test_pdf_exempt(self) -> None:
+        self.write("  pdf: report/build/main.pdf\n")
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_dossier_exempt_after_cleanup(self) -> None:
+        self.write("  dossier: .research/\n", cleaned="2026-08-21")
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_dossier_required_before_cleanup(self) -> None:
+        self.write("  dossier: .research/\n")
+        errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("dossier" in e for e in errors))
+
+    def test_missing_manifest_is_silent(self) -> None:
+        (self.study / "study.yaml").unlink(missing_ok=True)
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+
+class NotAssessedTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self._old_studies = check_all.STUDIES
+        check_all.STUDIES = Path(self._tmp.name)
+        self.addCleanup(setattr, check_all, "STUDIES", self._old_studies)
+
+    def test_no_studies_reports_not_assessed(self) -> None:
+        self.assertEqual(check_all.check_lint(), "NOT_ASSESSED")
+        self.assertEqual(check_all.check_manifests(), "NOT_ASSESSED")
+        self.assertEqual(check_all.check_artifacts(), "NOT_ASSESSED")
+
+    def test_no_dossiers_reports_not_assessed(self) -> None:
+        (Path(self._tmp.name) / "2026-08_test").mkdir()
+        self.assertEqual(check_all.check_audit(), "NOT_ASSESSED")
 
 
 if __name__ == "__main__":

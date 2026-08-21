@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import sys
 import tempfile
 import unittest
@@ -165,6 +166,7 @@ class CopyTemplatesTest(unittest.TestCase):
             "brief.md",
             "study.yaml",
             "sources/registry.yaml",
+            "events.jsonl",
         ):
             self.assertTrue((study / rel).is_file(), rel)
         self.assertTrue((study / "learning" / "practice").is_dir())
@@ -172,9 +174,14 @@ class CopyTemplatesTest(unittest.TestCase):
             self.assertFalse((study / rel).exists(), rel)
         text = (study / "study.yaml").read_text(encoding="utf-8")
         self.assertIn("mode: interactive", text)
+        self.assertIn("schema_version: 2", text)
         self.assertIn("status: scoped", text)
         self.assertIn("mastery_approved: false", text)
         self.assertIn("experiments_approved: n_a", text)
+        self.assertNotIn("report/main.tex", text)
+        event = json.loads((study / "events.jsonl").read_text(encoding="utf-8").splitlines()[0])
+        self.assertEqual(event["type"], "init")
+        self.assertEqual(event["mode"], "interactive")
 
     def test_delegated_scaffold(self):
         study = self.scaffold("2026-08_delegated")

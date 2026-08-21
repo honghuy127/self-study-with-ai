@@ -23,9 +23,12 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
 2. **Zone discipline.** Each agent writes only inside its zone (see
    `.opencode/agents/`). The writer has no web access and may only use
    material present in `notes/`, `experiments/`, or the registry.
-3. **Gates are human-owned.** Never flip a gate in `study.yaml` yourself,
-   nor set `audit_waiver`; the human approves gates via
-   `python3 tools/study.py approve <study-id> <gate> --note "..."`. End
+3. **Gates and state are human-owned.** Never flip a gate in `study.yaml`
+   yourself, nor set `audit_waiver`; the human approves gates via
+   `python3 tools/study.py approve <study-id> <gate> --note "..."`. Do not
+   hand-edit `status` either; lifecycle state moves only through
+   `python3 tools/study.py status-set`, which enforces the mode's
+   transition graph and gate preconditions. End
    review a stage with a summary and stop. Run
    `git commit`, `git push`, `git reset`, and `git rebase`, and destructive
    deletions like `rm -rf`, only when a human explicitly asks, and never
@@ -60,7 +63,8 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
 
 ## Contracts (fixed schemas, do not improvise)
 
-- `study.yaml`: workflow manifest. Mode: `interactive` (tutored mastery) or
+- `study.yaml`: workflow manifest, `schema_version: 2`. Mode: `interactive`
+  (tutored mastery) or
   `delegated` (agent-run investigation); `tools/new_study.py --mode` is
   required and there is no default. Dimensions: `intent` (`understand`,
   `solve`, `build`, `compare`, `decide`, `refresh`, `survey`), `assurance`
@@ -76,8 +80,16 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   `experiments_approved` (`n_a` unless the methodology runs experiments),
   `draft_approved`, `review_signed_off`; interactive uses `scope_approved`,
   `evidence_approved`, `experiments_approved`, `mastery_approved`. Humans
-  approve gates via `python3 tools/study.py approve`; decisions land in the
-  study's `approvals.jsonl`. `cleaned` is stamped by
+  approve gates via `python3 tools/study.py approve`; every gate decision
+  and status transition appends an event to the study's `events.jsonl`
+  (append-only; never rewrite it). Status changes go through
+  `python3 tools/study.py status-set`; the engine allows forward and
+  backward edges (review can return to drafting, assessment to practice)
+  and refuses anything else. Entering `drafting` requires the sources and
+  notes gates (plus experiments on experimental methodologies), `review`
+  requires the draft gate, `done` requires review sign-off; `diagnosing`
+  requires the scope gate, `learning` the evidence gate, `retained` the
+  mastery gate. `cleaned` is stamped by
   `tools/cleanup_study.py` at done-time cleanup (delegated studies only);
   `audit_waiver` is human-only and lets `check_all.py` report a failing
   dossier audit as `WAIVED` once documented deviations are accepted. Fields

@@ -8,7 +8,6 @@ permission:
     "*": deny
     "studies/**/sources/**": allow
     "studies/**/.research/evidence.jsonl": allow
-    "studies/**/study.yaml": allow
   bash: ask
 ---
 
@@ -78,10 +77,13 @@ verified source registry. Nothing you gather may be fabricated.
 - Every local codebase referenced by the registry is pinned in
   `sources/repos.yaml` via `tools/pin_repos.py`, and no registry entry points
   at an unpinned checkout.
-- `study.yaml` status moves to `summarizing` and you end with a gate report
-  using the skill vocabulary (`PASS`/`CONDITIONAL`/`FAIL`/`BLOCKED`/
-  `NOT_ASSESSED` plus the next decisive action).
+- `study.yaml` status is ready to move to `summarizing`; propose the
+  transition to the coordinator, who runs `python3 tools/study.py
+  status-set`, and end with a gate report using the skill vocabulary
+  (`PASS`/`CONDITIONAL`/`FAIL`/`BLOCKED`/`NOT_ASSESSED` plus the next
+  decisive action).
 
-You may not write outside `sources/` and `study.yaml`. You do not summarize;
-that is the summarizer's job. The human will review your registry before
-summaries begin.
+You may write only inside `sources/` and `.research/evidence.jsonl`. Never
+edit `study.yaml`; lifecycle state moves through `python3 tools/study.py`.
+You do not summarize; that is the summarizer's job. The human will review
+your registry before summaries begin.

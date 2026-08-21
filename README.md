@@ -110,7 +110,8 @@ Both modes, driven by the lifecycle CLI:
 | Command | What it does |
 |---|---|
 | `python3 tools/study.py status <id>` | Mode, state, gates, artifacts, and next action |
-| `python3 tools/study.py approve <id> <gate> --note "..."` | Records a human gate decision in `approvals.jsonl` |
+| `python3 tools/study.py status-set <id> <status> --note "..."` | Moves the study along its transition graph; refuses invalid jumps and ungated entries |
+| `python3 tools/study.py approve <id> <gate> --note "..."` | Records a human gate decision in `events.jsonl` |
 | `python3 tools/study.py practice <id>` | Interactive: shows practice items without exposing answers |
 | `python3 tools/study.py assess <id>` | Interactive: administers the unaided mastery task |
 | `python3 tools/study.py revisit <id>` | Interactive: lists due delayed-review items |
@@ -143,8 +144,8 @@ or an approved experiment output, it does not exist for the writer.
 ```text
 studies/<YYYY-MM_slug>/
 ├── brief.md                   # your input: purpose, questions, scope, budgets, stop rules
-├── study.yaml                 # manifest: mode, dimensions, status, human gates
-├── approvals.jsonl            # recorded human gate decisions (gate, note, date)
+├── study.yaml                 # manifest: schema_version, mode, dimensions, status, human gates
+├── events.jsonl               # append-only log of transitions and gate decisions
 ├── sources/registry.yaml      # every gathered source with bibtex key + trust tier
 ├── sources/repos.yaml         # pinned local codebase checkouts (codebase studies)
 ├── sources/docs/              # pdftotext and page snapshots; PDF binaries are never committed
@@ -234,12 +235,15 @@ The linter checks em-dashes, untied citations (`X \cite` without `~`),
 unresolved `[... NEEDED]` markers, and British spellings. The auditor checks
 claim/evidence/run traceability in the dossier. `check_all.py` is the
 pre-review gate: it lints every study, validates every `study.yaml` manifest
-(mode, intent, assurance, methodology, deliverables, a mode-consistent
-status, and a mode-consistent gate block),
-audits every `.research/` dossier (honoring the human-only `audit_waiver`
-field), fails on git-tracked PDF binaries, fails if the vendored
-`tools/research/*.py` drift from the skill submodule, and runs the unit
-tests. CI runs it on every push and pull request.
+(schema_version, mode, intent, assurance, methodology, deliverables, a
+mode-consistent status and gate block, and completion-consistent verdicts),
+checks that every manifest artifact path resolves (build outputs and
+post-cleanup dossiers exempt), audits every `.research/` dossier (honoring
+the human-only `audit_waiver` field), fails on git-tracked PDF binaries,
+fails if the vendored `tools/research/*.py` drift from the skill submodule,
+and runs the unit tests. Groups with nothing to check report `NOT_ASSESSED`
+instead of collapsing into `PASS`. CI runs `check_all.py` on every push and
+pull request.
 
 Source PDFs are never committed. The registry's `pdf` field holds a remote
 URL and the local evidence is a pdftotext snapshot under `sources/docs/`, so

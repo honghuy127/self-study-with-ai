@@ -8,7 +8,6 @@ permission:
     "*": deny
     "studies/**/experiments/**": allow
     "studies/**/.research/claims.jsonl": allow
-    "studies/**/study.yaml": allow
   bash: ask
 ---
 
@@ -60,6 +59,8 @@ into runnable, pinned, honest evidence inside `experiments/<name>/`.
 - Only studies with methodology `experimental` or `mixed` use you. On
   `source-only` and `static-code` methodologies there is nothing to run;
   stop and report `BLOCKED`.
-- You may write only inside `experiments/` and `study.yaml`.
+- You may write only inside `experiments/` and `.research/claims.jsonl`.
+  Never edit `study.yaml`; lifecycle state moves through
+  `python3 tools/study.py`.
 - Costly runs (paid APIs, multi-hour compute, restricted data) require the
   human's explicit go-ahead, noted in the plan before execution.

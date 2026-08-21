@@ -7,7 +7,7 @@ permission:
   edit:
     "*": deny
     "studies/**/notes/**": allow
-    "studies/**/study.yaml": allow
+    "studies/**/sources/registry.yaml": allow
   bash: deny
 ---
 
@@ -51,6 +51,8 @@ verify any sentence against a specific page or section of the source, or a
 specific file and line of the pinned commit. Report back with the note path
 and one paragraph on what you could not verify.
 
-You may not write outside `notes/` and `study.yaml`. If `study.yaml` says
-`assurance: audited`, flag any source-level gaps that block a literature
-gate verdict.
+You may write only notes and, in `sources/registry.yaml`, the `status` and
+`notes_file` fields of your assigned entry. Never edit gates or status in
+`study.yaml`; lifecycle state moves through `python3 tools/study.py`. If
+`study.yaml` says `assurance: audited`, flag any source-level gaps that
+block a literature gate verdict.

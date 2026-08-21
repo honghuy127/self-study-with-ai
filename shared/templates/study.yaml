@@ -1,5 +1,7 @@
-# Study manifest. Agents do not edit gate fields; humans approve gates via
-# `python3 tools/study.py approve <study-id> <gate> --note "..."`.
+# Study manifest. Agents do not edit gate fields or status; lifecycle state
+# changes only through `python3 tools/study.py` (status-set and approve),
+# which appends every decision to events.jsonl.
+schema_version: 2          # bumped on breaking manifest changes
 id: ""                     # e.g., 2026-08_transformer-length-extrapolation
 title: ""
 created: ""                # YYYY-MM-DD

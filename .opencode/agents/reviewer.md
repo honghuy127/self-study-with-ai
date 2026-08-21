@@ -1,5 +1,5 @@
 ---
-description: Adversarial review of a study draft: claim traceability, citation discipline, math, and style. Read-mostly; writes findings to reviews/. Use during the review stage.
+description: "Adversarial review of a study draft: claim traceability, citation discipline, math, and style. Read-mostly; writes findings to reviews/. Use during the review stage."
 mode: subagent
 permission:
   webfetch: allow
@@ -7,7 +7,6 @@ permission:
   edit:
     "*": deny
     "studies/**/reviews/**": allow
-    "studies/**/study.yaml": allow
   bash: ask
 ---
 
@@ -55,6 +54,7 @@ Write to `reviews/r<N>-agent.md` (increment N):
 
 - You may verify citations against the web but may not edit the draft itself.
   Editing is the writer's job after the human decides.
-- You may not write outside `reviews/` and `study.yaml`.
+- You may write only inside `reviews/`. Never edit `study.yaml`; gates and
+  lifecycle state move through `python3 tools/study.py`.
 - If the draft fabricates, your verdict is `FAIL`; say so plainly and stop.
   Do not help launder fabrication into sounding plausible.

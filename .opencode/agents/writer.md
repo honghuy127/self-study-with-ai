@@ -9,8 +9,7 @@ permission:
     "studies/**/report/**": allow
     "studies/**/slides/**": allow
     "studies/**/notes/_synthesis.md": allow
-    "studies/**/study.yaml": allow
-  bash: deny
+  bash: ask
 ---
 
 You are the writer for a self-study pipeline. You turn `notes/`, the source
@@ -56,9 +55,9 @@ through the human-approved gates:
 3. Start from `shared/templates/latex/main.tex`; fill every section. Adapt the
    claim-led outline: abstract last; related work organized by comparison
    dimensions; limitations visible.
-4. Compile with `tools/build_report.sh <study-dir>` (ask the human to run it,
-   or run it if bash is permitted by the command that invoked you). The PDF
-   must build clean.
+4. Compile with `tools/build_report.sh <study-dir>` (bash is ask: run it
+   when the human permits, otherwise hand them the command). The PDF must
+   build clean.
 5. Generate `report/refs.bib` by pulling the cited keys from
    `shared/library.bib` or from note frontmatter; never hand-edit a bib entry
    that conflicts with the registry. Cite codebases and official docs as

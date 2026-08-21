@@ -3,15 +3,17 @@
 
 Usage: python3 tools/study.py <command> [args]
 
-  new        scaffold a study (same flags as tools/new_study.py; --mode required)
-  status     <id>                    show mode, state, gates, and next action
-  approve    <id> <gate> --note ...  record a human gate decision
-  practice   <id>                    interactive: show practice items without exposing answers
-  assess     <id>                    interactive: administer the mastery task
-  revisit    <id>                    interactive: list due delayed-review items
+  new         scaffold a study (same flags as tools/new_study.py; --mode required)
+  status      <id>                    show mode, state, gates, and next action
+  status-set  <id> <status> --note .. move the study along its transition graph
+  approve     <id> <gate> --note ...  record a human gate decision
+  practice    <id>                    interactive: show practice items without exposing answers
+  assess      <id>                    interactive: administer the mastery task
+  revisit     <id>                    interactive: list due delayed-review items
 
-`approve` is the only way gates flip: it records the decision with a note in
-approvals.jsonl and updates the manifest. Agents may propose, never approve.
+This CLI is the only writer of lifecycle state and gate decisions. Every
+change appends an event to the study's events.jsonl. Agents propose; the
+human approves gates; nobody hand-edits study.yaml state or gates.
 """
 from __future__ import annotations
 
@@ -31,6 +33,45 @@ MODE_GATES = {
     "delegated": ("sources_approved", "notes_approved", "experiments_approved", "draft_approved", "review_signed_off"),
     "interactive": ("scope_approved", "evidence_approved", "experiments_approved", "mastery_approved"),
 }
+
+# One state engine, two allowed transition graphs. Backward edges exist on
+# purpose: assessment can return to practice, review can return to drafting.
+TRANSITIONS = {
+    "delegated": {
+        "proposed": {"gathering"},
+        "gathering": {"summarizing", "proposed"},
+        "summarizing": {"experimenting", "drafting", "gathering"},
+        "experimenting": {"drafting", "summarizing"},
+        "drafting": {"review", "summarizing", "experimenting"},
+        "review": {"done", "gathering", "summarizing", "experimenting", "drafting"},
+        "done": set(),
+    },
+    "interactive": {
+        "scoped": {"diagnosing"},
+        "diagnosing": {"learning", "scoped"},
+        "learning": {"practicing", "diagnosing"},
+        "practicing": {"assessing", "learning"},
+        "assessing": {"retained", "practicing", "learning"},
+        "retained": set(),
+    },
+}
+
+# Gates that must be approved before entering a state. The experiments gate
+# only binds when the methodology runs experiments.
+ENTRY_GATES = {
+    "delegated": {
+        "drafting": ("sources_approved", "notes_approved"),
+        "review": ("draft_approved",),
+        "done": ("review_signed_off",),
+    },
+    "interactive": {
+        "diagnosing": ("scope_approved",),
+        "learning": ("evidence_approved",),
+        "retained": ("mastery_approved",),
+    },
+}
+
+EXPERIMENTAL_METHODOLOGIES = ("experimental", "mixed")
 
 GATE_ALIASES = {
     "sources": "sources_approved",
@@ -88,6 +129,54 @@ def require_interactive(study: Path, data: dict) -> None:
         raise SystemExit(f"study: {study.name} is not an interactive study")
 
 
+def append_event(study: Path, event: dict) -> None:
+    event = {"ts": dt.datetime.now().astimezone().isoformat(timespec="seconds"), **event}
+    with (study / "events.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+
+def gate_value(text: str, gate: str) -> object:
+    match = re.search(rf"(?m)^  {gate}: (\S+)", text)
+    if not match:
+        return None
+    value = match.group(1)
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    return value
+
+
+def cmd_status_set(study: Path, target: str, note: str) -> int:
+    data = load_manifest(study)
+    mode = data.get("mode")
+    if mode not in TRANSITIONS:
+        raise SystemExit(f"study: unknown mode {mode!r} in {study.name}")
+    current = data.get("status")
+    allowed = TRANSITIONS[mode].get(current, set())
+    if target not in allowed:
+        options = ", ".join(sorted(allowed)) if allowed else "none (terminal state)"
+        raise SystemExit(f"study: transition {current!r} -> {target!r} is not allowed for {mode} mode (allowed: {options})")
+
+    gates = data.get("gates") or {}
+    required = list(ENTRY_GATES[mode].get(target, ()))
+    if target == "drafting" and data.get("methodology") in EXPERIMENTAL_METHODOLOGIES:
+        required.append("experiments_approved")
+    for gate in required:
+        if gates.get(gate) is not True:
+            raise SystemExit(f"study: entering {target!r} requires gate {gate}; approve it first")
+
+    manifest = study / "study.yaml"
+    text = manifest.read_text(encoding="utf-8")
+    new_text, count = re.subn(rf"(?m)^status: {re.escape(str(current))}\b", f"status: {target}", text, count=1)
+    if count != 1:
+        raise SystemExit(f"study: could not locate status {current!r} in {manifest}")
+    manifest.write_text(new_text, encoding="utf-8")
+    append_event(study, {"type": "transition", "from": current, "to": target, "note": note, "actor": "agent"})
+    print(f"{study.name}: {current} -> {target}")
+    return 0
+
+
 def cmd_status(study: Path) -> int:
     data = load_manifest(study)
     mode = data.get("mode", "?")
@@ -112,10 +201,13 @@ def cmd_status(study: Path) -> int:
             mark = "present" if (study / str(rel)).exists() else "missing"
             print(f"  {name:24} {rel} ({mark})")
     print(f"next: {NEXT_ACTION.get(status, 'no automatic suggestion for this state')}")
+    allowed = sorted(TRANSITIONS.get(mode, {}).get(status, set()))
+    if allowed:
+        print(f"allowed transitions: {', '.join(allowed)} (via study.py status-set)")
     return 0
 
 
-def cmd_approve(study: Path, gate: str, note: str) -> int:
+def cmd_approve(study: Path, gate: str, note: str, evidence: str = "", reopen: str = "") -> int:
     data = load_manifest(study)
     mode = data.get("mode")
     if mode not in MODE_GATES:
@@ -136,9 +228,12 @@ def cmd_approve(study: Path, gate: str, note: str) -> int:
         raise SystemExit(f"study: gate {resolved} not found as pending in {manifest}")
     manifest.write_text(new_text, encoding="utf-8")
 
-    record = {"gate": resolved, "note": note, "actor": "human", "date": dt.date.today().isoformat()}
-    with (study / "approvals.jsonl").open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+    record = {"type": "approval", "gate": resolved, "note": note, "actor": "human", "date": dt.date.today().isoformat()}
+    if evidence:
+        record["evidence_inspected"] = evidence
+    if reopen:
+        record["reopen_condition"] = reopen
+    append_event(study, record)
     print(f"approved {resolved} for {study.name}")
     return 0
 
@@ -212,10 +307,17 @@ def main(argv: list[str] | None = None) -> int:
     p_status = sub.add_parser("status", help="show mode, state, gates, and next action")
     p_status.add_argument("study", help="study id or directory")
 
+    p_set = sub.add_parser("status-set", help="move the study along its transition graph")
+    p_set.add_argument("study", help="study id or directory")
+    p_set.add_argument("status", help="target status for this study's mode")
+    p_set.add_argument("--note", required=True, help="why the study moves now")
+
     p_approve = sub.add_parser("approve", help="record a human gate decision")
     p_approve.add_argument("study", help="study id or directory")
     p_approve.add_argument("gate", help="gate name, e.g. sources, notes, experiments, draft, review, scope, evidence, mastery")
     p_approve.add_argument("--note", required=True, help="what was inspected and why this is approved")
+    p_approve.add_argument("--evidence", default="", help="what was inspected, in more detail than the note")
+    p_approve.add_argument("--reopen", default="", help="what would reopen this decision")
 
     for name, help_text in (
         ("practice", "interactive: show practice items without exposing answers"),
@@ -229,8 +331,10 @@ def main(argv: list[str] | None = None) -> int:
     study = resolve_study(args.study)
     if args.command == "status":
         return cmd_status(study)
+    if args.command == "status-set":
+        return cmd_status_set(study, args.status, args.note)
     if args.command == "approve":
-        return cmd_approve(study, args.gate, args.note)
+        return cmd_approve(study, args.gate, args.note, evidence=args.evidence, reopen=args.reopen)
     if args.command == "practice":
         return cmd_practice(study)
     if args.command == "assess":

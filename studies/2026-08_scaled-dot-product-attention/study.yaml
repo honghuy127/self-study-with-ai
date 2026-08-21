@@ -1,5 +1,6 @@
 # Study manifest. Agents do not edit gate fields; humans approve gates via
 # `python3 tools/study.py approve <study-id> <gate> --note "..."`.
+schema_version: 2
 id: "2026-08_scaled-dot-product-attention"
 title: "Why does scaled dot-product attention divide by the square root of d_k?"
 created: "2026-08-19"

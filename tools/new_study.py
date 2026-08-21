@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import re
 import shutil
 import subprocess
@@ -186,6 +187,18 @@ def copy_templates(study: Path, study_id: str, title: str, config: dict) -> None
         "# entries are appended by the researcher agent; schema in AGENTS.md\n",
         encoding="utf-8",
     )
+
+    event = {
+        "ts": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "type": "init",
+        "mode": mode,
+        "assurance": config["assurance"],
+        "methodology": config["methodology"],
+        "deliverables": deliverables,
+        "actor": "agent",
+    }
+    with (study / "events.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False) + "\n")
 
 
 def init_dossier(study: Path, title: str) -> None:
