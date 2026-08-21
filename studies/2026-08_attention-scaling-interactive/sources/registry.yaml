@@ -1,2 +1,23 @@
-# provenance: queries run (text, date, scope), inclusion/exclusion reasons
-# entries are appended by the researcher agent; schema in AGENTS.md
+# provenance: minimum evidence packet for the interactive study. No new
+# retrieval was run; the primary source is reused from the companion studies
+# per the brief's source budget of 2.
+provenance:
+  queries:
+    - text: reuse vaswani2017attention from 2026-08_scaled-dot-product-attention
+      date: 2026-08-22
+      scope: no new retrieval; existing primary source reused for tutoring
+  inclusion: the Transformer paper states the scaling motivation the learner must derive and bound
+  exclusion: attention variants and trained-model empirics (out of scope per brief)
+  coverage_limits: single primary source for the tutoring packet; the mechanism-check study carries the synthetic empirics
+
+sources:
+  - key: vaswani2017attention
+    title: "Attention Is All You Need"
+    authors: "Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones, L.; Gomez, A. N.; Kaiser, L.; Polosukhin, I."
+    year: 2017
+    url: "https://arxiv.org/abs/1706.03762"
+    pdf: "https://arxiv.org/pdf/1706.03762"
+    venue: "NeurIPS 2017"
+    tier: peer-reviewed
+    status: noted
+    notes_file: "notes/vaswani2017attention.md"

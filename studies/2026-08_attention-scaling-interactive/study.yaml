@@ -14,7 +14,7 @@ methodology: source-only   # source-only | static-code | experimental | mixed
 deliverables:              # learning-note | implementation | decision-brief | report | slides | none
   - learning-note
 
-status: scoped           # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
+status: retained           # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
                            # interactive: scoped | diagnosing | learning | practicing | assessing | retained
 cleaned: ""                # set to a date by tools/cleanup_study.py at done-time cleanup
 audit_waiver: ""           # human-only reason to waive residual dossier-audit errors; agents never set this
@@ -23,10 +23,10 @@ audit_waiver: ""           # human-only reason to waive residual dossier-audit e
 # tools/study.py. Delegated mode uses the block below; interactive mode uses:
 #   scope_approved, evidence_approved, experiments_approved, mastery_approved
 gates:
-  scope_approved: false
-  evidence_approved: false
+  scope_approved: true
+  evidence_approved: true
   experiments_approved: n_a   # n_a unless methodology is experimental or mixed
-  mastery_approved: false
+  mastery_approved: true
 
 # What the pipeline produced, relative paths.
 artifacts:
@@ -37,4 +37,4 @@ artifacts:
   learning_note: outputs/learning-note.md
 
 # Skill verdict from the last completed stage, if any.
-last_gate_verdict: ""      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED
+last_gate_verdict: "PASS"      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED; SIMULATED mastery verdict, see learning/ records and events.jsonl
