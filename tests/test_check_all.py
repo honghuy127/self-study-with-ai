@@ -288,6 +288,22 @@ class ValidateManifestTests(unittest.TestCase):
         errors = check_all.validate_manifest(manifest)
         self.assertTrue(any("mastery_approved" in e for e in errors))
 
+    def test_report_style_invalid_value_fails(self) -> None:
+        manifest = write_manifest(self.study, extra="report_style: ieee\n")
+        errors = check_all.validate_manifest(manifest)
+        self.assertTrue(any("invalid report_style" in e for e in errors))
+
+    def test_report_style_without_report_deliverable_fails(self) -> None:
+        manifest = write_manifest(
+            self.study, deliverables="  - decision-brief\n", extra="report_style: plain\n"
+        )
+        errors = check_all.validate_manifest(manifest)
+        self.assertTrue(any("not a deliverable" in e for e in errors))
+
+    def test_report_style_with_report_passes(self) -> None:
+        manifest = write_manifest(self.study, extra="report_style: plain\n")
+        self.assertEqual(check_all.validate_manifest(manifest), [])
+
     def test_repo_studies_pass(self) -> None:
         studies = ROOT / "studies"
         if not studies.is_dir():

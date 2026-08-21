@@ -114,6 +114,19 @@ class RenderStudyYamlTest(unittest.TestCase):
     def test_interactive_gates_block_matches_template(self):
         self.assertIn("mastery_approved: false", INTERACTIVE_GATES_BLOCK)
 
+    def test_report_style_defaults_to_neurips(self):
+        out = render_study_yaml(self.template, fields())
+        self.assertIn("report_style: neurips", out)
+
+    def test_report_style_set_to_plain(self):
+        out = render_study_yaml(self.template, fields(report_style="plain"))
+        self.assertIn("report_style: plain", out)
+        self.assertNotIn("report_style: neurips", out)
+
+    def test_report_style_dropped_without_report_deliverable(self):
+        out = render_study_yaml(self.template, fields(deliverables=["learning-note"], report_style="plain"))
+        self.assertNotIn("report_style", out)
+
 
 class ParseDeliverablesTest(unittest.TestCase):
     def test_splits_and_strips(self):
@@ -207,6 +220,30 @@ class CopyTemplatesTest(unittest.TestCase):
         self.assertFalse((study / "report").exists())
         self.assertFalse((study / "slides").exists())
 
+    def test_neurips_report_style_copies_style_file(self):
+        study = self.scaffold("2026-08_neurips", report_style="neurips")
+        self.assertTrue((study / "report" / "neurips" / "neurips_2025.sty").is_file())
+        self.assertIn("neurips/neurips_2025", (study / "report" / "main.tex").read_text(encoding="utf-8"))
+        self.assertIn("report_style: neurips", (study / "study.yaml").read_text(encoding="utf-8"))
+
+    def test_plain_report_style_skips_neurips(self):
+        study = self.scaffold("2026-08_plain", deliverables=["report"], report_style="plain")
+        self.assertTrue((study / "report" / "main.tex").is_file())
+        self.assertFalse((study / "report" / "neurips").exists())
+        self.assertIn("geometry", (study / "report" / "main.tex").read_text(encoding="utf-8"))
+        self.assertIn("report_style: plain", (study / "study.yaml").read_text(encoding="utf-8"))
+
+    def test_interactive_scaffold_has_no_report_style_field(self):
+        study = self.scaffold(
+            "2026-08_learn_noreport",
+            mode="interactive",
+            intent="understand",
+            deliverables=["learning-note"],
+        )
+        text = (study / "study.yaml").read_text(encoding="utf-8")
+        self.assertNotIn("report_style", text)
+        self.assertFalse((study / "report").exists())
+
 
 class MainCliTest(unittest.TestCase):
     def test_mode_is_required(self):
@@ -216,6 +253,11 @@ class MainCliTest(unittest.TestCase):
 
     def test_unknown_deliverable_fails(self):
         self.assertEqual(new_study.main(["foo", "--mode", "delegated", "--deliverables", "paper"]), 2)
+
+    def test_unknown_report_style_fails(self):
+        with self.assertRaises(SystemExit) as cm:
+            new_study.main(["foo", "--mode", "delegated", "--report-style", "ieee"])
+        self.assertEqual(cm.exception.code, 2)
 
     def test_modes_constant(self):
         self.assertEqual(MODES, ("interactive", "delegated"))

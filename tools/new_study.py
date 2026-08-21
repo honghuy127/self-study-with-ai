@@ -4,13 +4,17 @@
 Usage: python3 tools/new_study.py <slug> --mode interactive|delegated
        [--title "..."] [--intent understand|solve|build|compare|decide|refresh|survey]
        [--assurance quick|grounded|audited] [--methodology source-only|static-code|experimental|mixed]
-       [--deliverables report,slides] [--from-title]
+       [--deliverables report,slides] [--report-style neurips|plain] [--from-title]
 
 - slug: lowercase-hyphen identifier, e.g., transformer-length-extrapolation
 - mode is required: interactive (tutored mastery) or delegated (agent-run
   investigation and report); there is no default
 - interactive scaffolds learning/ and outputs/; delegated scaffolds report/,
   slides/, and reviews/ as the deliverables request
+- report/ and slides/ are scaffolded only when listed as deliverables, so an
+  interactive study pays no report cost unless it explicitly asks for one
+- report_style selects the LaTeX template (neurips or plain) when report is a
+  deliverable; neurips is the default and keeps the publication workflow
 - experiments/ is scaffolded when the methodology is experimental or mixed
 - with --assurance audited, also initializes .research/ via the vendored
   dossier script; quick and grounded studies pay no dossier cost
@@ -38,6 +42,7 @@ ASSURANCES = ("quick", "grounded", "audited")
 METHODOLOGIES = ("source-only", "static-code", "experimental", "mixed")
 DELIVERABLES = ("learning-note", "implementation", "decision-brief", "report", "slides", "none")
 EXPERIMENTAL_METHODOLOGIES = ("experimental", "mixed")
+REPORT_STYLES = ("neurips", "plain")
 
 DEFAULT_INTENT = {"interactive": "understand", "delegated": "survey"}
 DEFAULT_DELIVERABLES = {"interactive": ["learning-note"], "delegated": ["report", "slides"]}
@@ -98,9 +103,10 @@ def render_study_yaml(template_text: str, fields: dict) -> str:
     """Fill the manifest template for one study.
 
     `fields` carries id, title, created, mode, intent, assurance,
-    methodology, deliverables (list), and status. The gates block is
-    swapped wholesale for interactive mode, and the experiments gate
-    becomes boolean when the methodology runs experiments.
+    methodology, deliverables (list), report_style, and status. The gates
+    block is swapped wholesale for interactive mode, and the experiments gate
+    becomes boolean when the methodology runs experiments. The report_style
+    line is dropped entirely when report is not a deliverable.
     """
     out = (
         template_text.replace('id: ""', f'id: "{fields["id"]}"')
@@ -112,7 +118,10 @@ def render_study_yaml(template_text: str, fields: dict) -> str:
         .replace("methodology: source-only", f'methodology: {fields["methodology"]}')
         .replace("status: proposed", f'status: {fields["status"]}')
         .replace("  - report\n", "".join(f"  - {d}\n" for d in fields["deliverables"]))
+        .replace("report_style: neurips", f'report_style: {fields.get("report_style", "neurips")}')
     )
+    if "report" not in fields["deliverables"]:
+        out = re.sub(r"(?m)^report_style: .*$\n?", "", out)
     if fields["mode"] == "interactive":
         out = out.replace(DELEGATED_GATES_BLOCK, INTERACTIVE_GATES_BLOCK)
     out = out.replace(ARTIFACTS_BLOCK, render_artifacts(fields))
@@ -158,7 +167,7 @@ def copy_templates(study: Path, study_id: str, title: str, config: dict) -> None
 
     if "report" in deliverables:
         (study / "report").mkdir()
-        shutil.copytree(TEMPLATES / "latex", study / "report", dirs_exist_ok=True)
+        shutil.copytree(TEMPLATES / "latex" / config.get("report_style", "neurips"), study / "report", dirs_exist_ok=True)
         (study / "report" / "refs.bib").write_text("", encoding="utf-8")
     if "slides" in deliverables:
         (study / "slides").mkdir()
@@ -177,6 +186,7 @@ def copy_templates(study: Path, study_id: str, title: str, config: dict) -> None
         "assurance": config["assurance"],
         "methodology": config["methodology"],
         "deliverables": deliverables,
+        "report_style": config.get("report_style", "neurips"),
         "status": DEFAULT_STATUS[mode],
     }
     (study / "study.yaml").write_text(render_study_yaml(template_text, fields), encoding="utf-8")
@@ -235,6 +245,12 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="comma-separated outputs; defaults to learning-note (interactive) or report,slides (delegated)",
     )
+    ap.add_argument(
+        "--report-style",
+        choices=REPORT_STYLES,
+        default="neurips",
+        help="LaTeX template for the report deliverable (default: neurips)",
+    )
     ap.add_argument("--from-title", action="store_true", help="treat positional arg as a title and slugify it")
     args = ap.parse_args(argv)
 
@@ -262,6 +278,7 @@ def main(argv: list[str] | None = None) -> int:
         "assurance": args.assurance,
         "methodology": args.methodology,
         "deliverables": deliverables,
+        "report_style": args.report_style,
     }
     copy_templates(study, study_id, title, config)
     if args.assurance == "audited":

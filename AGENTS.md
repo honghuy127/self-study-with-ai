@@ -72,6 +72,8 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   `.research` dossier), `methodology` (`source-only`, `static-code`,
   `experimental`, `mixed`), `deliverables` (`learning-note`,
   `implementation`, `decision-brief`, `report`, `slides`, `none`).
+  Optional `report_style` (`neurips` default, or `plain`) selects the report
+  LaTeX template when `report` is a deliverable.
   Delegated states: `proposed`, `gathering`, `summarizing`,
   `experimenting`, `drafting`, `review`, `done`; only experimental and
   mixed methodologies enter `experimenting`. Interactive states: `scoped`,
@@ -150,8 +152,10 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   manifests and the `experiments.jsonl` ledger; the `evidence.jsonl` and
   `claims.jsonl` ledgers are written directly by the researcher and
   experimenter, one JSON object per line.
-- `report/`: `main.tex` + `refs.bib` in the NeurIPS 2025 preprint style
-  (vendored `neurips/neurips_2025.sty`); build only via
+- `report/`: `main.tex` + `refs.bib` in the style chosen at scaffold time
+  (`report_style` in `study.yaml`): `neurips` (default, vendored
+  `neurips/neurips_2025.sty`, preprint mode) for publication-shaped delegated
+  reports, or `plain` (plain article) for lighter reports. Build only via
   `tools/build_report.sh <study-dir>`. `refs.bib` is a generated view of
   the registry's `bibtex` blocks; durable fixes go in the registry, then
   rerun `tools/gen_bib.py`.

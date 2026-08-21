@@ -199,7 +199,7 @@ against disk, and carry no unresolved gap markers.
 studies/                       # one directory per study (see above)
 shared/
 ├── templates/                 # brief, note, note-codebase, comparison, study.yaml, learning-* templates
-│   ├── latex/                 # NeurIPS 2025 preprint style (vendored neurips_2025.sty)
+│   ├── latex/                 # report templates: neurips/ (vendored neurips_2025.sty) and plain/ (article)
 │   └── slides/                # beamer deck skeleton
 ├── library.bib                # master bibliography merged from finished studies
 ├── glossary.md                # cross-study terms
@@ -227,11 +227,12 @@ tools/build_report.sh studies/2026-08_scaled-dot-product-attention
 tools/build_slides.sh studies/2026-08_scaled-dot-product-attention
 ```
 
-Reports use the official NeurIPS 2025 style in `preprint` mode
-(`report/neurips/neurips_2025.sty`, vendored from
-<https://media.neurips.cc/Conferences/NeurIPS2025/Styles.zip>). Slides are a
-beamer deck that cites `report/refs.bib`; build the report first so the bib
-exists.
+Reports use the style chosen at scaffold time via `report_style` in
+`study.yaml`. The default `neurips` uses the official NeurIPS 2025 style in
+`preprint` mode (`report/neurips/neurips_2025.sty`, vendored from
+<https://media.neurips.cc/Conferences/NeurIPS2025/Styles.zip>); `plain` is a
+plain article for lighter reports. Slides are a beamer deck that cites
+`report/refs.bib`; build the report first so the bib exists.
 
 ## Lint and audit
 

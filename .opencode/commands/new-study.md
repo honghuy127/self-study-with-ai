@@ -14,8 +14,10 @@ Steps:
    capability; `delegated` means agents investigate and return a report.
    Never guess the mode.
 2. Run: `python3 tools/new_study.py <slug> --title "<title>" --mode <mode>`,
-   adding `--intent`, `--assurance`, `--methodology`, or `--deliverables`
-   only when the user specified them.
+   adding `--intent`, `--assurance`, `--methodology`, `--deliverables`, or
+   `--report-style` only when the user specified them. `--report-style` is
+   `neurips` (default, publication-shaped) or `plain` (lighter article) and
+   only matters when `report` is a deliverable.
 3. When it succeeds, open the new `brief.md` and tell the user which fields
    to fill in before work starts (purpose, questions, scope, budgets, stop
    rules, and the mode-specific contract). Do not fill them yourself; the

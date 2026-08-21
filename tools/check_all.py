@@ -49,6 +49,7 @@ ASSURANCES = {"quick", "grounded", "audited"}
 METHODOLOGIES = {"source-only", "static-code", "experimental", "mixed"}
 DELIVERABLE_VALUES = {"learning-note", "implementation", "decision-brief", "report", "slides", "none"}
 EXPERIMENTAL_METHODOLOGIES = {"experimental", "mixed"}
+REPORT_STYLES = {"neurips", "plain"}
 DEPRECATED_FIELDS = ("track", "depth")
 SCHEMA_VERSION = 2
 VERDICTS = {"PASS", "CONDITIONAL", "FAIL", "BLOCKED", "NOT_ASSESSED"}
@@ -134,6 +135,13 @@ def validate_manifest(manifest: Path) -> list[str]:
         for item in deliverables:
             if item not in DELIVERABLE_VALUES:
                 errors.append(f"invalid deliverable: {item!r}")
+
+    report_style = data.get("report_style")
+    if report_style is not None:
+        if report_style not in REPORT_STYLES:
+            errors.append(f"invalid report_style: {report_style!r}")
+        if not isinstance(deliverables, list) or "report" not in deliverables:
+            errors.append("report_style is set but report is not a deliverable")
 
     status = data.get("status")
     if status not in VALID_STATUSES[mode]:

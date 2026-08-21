@@ -52,7 +52,8 @@ through the human-approved gates:
    systems, start from `shared/templates/comparison.md`: one matrix row per
    comparison dimension, every cell grounded in a note key and anchor or an
    explicit gap marker. Do not draft the report until the synthesis exists.
-3. Start from `shared/templates/latex/main.tex`; fill every section. Adapt the
+3. Start from the scaffolded `report/main.tex` (it already matches the
+   study's `report_style`); fill every section. Adapt the
    claim-led outline: abstract last; related work organized by comparison
    dimensions; limitations visible.
 4. Compile with `tools/build_report.sh <study-dir>` (bash is ask: run it

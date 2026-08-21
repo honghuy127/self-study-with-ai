@@ -13,6 +13,7 @@ assurance: grounded        # quick | grounded | audited; audited adds a .researc
 methodology: source-only   # source-only | static-code | experimental | mixed
 deliverables:              # learning-note | implementation | decision-brief | report | slides | none
   - report
+report_style: neurips      # neurips | plain; used only when report is a deliverable
 
 status: proposed           # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
                            # interactive: scoped | diagnosing | learning | practicing | assessing | retained

@@ -15,23 +15,31 @@ the last one stopped.
 1. Read `brief.md`, `study.yaml`, and `sources/registry.yaml`. Refuse if
    `gates.sources_approved` is not `true`.
 2. Load the `conduct-cs-ai-research` skill.
-3. If `gates.notes_approved` is not `true`: dispatch the `summarizer`
+3. If `gates.notes_approved` is not `true`: if the status is `gathering`,
+   move it first (`python3 tools/study.py status-set <study-id> summarizing
+   --note "..."`). Then dispatch the `summarizer`
    subagent once per registered source whose `status` is not `noted` (run
    them in parallel; each gets one source only). Then stop and ask the user
    to review `notes/` and approve the notes gate (`python3
    tools/study.py approve <study-id> notes --note "..."`) before re-running
    `/draft`.
 4. If `study.yaml` says `methodology: experimental` or `methodology: mixed`
-   and `gates.experiments_approved` is not `true`: dispatch the
+   and `gates.experiments_approved` is not `true`: move the status to
+   `experimenting` (`python3 tools/study.py status-set <study-id>
+   experimenting --note "..."`), dispatch the
    `experimenter`, then stop and ask the user to review `experiments/` and
    approve the experiments gate. On `source-only` and `static-code`
    methodologies this gate is `n_a`; skip the step entirely and never treat
    it as unflipped.
 5. With the notes gate flipped (and the experiments gate too, on
-   experimental methodologies), dispatch the `writer` subagent with the
+   experimental methodologies), move the status to `drafting` (`python3
+   tools/study.py status-set <study-id> drafting --note "..."`; the CLI
+   refuses unless the required gates are approved). Then dispatch the
+   `writer` subagent with the
    study directory. The writer produces `notes/_synthesis.md`, then
    `report/main.tex` and `report/refs.bib`.
 6. Ask the human to run `tools/build_report.sh <study-dir>` and
    `python3 tools/lint_report.py <study-dir>`; surface both outputs.
 7. Summarize the draft status and any `[RESULT PENDING]` markers. Remind the
-   user to approve the draft gate before `/review`.
+   user to approve the draft gate (`python3 tools/study.py approve
+   <study-id> draft --note "..."`) before `/review`.
