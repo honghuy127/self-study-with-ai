@@ -49,16 +49,53 @@ class GenerateTests(unittest.TestCase):
 
     def test_writes_bibtex_blocks_with_header(self) -> None:
         study = make_study(Path(self._tmp.name), REGISTRY)
-        text, written, skipped = gen_bib.generate(study)
+        text, written, skipped, aggregated = gen_bib.generate(study)
         self.assertIn("Generated from sources/registry.yaml", text)
         self.assertIn("@article{vaswani2017attention,", text)
         self.assertEqual(written, ["vaswani2017attention"])
         self.assertEqual(skipped, ["missing2026bib"])
+        self.assertEqual(aggregated, [])
 
     def test_rejected_entries_excluded(self) -> None:
         study = make_study(Path(self._tmp.name), REGISTRY)
-        text, _, _ = gen_bib.generate(study)
+        text, _, _, _ = gen_bib.generate(study)
         self.assertNotIn("rejected2026", text)
+
+    def test_cited_via_aggregated_not_warned(self) -> None:
+        registry = (
+            "sources:\n"
+            "  - key: parentRepo\n"
+            "    title: Aggregate repo\n"
+            "    status: noted\n"
+            "    bibtex: |\n"
+            "      @misc{parentRepo,\n"
+            "        title = {Aggregate}\n"
+            "      }\n"
+            "  - key: childComponent\n"
+            "    title: A component of parentRepo\n"
+            "    status: noted\n"
+            "    cited_via: parentRepo\n"
+        )
+        study = make_study(Path(self._tmp.name), registry)
+        text, written, skipped, aggregated = gen_bib.generate(study)
+        self.assertEqual(written, ["parentRepo"])
+        self.assertEqual(skipped, [])
+        self.assertEqual(aggregated, ["childComponent"])
+        self.assertNotIn("childComponent", text)
+
+    def test_cited_via_dangling_target_skipped(self) -> None:
+        registry = (
+            "sources:\n"
+            "  - key: orphanComponent\n"
+            "    title: Cites a missing parent\n"
+            "    status: noted\n"
+            "    cited_via: doesNotExist\n"
+        )
+        study = make_study(Path(self._tmp.name), registry)
+        _, written, skipped, aggregated = gen_bib.generate(study)
+        self.assertEqual(written, [])
+        self.assertEqual(skipped, ["orphanComponent"])
+        self.assertEqual(aggregated, [])
 
     def test_missing_registry_raises(self) -> None:
         study = make_study(Path(self._tmp.name), REGISTRY)

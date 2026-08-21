@@ -125,9 +125,13 @@ acceptance, gates, and final sign-off. Agents produce; the human disposes.
   For `tier: docs` and `tier: blog` also: `snapshot`, a local copy of the
   page saved under `sources/docs/` at gathering time (the summarizer has no
   web access); in-repo docs may point `snapshot` at the pinned checkout.
-  Optional `bibtex` block: the canonical citation record; studies with a
-  report deliverable generate `report/refs.bib` from these blocks via
-  `python3 tools/gen_bib.py <study-dir>` instead of hand-authoring the bib.
+   Optional `bibtex` block: the canonical citation record; studies with a
+   report deliverable generate `report/refs.bib` from these blocks via
+   `python3 tools/gen_bib.py <study-dir>` instead of hand-authoring the bib.
+   Entries cited through a parent's record (a codebase component carried by
+   its repo aggregate, a docs sub-page carried by an aggregate entry) set
+   `cited_via: <parent key>` instead of their own `bibtex`; `gen_bib.py`
+   counts them rather than warning.
   PDF binaries are never committed: `pdf` holds a remote URL and the local
   evidence is a pdftotext snapshot under `sources/docs/`. The hygiene check
   in `tools/check_all.py` fails on any tracked PDF.

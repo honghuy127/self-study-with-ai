@@ -3,9 +3,11 @@
 
 The registry is the single source of truth for source identity. Entries
 carry an optional `bibtex` block; this tool concatenates those blocks into
-report/refs.bib under a generated header. Hand-editing refs.bib is allowed,
-but the next run overwrites it, so durable fixes belong in the registry's
-`bibtex` field.
+report/refs.bib under a generated header. Entries cited through a parent's
+record (codebase components, docs sub-pages) carry `cited_via: <parent key>`
+instead of their own block and are counted, not warned about. Hand-editing
+refs.bib is allowed, but the next run overwrites it, so durable fixes belong
+in the registry's `bibtex` field.
 
 Usage: python3 tools/gen_bib.py <study-dir>
 """
@@ -37,21 +39,38 @@ def load_entries(study: Path) -> list[dict]:
     return [e for e in entries if isinstance(e, dict) and e.get("key")]
 
 
-def generate(study: Path) -> tuple[str, list[str], list[str]]:
-    """Return (bib text, keys written, keys skipped without a bibtex field)."""
+def generate(study: Path) -> tuple[str, list[str], list[str], list[str]]:
+    """Return (bib text, keys written, keys skipped, keys aggregated).
+
+    Entries with a `bibtex` block are written. Entries carrying
+    `cited_via: <parent key>` are cited through the parent's record and are
+    counted as aggregated rather than warned about; a `cited_via` target that
+    is not a registry key falls back to skipped and warns. Remaining entries
+    without a block are skipped and warned.
+    """
+    entries = load_entries(study)
+    known = {str(entry["key"]) for entry in entries}
     written: list[str] = []
     skipped: list[str] = []
+    aggregated: list[str] = []
     blocks: list[str] = []
-    for entry in load_entries(study):
+    for entry in entries:
         if entry.get("status") == "rejected":
             continue
         bibtex = entry.get("bibtex")
         if isinstance(bibtex, str) and bibtex.strip():
             blocks.append(bibtex.strip() + "\n")
             written.append(str(entry["key"]))
+        elif entry.get("cited_via"):
+            target = str(entry["cited_via"])
+            if target in known:
+                aggregated.append(str(entry["key"]))
+            else:
+                print(f"gen_bib: WARN cited_via target '{target}' for '{entry['key']}' is not a registry key")
+                skipped.append(str(entry["key"]))
         else:
             skipped.append(str(entry["key"]))
-    return HEADER + "\n".join(blocks), written, skipped
+    return HEADER + "\n".join(blocks), written, skipped, aggregated
 
 
 def main() -> int:
@@ -66,9 +85,10 @@ def main() -> int:
     if not report.is_dir():
         print(f"gen_bib: {study.name} has no report/ deliverable; nothing to generate", file=sys.stderr)
         return 2
-    text, written, skipped = generate(study)
+    text, written, skipped, aggregated = generate(study)
     (report / "refs.bib").write_text(text, encoding="utf-8")
-    print(f"gen_bib: wrote {len(written)} entries to {report / 'refs.bib'}")
+    suffix = f" ({len(aggregated)} cited via a parent record)" if aggregated else ""
+    print(f"gen_bib: wrote {len(written)} entries to {report / 'refs.bib'}{suffix}")
     for key in skipped:
         print(f"gen_bib: WARN no bibtex field for registry entry '{key}'")
     return 0

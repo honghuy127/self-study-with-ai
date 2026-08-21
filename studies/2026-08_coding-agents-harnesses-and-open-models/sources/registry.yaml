@@ -105,6 +105,7 @@ sources:
     notes_file: "notes/codexTurnLoop.md"
     repo: codex
     component: "codex-rs/core/src/agent/ (mod.rs, control.rs, registry.rs, role.rs, builtins/explorer.toml, builtins/awaiter.toml); codex-rs/core/src/codex_thread.rs; codex-rs/core/src/thread_manager.rs; codex-rs/core/src/turn_metadata.rs; codex-rs/core/src/turn_diff_tracker.rs; codex-rs/core/src/turn_timing.rs; codex-rs/core/src/state/ (session.rs, turn.rs, service.rs, auto_compact_window.rs); codex-rs/core/src/tasks/ (regular.rs, lifecycle.rs, compact.rs, review.rs, user_shell.rs); codex-rs/core/src/session/; codex-rs/protocol/"
+    cited_via: codexRepo
   - key: codexContextCompaction
     title: "Codex: context management and compaction"
     authors: "OpenAI"
@@ -117,6 +118,7 @@ sources:
     notes_file: "notes/codexContextCompaction.md"
     repo: codex
     component: "codex-rs/core/src/compact.rs, compact_remote.rs, compact_remote_v2.rs, compact_remote_v2_attempt.rs, compact_remote_request.rs, compact_remote_history.rs, compact_token_budget.rs, compact_model_fallback.rs; codex-rs/core/src/context_manager/ (history.rs, normalize.rs, updates.rs); codex-rs/core/src/context/ (instruction and reminder builders); codex-rs/context-fragments/"
+    cited_via: codexRepo
   - key: codexToolsPatch
     title: "Codex: tool registry, shell tools, and apply-patch"
     authors: "OpenAI"
@@ -129,6 +131,7 @@ sources:
     notes_file: "notes/codexToolsPatch.md"
     repo: codex
     component: "codex-rs/apply-patch/; codex-rs/shell-command/; codex-rs/tools/; codex-rs/core/src/tools/ (registry.rs, router.rs, orchestrator.rs, handlers/, approvals.rs, sandboxing.rs, parallel.rs); codex-rs/core/src/apply_patch.rs; codex-rs/core/src/exec.rs; codex-rs/core/src/unified_exec/ (process_manager.rs); codex-rs/core/src/function_tool.rs; codex-rs/core/src/mcp_tool_call.rs"
+    cited_via: codexRepo
   - key: codexSandboxPermissions
     title: "Codex: sandboxing, exec policy, process hardening, approvals"
     authors: "OpenAI"
@@ -141,6 +144,7 @@ sources:
     notes_file: "notes/codexSandboxPermissions.md"
     repo: codex
     component: "codex-rs/sandboxing/; codex-rs/linux-sandbox/; codex-rs/execpolicy/; codex-rs/process-hardening/; codex-rs/shell-escalation/; codex-rs/bwrap/; codex-rs/windows-sandbox-rs/; codex-rs/core/src/exec_policy.rs; codex-rs/core/src/sandboxing/mod.rs; codex-rs/core/src/guardian/ (auto-review policies); codex-rs/core/src/windows_sandbox.rs; codex-rs/core/src/network_policy_decision.rs"
+    cited_via: codexRepo
   - key: codexExtensibility
     title: "Codex: extensibility (MCP server/client, hooks, skills, plugins)"
     authors: "OpenAI"
@@ -153,6 +157,7 @@ sources:
     notes_file: "notes/codexExtensibility.md"
     repo: codex
     component: "codex-rs/mcp-server/; codex-rs/rmcp-client/; codex-rs/hooks/ (schema + runtime); codex-rs/skills/; codex-rs/plugin/; codex-rs/core-plugins/; codex-rs/connectors/; codex-rs/core/src/plugins/; codex-rs/core/src/skills.rs; codex-rs/core/src/hook_runtime.rs; codex-rs/core/src/hook_mcp_executor.rs; codex-rs/core/src/mcp.rs; codex-rs/core/src/mcp_skill_dependencies.rs"
+    cited_via: codexRepo
   - key: codexStateRollout
     title: "Codex: session state, rollout persistence, history, memories"
     authors: "OpenAI"
@@ -165,6 +170,7 @@ sources:
     notes_file: "notes/codexStateRollout.md"
     repo: codex
     component: "codex-rs/rollout/; codex-rs/rollout-trace/; codex-rs/history/; codex-rs/message-history/; codex-rs/state/; codex-rs/memories/ (read/, write/); codex-rs/thread-store/; codex-rs/agent-graph-store/; codex-rs/core/src/session_rollout_init_error.rs; codex-rs/core/src/thread_rollout_truncation.rs; codex-rs/core/src/state_db_bridge.rs"
+    cited_via: codexRepo
   - key: codexInterfaces
     title: "Codex: interfaces (TUI, app-server, exec, CLI)"
     authors: "OpenAI"
@@ -177,6 +183,7 @@ sources:
     notes_file: "notes/codexInterfaces.md"
     repo: codex
     component: "codex-rs/tui/; codex-rs/app-server/; codex-rs/app-server-protocol/; codex-rs/app-server-daemon/; codex-rs/app-server-transport/; codex-rs/exec/; codex-rs/exec-server/; codex-rs/exec-server-protocol/; codex-rs/cli/; codex-rs/codex-mcp/"
+    cited_via: codexRepo
   - key: codexConfigProviders
     title: "Codex: configuration and model providers"
     authors: "OpenAI"
@@ -189,6 +196,7 @@ sources:
     notes_file: "notes/codexConfigProviders.md"
     repo: codex
     component: "codex-rs/config/ (defaults.toml, examples/, src/); codex-rs/codex-home/; codex-rs/model-provider/; codex-rs/model-provider-info/; codex-rs/models-manager/; codex-rs/cloud-config/"
+    cited_via: codexRepo
   - key: codexRepo
     title: "Codex CLI repository (aggregate entry for repo-level facts)"
     authors: "OpenAI"
@@ -201,6 +209,14 @@ sources:
     notes_file: "notes/codexDocsRepo.md"
     repo: codex
     component: "repository-level facts (language, layout, license); constituent notes: codexTurnLoop, codexToolsPatch, codexContextCompaction, codexSandboxPermissions, codexExtensibility, codexConfigProviders, codexStateRollout, codexInterfaces, codexOssProviders"
+    bibtex: |
+      @misc{codexRepo,
+        author       = {{OpenAI}},
+        title        = {Codex CLI (codex-rs)},
+        year         = {2026},
+        howpublished = {\url{https://github.com/openai/codex}},
+        note         = {Repo key \texttt{codex}, pinned commit af700180808cce2ce28a31aad0fbad4dc58b857a (sources/repos.yaml, pinned 2026-08-19, re-pinned 2026-08-20); static read-only trace. Part I notes: codexTurnLoop, codexToolsPatch, codexContextCompaction, codexSandboxPermissions, codexExtensibility, codexConfigProviders, codexStateRollout, codexInterfaces. Part II note: codexOssProviders.}
+      }
 
   # ---------------- codebase: opencode (repo key: opencode, commit d545d8fba572), Part I ----------------
   - key: opencodeSessionLoop
@@ -215,6 +231,7 @@ sources:
     notes_file: "notes/opencodeSessionLoop.md"
     repo: opencode
     component: "packages/opencode/src/session/ (processor.ts, run-state.ts, llm.ts, llm/, prompt.ts, prompt/, retry.ts, tools.ts, message.ts, message-v2.ts, revert.ts, status.ts); packages/opencode/src/agent/ (agent.ts, prompt/, subagent-permissions.ts)"
+    cited_via: opencodeRepo
   - key: opencodeContextCompaction
     title: "OpenCode: context assembly, compaction, and summaries"
     authors: "Anomaly (opencode)"
@@ -227,6 +244,7 @@ sources:
     notes_file: "notes/opencodeContextCompaction.md"
     repo: opencode
     component: "packages/opencode/src/session/compaction.ts; packages/opencode/src/session/summary.ts; packages/opencode/src/session/overflow.ts; packages/opencode/src/session/reminders.ts; packages/opencode/src/session/instruction.ts; packages/opencode/src/session/system.ts; packages/opencode/src/session/todo.ts"
+    cited_via: opencodeRepo
   - key: opencodeTools
     title: "OpenCode: tool registry and apply_patch/edit tools"
     authors: "Anomaly (opencode)"
@@ -239,6 +257,7 @@ sources:
     notes_file: "notes/opencodeTools.md"
     repo: opencode
     component: "packages/opencode/src/tool/ (tool.ts, registry.ts, schema.ts, apply_patch.ts, edit.ts, write.ts, read.ts, glob.ts, grep.ts, shell.ts, shell/, task.ts, skill.ts, lsp.ts, plan.ts, question.ts, webfetch.ts, websearch.ts, truncate.ts, truncation-dir.ts); packages/opencode/src/patch/"
+    cited_via: opencodeRepo
   - key: opencodePermissions
     title: "OpenCode: permission rulesets and confinement (no OS sandbox found)"
     authors: "Anomaly (opencode)"
@@ -251,6 +270,7 @@ sources:
     notes_file: "notes/opencodePermissions.md"
     repo: opencode
     component: "packages/opencode/src/permission/ (index.ts, evaluate.ts, arity.ts); packages/opencode/src/worktree/index.ts (git-worktree sandbox workspaces); packages/schema/src/project.ts (Project.sandboxes); packages/codemode/ (confined JS interpreter: interpreter/runtime.ts, tool-runtime.ts, sandbox value types). Note: no OS-level sandbox (seatbelt/bubblewrap/landlock) machinery found in the pinned tree within searched scope [CLOSED for opencode OS-sandbox sub-dimension]"
+    cited_via: opencodeRepo
   - key: opencodeExtensibility
     title: "OpenCode: plugins, MCP, skills, commands"
     authors: "Anomaly (opencode)"
@@ -263,6 +283,7 @@ sources:
     notes_file: "notes/opencodeExtensibility.md"
     repo: opencode
     component: "packages/opencode/src/plugin/ (index.ts, loader.ts, install.ts, meta.ts, shared.ts, provider bundles: openai/, github-copilot/, modal/, tui/, azure.ts, cloudflare.ts, ...); packages/opencode/src/mcp/ (index.ts, catalog.ts, auth.ts, oauth-provider.ts, oauth-callback.ts, browser.ts); packages/opencode/src/skill/ (index.ts, discovery.ts); packages/opencode/src/command/ (index.ts, template/); packages/plugin/ (plugin SDK: index.ts, tool.ts, shell.ts, tui.ts, v2/)"
+    cited_via: opencodeRepo
   - key: opencodeStateSnapshots
     title: "OpenCode: storage, snapshots, share, sync"
     authors: "Anomaly (opencode)"
@@ -275,6 +296,7 @@ sources:
     notes_file: "notes/opencodeStateSnapshots.md"
     repo: opencode
     component: "packages/opencode/src/storage/ (storage.ts, schema.ts); packages/opencode/src/snapshot/index.ts; packages/opencode/src/share/ (session.ts, share-next.ts); packages/opencode/src/sync/"
+    cited_via: opencodeRepo
   - key: opencodeInterfaces
     title: "OpenCode: interfaces (ACP, LSP, IDE server, HTTP server, TUI, CLI)"
     authors: "Anomaly (opencode)"
@@ -287,6 +309,7 @@ sources:
     notes_file: "notes/opencodeInterfaces.md"
     repo: opencode
     component: "packages/opencode/src/acp/ (agent.ts, session.ts, permission.ts, service.ts, event.ts); packages/opencode/src/lsp/ (client.ts, server.ts, launch.ts, diagnostic.ts, language.ts, lsp.ts); packages/opencode/src/ide/; packages/opencode/src/server/; packages/tui/; packages/cli/"
+    cited_via: opencodeRepo
   - key: opencodeConfigProviders
     title: "OpenCode: configuration, providers, auth"
     authors: "Anomaly (opencode)"
@@ -299,6 +322,7 @@ sources:
     notes_file: "notes/opencodeConfigProviders.md"
     repo: opencode
     component: "packages/opencode/src/config/ (config.ts, paths.ts, plugin.ts, agent.ts, command.ts, managed.ts, markdown.ts, parse.ts); packages/opencode/src/provider/ (provider.ts, auth.ts, model-status.ts, transform.ts); packages/opencode/src/auth/"
+    cited_via: opencodeRepo
   - key: opencodeRepo
     title: "OpenCode repository (aggregate entry for repo-level facts)"
     authors: "Anomaly (opencode)"
@@ -311,6 +335,14 @@ sources:
     notes_file: "notes/opencodeDocs.md"
     repo: opencode
     component: "repository-level facts (language, layout, license); constituent notes: opencodeSessionLoop, opencodeTools, opencodeContextCompaction, opencodePermissions, opencodeExtensibility, opencodeConfigProviders, opencodeStateSnapshots, opencodeInterfaces, opencodeOssProviders, opencodeModelGating"
+    bibtex: |
+      @misc{opencodeRepo,
+        author       = {{Anomaly (opencode)}},
+        title        = {OpenCode},
+        year         = {2026},
+        howpublished = {\url{https://github.com/anomalyco/opencode}},
+        note         = {Repo key \texttt{opencode}, pinned commit d545d8fba57283528db69281f59c803c646eb7e9, dev branch (sources/repos.yaml, pinned 2026-08-19, re-pinned 2026-08-20); static read-only trace. Part I notes: opencodeSessionLoop, opencodeTools, opencodeContextCompaction, opencodePermissions, opencodeExtensibility, opencodeConfigProviders, opencodeStateSnapshots, opencodeInterfaces. Part II notes: opencodeOssProviders, opencodeModelGating.}
+      }
 
   # ---------------- codebase: claude-code (repo key: claude-code, commit c3d2e35e5540; core is closed source), Part I ----------------
   - key: claudeCodePluginSurface
@@ -325,6 +357,14 @@ sources:
     notes_file: "notes/claudeCodePluginSurface.md"
     repo: claude-code
     component: "plugins/ (13 official plugins: agent-sdk-dev, claude-opus-4-5-migration, code-review, commit-commands, explanatory-output-style, feature-dev, frontend-design, hookify, learning-output-style, plugin-dev, pr-review-toolkit, ralph-wiggum, security-guidance; plugins/README.md); examples/ (hooks/bash_command_validator_example.py, settings/{settings-bash-sandbox.json,settings-strict.json,settings-lax.json}, mdm/, gateway/{aws,gcp}); scripts/; Script/run_devcontainer_claude_code.ps1. [CLOSED core boundary]: the agent core (shipped cli bundle) is closed source at this commit; turn loop, tools, compaction, and permission enforcement are only observable here via plugin manifests, hook scripts, and settings examples, plus official docs"
+    bibtex: |
+      @misc{claudeCodePluginSurface,
+        author       = {{Anthropic}},
+        title        = {Claude Code public repository (plugin and example surface)},
+        year         = {2026},
+        howpublished = {\url{https://github.com/anthropics/claude-code}},
+        note         = {Repo key \texttt{claude-code}, pinned commit c3d2e35e554060b5a20ee6b28140fbdbd4eb0048 (sources/repos.yaml, pinned 2026-08-19, re-pinned 2026-08-20). Pinned tree carries plugins, examples, and scripts only; the agent core is closed source. Note key: claudeCodePluginSurface.}
+      }
 
   # ---------------- codebase: open-model provider plumbing, Part II ----------------
   - key: codexOssProviders
@@ -339,6 +379,7 @@ sources:
     notes_file: "notes/codexOssProviders.md"
     repo: codex
     component: "codex-rs/ollama/ (lib.rs, client.rs, url.rs, pull.rs, parser.rs, line_buffer.rs); codex-rs/lmstudio/ (lib.rs, client.rs); codex-rs/model-provider-info/src/lib.rs (ollama/lmstudio provider entries, wire types)"
+    cited_via: codexRepo
   - key: opencodeOssProviders
     title: "OpenCode: generic OpenAI-compatible provider plumbing (baseURL, runtime install, hosted catalog)"
     authors: "Anomaly (anomalyco)"
@@ -351,6 +392,7 @@ sources:
     notes_file: "notes/opencodeOssProviders.md"
     repo: opencode
     component: "packages/opencode/src/provider/provider.ts (@ai-sdk/openai-compatible factory, baseURL/endpoint resolution, autoload skip); packages/opencode/src/provider/auth.ts, model-status.ts; packages/opencode/package.json (bundled @ai-sdk provider list)"
+    cited_via: opencodeRepo
   - key: opencodeModelGating
     title: "OpenCode: open-model path behavior (patch gating by model ID, token estimation, output caps)"
     authors: "Anomaly (anomalyco)"
@@ -363,6 +405,7 @@ sources:
     notes_file: "notes/opencodeModelGating.md"
     repo: opencode
     component: "packages/opencode/src/tool/registry.ts (gpt-* apply_patch gating); packages/opencode/src/util/token.ts (chars/4 estimate); packages/opencode/src/provider/transform.ts (OUTPUT_TOKEN_MAX); packages/opencode/src/tool/edit.ts (edit/write path open models receive); packages/opencode/src/session/overflow.ts (compaction reserve)"
+    cited_via: opencodeRepo
 
   # ---------------- docs: harness (Part I) ----------------
   - key: codexDocsRepo
@@ -376,6 +419,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/codexDocsRepo.md"
+    bibtex: |
+      @misc{codexDocsRepo,
+        author       = {{OpenAI}},
+        title        = {Codex CLI repository documentation (docs/ directory)},
+        year         = {2026},
+        howpublished = {\url{https://github.com/openai/codex/tree/main/docs}},
+        note         = {In-repo docs cited at pinned commit af700180808cce2ce28a31aad0fbad4dc58b857a. Note key: codexDocsRepo.}
+      }
   - key: codexDocsSandboxing
     title: "Sandbox: How sandboxing works across ChatGPT and Codex clients"
     authors: "OpenAI"
@@ -387,6 +438,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/codexDocsSandboxing.md"
+    bibtex: |
+      @misc{codexDocsSandboxing,
+        author       = {{OpenAI}},
+        title        = {Sandbox: How sandboxing works across ChatGPT and Codex clients},
+        year         = {2026},
+        howpublished = {\url{https://developers.openai.com/codex/sandboxing}},
+        note         = {Official docs; accessed 2026-08-20; floating relative to the pinned code (cite page, not commit). Note key: codexDocsSandboxing.}
+      }
   - key: opencodeDocs
     title: "OpenCode documentation (intro, config, providers, permissions, agents, tools, plugins, MCP, ACP, LSP, skills, SDK/server)"
     authors: "Anomaly (opencode)"
@@ -398,6 +457,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/opencodeDocs.md"
+    bibtex: |
+      @misc{opencodeDocs,
+        author       = {{Anomaly (opencode)}},
+        title        = {OpenCode documentation},
+        year         = {2026},
+        howpublished = {\url{https://opencode.ai/docs/}},
+        note         = {Snapshot in-repo at pinned commit d545d8fba57283528db69281f59c803c646eb7e9 (packages/web/src/content/docs/). Note key: opencodeDocs.}
+      }
   - key: claudeCodeDocsHooks
     title: "Claude Code Hooks reference"
     authors: "Anthropic"
@@ -409,6 +476,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/claudeCodeDocsHooks.md"
+    bibtex: |
+      @misc{claudeCodeDocsHooks,
+        author       = {{Anthropic}},
+        title        = {Claude Code Hooks reference},
+        year         = {2026},
+        howpublished = {\url{https://docs.claude.com/en/docs/claude-code/hooks}},
+        note         = {Snapshot claudeCodeDocsHooks.md fetched 2026-08-20 (historical after harness-study cleanup). Note key: claudeCodeDocsHooks.}
+      }
   - key: claudeCodeDocsSubagents
     title: "Create custom subagents"
     authors: "Anthropic"
@@ -420,6 +495,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/claudeCodeDocsSubagents.md"
+    bibtex: |
+      @misc{claudeCodeDocsSubagents,
+        author       = {{Anthropic}},
+        title        = {Create custom subagents (Claude Code)},
+        year         = {2026},
+        howpublished = {\url{https://docs.claude.com/en/docs/claude-code/sub-agents}},
+        note         = {Snapshot claudeCodeDocsSubagents.md fetched 2026-08-20 (historical after harness-study cleanup). Note key: claudeCodeDocsSubagents.}
+      }
   - key: claudeCodeDocsPlugins
     title: "Create plugins"
     authors: "Anthropic"
@@ -431,6 +514,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/claudeCodeDocsPlugins.md"
+    bibtex: |
+      @misc{claudeCodeDocsPlugins,
+        author       = {{Anthropic}},
+        title        = {Create plugins (Claude Code)},
+        year         = {2026},
+        howpublished = {\url{https://docs.claude.com/en/docs/claude-code/plugins}},
+        note         = {Snapshot claudeCodeDocsPlugins.md fetched 2026-08-20 (historical after harness-study cleanup). Note key: claudeCodeDocsPlugins.}
+      }
   - key: claudeCodeDocsMcp
     title: "Connect Claude Code to tools via MCP"
     authors: "Anthropic"
@@ -442,6 +533,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/claudeCodeDocsMcp.md"
+    bibtex: |
+      @misc{claudeCodeDocsMcp,
+        author       = {{Anthropic}},
+        title        = {Connect Claude Code to tools via MCP},
+        year         = {2026},
+        howpublished = {\url{https://docs.claude.com/en/docs/claude-code/mcp}},
+        note         = {Snapshot claudeCodeDocsMcp.md fetched 2026-08-20 (historical after harness-study cleanup). Note key: claudeCodeDocsMcp.}
+      }
   - key: claudeCodeDocsMemory
     title: "How Claude remembers your project (CLAUDE.md and auto memory)"
     authors: "Anthropic"
@@ -453,6 +552,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/claudeCodeDocsMemory.md"
+    bibtex: |
+      @misc{claudeCodeDocsMemory,
+        author       = {{Anthropic}},
+        title        = {How Claude remembers your project (CLAUDE.md and auto memory)},
+        year         = {2026},
+        howpublished = {\url{https://docs.claude.com/en/docs/claude-code/memory}},
+        note         = {Snapshot claudeCodeDocsMemory.md fetched 2026-08-20 (historical after harness-study cleanup). Note key: claudeCodeDocsMemory.}
+      }
   - key: claudeCodeDocsPermissions
     title: "Configure permissions"
     authors: "Anthropic"
@@ -464,6 +571,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/claudeCodeDocsPermissions.md"
+    bibtex: |
+      @misc{claudeCodeDocsPermissions,
+        author       = {{Anthropic}},
+        title        = {Configure permissions (Claude Code)},
+        year         = {2026},
+        howpublished = {\url{https://code.claude.com/docs/en/permissions}},
+        note         = {Snapshot claudeCodeDocsPermissions.md fetched 2026-08-20 (historical after harness-study cleanup). Note key: claudeCodeDocsPermissions.}
+      }
   - key: claudeCodeDocsSandboxing
     title: "Configure the sandboxed Bash tool"
     authors: "Anthropic"
@@ -475,6 +590,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/claudeCodeDocsSandboxing.md"
+    bibtex: |
+      @misc{claudeCodeDocsSandboxing,
+        author       = {{Anthropic}},
+        title        = {Configure the sandboxed Bash tool (Claude Code)},
+        year         = {2026},
+        howpublished = {\url{https://code.claude.com/docs/en/sandboxing}},
+        note         = {Snapshot claudeCodeDocsSandboxing.md fetched 2026-08-20 (historical after harness-study cleanup). Note key: claudeCodeDocsSandboxing.}
+      }
 
   # ---------------- docs: open-model wiring and servers (Part II) ----------------
   - key: claudeCodeModelDocs
@@ -488,6 +611,14 @@ sources:
     status: noted
     notes_file: "notes/claudeCodeModelDocs.md"
     snapshot: "sources/docs/claudeCodeModelConfig.md"
+    bibtex: |
+      @misc{claudeCodeModelDocs,
+        author       = {{Anthropic}},
+        title        = {Configure models (Claude Code docs)},
+        year         = {2026},
+        howpublished = {\url{https://code.claude.com/docs/en/model-config}},
+        note         = {Snapshot sources/docs/claudeCodeModelConfig.md fetched 2026-08-20. Note key: claudeCodeModelDocs.}
+      }
   - key: claudeCodeBedrockDocs
     title: "Claude Code docs: Amazon Bedrock integration"
     authors: "Anthropic"
@@ -499,6 +630,14 @@ sources:
     status: noted
     notes_file: "notes/claudeCodeBedrockDocs.md"
     snapshot: "sources/docs/claudeCodeBedrock.md"
+    bibtex: |
+      @misc{claudeCodeBedrockDocs,
+        author       = {{Anthropic}},
+        title        = {Amazon Bedrock integration (Claude Code docs)},
+        year         = {2026},
+        howpublished = {\url{https://code.claude.com/docs/en/amazon-bedrock}},
+        note         = {Snapshot sources/docs/claudeCodeBedrock.md fetched 2026-08-20. Note key: claudeCodeBedrockDocs.}
+      }
   - key: ollamaCompatDocs
     title: "Ollama: OpenAI compatibility (chat completions surface)"
     authors: "Ollama team"
@@ -510,6 +649,14 @@ sources:
     status: noted
     notes_file: "notes/ollamaCompatDocs.md"
     snapshot: "sources/docs/ollamaOpenaiCompat.html"
+    bibtex: |
+      @misc{ollamaCompatDocs,
+        author       = {{Ollama team}},
+        title        = {OpenAI compatibility (Ollama blog)},
+        year         = {2024},
+        howpublished = {\url{https://ollama.com/blog/openai-compatibility}},
+        note         = {Snapshot sources/docs/ollamaOpenaiCompat.html fetched 2026-08-20. Note key: ollamaCompatDocs.}
+      }
   - key: lmstudioApiDocs
     title: "LM Studio developer API docs (aggregate entry for the local server and OpenAI-compatible endpoints)"
     authors: "LM Studio (lmstudio-ai)"
@@ -521,6 +668,14 @@ sources:
     tier: docs
     status: noted
     notes_file: "notes/lmstudioServerDocs.md"
+    bibtex: |
+      @misc{lmstudioApiDocs,
+        author       = {{LM Studio (lmstudio-ai)}},
+        title        = {LM Studio developer API docs: local server and OpenAI-compatible endpoints},
+        year         = {2026},
+        howpublished = {\url{https://docs.lmstudio.ai/developers/local-server}},
+        note         = {Live site unreachable from the study environment; snapshots of the docs repo mirror (github.com/lmstudio-ai/docs, main) fetched 2026-08-20: lmstudioServer.md, lmstudioChatCompletions.md, lmstudioTools.md, lmstudioResponses.md. Note keys: lmstudioServerDocs, lmstudioCompatToolsDocs, lmstudioCompatResponsesDocs.}
+      }
   - key: lmstudioServerDocs
     title: "LM Studio docs: running the local LLM API server"
     authors: "LM Studio (lmstudio-ai)"
@@ -532,6 +687,7 @@ sources:
     status: noted
     notes_file: "notes/lmstudioServerDocs.md"
     snapshot: "sources/docs/lmstudioServer.md"
+    cited_via: lmstudioApiDocs
   - key: lmstudioCompatToolsDocs
     title: "LM Studio docs: OpenAI-compatible tool calling"
     authors: "LM Studio (lmstudio-ai)"
@@ -543,6 +699,7 @@ sources:
     status: noted
     notes_file: "notes/lmstudioCompatToolsDocs.md"
     snapshot: "sources/docs/lmstudioTools.md"
+    cited_via: lmstudioApiDocs
   - key: lmstudioCompatResponsesDocs
     title: "LM Studio docs: OpenAI Responses API compatibility"
     authors: "LM Studio (lmstudio-ai)"
@@ -554,6 +711,7 @@ sources:
     status: noted
     notes_file: "notes/lmstudioCompatResponsesDocs.md"
     snapshot: "sources/docs/lmstudioResponses.md"
+    cited_via: lmstudioApiDocs
   - key: llamaCppServerDocs
     title: "llama.cpp: reference server OpenAI-compatible contract"
     authors: "ggml-org"
@@ -565,6 +723,14 @@ sources:
     status: noted
     notes_file: "notes/llamaCppServerDocs.md"
     snapshot: "sources/docs/llamaCppServer.md"
+    bibtex: |
+      @misc{llamaCppServerDocs,
+        author       = {{ggml-org}},
+        title        = {llama.cpp server README: OpenAI-compatible API},
+        year         = {2026},
+        howpublished = {\url{https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md}},
+        note         = {Snapshot sources/docs/llamaCppServer.md fetched 2026-08-20 (master branch). Note key: llamaCppServerDocs.}
+      }
 
   # ---------------- framing preprints (tier: preprint) ----------------
   # Local PDFs are deliberately not stored in the repo; the `pdf` field
@@ -582,6 +748,15 @@ sources:
     tier: preprint
     status: noted
     notes_file: "notes/yao2023react.md"
+    bibtex: |
+      @inproceedings{yao2023react,
+        author    = {Yao, Shunyu and Zhao, Jeffrey and Yu, Dian and Du, Nan and Shafran, Izhak and Narasimhan, Karthik and Cao, Yuan},
+        title     = {ReAct: Synergizing Reasoning and Acting in Language Models},
+        booktitle = {International Conference on Learning Representations (ICLR)},
+        year      = {2023},
+        url       = {https://arxiv.org/abs/2210.03629},
+        note      = {arXiv:2210.03629; study snapshot react-2210.03629.txt (pdftotext, historical after harness-study cleanup)}
+      }
   - key: yang2024sweagent
     title: "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering"
     authors: "John Yang, Carlos E. Jimenez, Alexander Wettig, Kilian Lieret, Shunyu Yao, Karthik Narasimhan, Ofir Press"
@@ -593,6 +768,15 @@ sources:
     tier: preprint
     status: noted
     notes_file: "notes/yang2024sweagent.md"
+    bibtex: |
+      @article{yang2024sweagent,
+        author    = {Yang, John and Jimenez, Carlos E. and Wettig, Alexander and Lieret, Kilian and Yao, Shunyu and Narasimhan, Karthik and Press, Ofir},
+        title     = {SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering},
+        journal   = {arXiv preprint arXiv:2405.15793},
+        year      = {2024},
+        url       = {https://arxiv.org/abs/2405.15793},
+        note      = {study snapshot swe-agent-2405.15793.txt (pdftotext, historical after harness-study cleanup)}
+      }
   - key: schick2023toolformer
     title: "Toolformer: Language Models Can Teach Themselves to Use Tools"
     authors: "Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli, Luke Zettlemoyer, Nicola Cancedda, Thomas Scialom"
@@ -604,6 +788,15 @@ sources:
     tier: preprint
     status: noted
     notes_file: "notes/schick2023toolformer.md"
+    bibtex: |
+      @article{schick2023toolformer,
+        author    = {Schick, Timo and Dwivedi-Yu, Jane and Dess{\`{\i}}, Roberto and Raileanu, Roberta and Lomeli, Maria and Zettlemoyer, Luke and Cancedda, Nicola and Scialom, Thomas},
+        title     = {Toolformer: Language Models Can Teach Themselves to Use Tools},
+        journal   = {arXiv preprint arXiv:2302.04761},
+        year      = {2023},
+        url       = {https://arxiv.org/abs/2302.04761},
+        note      = {study snapshot toolformer-2302.04761.txt (pdftotext, historical after harness-study cleanup)}
+      }
 
   # ---------------- third-party context (tier: blog), never strong claims ----------------
   - key: minusXClaudeCodeTeardown
@@ -617,6 +810,14 @@ sources:
     tier: blog
     status: noted
     notes_file: "notes/minusXClaudeCodeTeardown.md"
+    bibtex: |
+      @misc{minusXClaudeCodeTeardown,
+        author       = {vivek (MinusX)},
+        title        = {What makes Claude Code so damn good (and how to recreate that magic in your agent)!?},
+        year         = {2025},
+        howpublished = {\url{https://minusx.ai/blog/decoding-claude-code/}},
+        note         = {Third-party teardown of log traffic; context tier only, supports hedged claims. Note key: minusXClaudeCodeTeardown.}
+      }
   - key: agiflowClaudeCodeInternals
     title: "Claude Code Internals: How Skills, Hooks, MCP, and Subagents Actually Work"
     authors: "Vuong Ngo"
@@ -628,6 +829,14 @@ sources:
     tier: blog
     status: noted
     notes_file: "notes/agiflowClaudeCodeInternals.md"
+    bibtex: |
+      @misc{agiflowClaudeCodeInternals,
+        author       = {Ngo, Vuong},
+        title        = {Claude Code Internals: How Skills, Hooks, MCP, and Subagents Actually Work},
+        year         = {2025},
+        howpublished = {\url{https://agiflow.io/blog/claude-code-internals-reverse-engineering-prompt-augmentation}},
+        note         = {Third-party trace teardown; published 2025-10-18, refreshed 2026-07; context tier only, supports hedged claims. Note key: agiflowClaudeCodeInternals.}
+      }
   - key: tenguDecoded
     title: "Tengu Decoded: reverse-engineering Claude Code's internals (feature flags, gated features, telemetry, device fingerprinting), version by version"
     authors: "wtfwhs"
@@ -639,6 +848,14 @@ sources:
     tier: blog
     status: noted
     notes_file: "notes/tenguDecoded.md"
+    bibtex: |
+      @misc{tenguDecoded,
+        author       = {wtfwhs},
+        title        = {Tengu Decoded: reverse-engineering Claude Code's internals, version by version},
+        year         = {2026},
+        howpublished = {\url{https://github.com/wtfwhs/tengu-decoded}},
+        note         = {Third-party binary teardown (v2.1.32, v2.1.169, v2.1.197); snapshot of README at main 8b2060d fetched 2026-08-20; context tier only, supports hedged claims. Note key: tenguDecoded.}
+      }
   - key: claudeCodeRouterContext
     title: "claude-code-router: community router bridging Claude Code to other providers (context only)"
     authors: "musistudio"
@@ -650,3 +867,11 @@ sources:
     status: noted
     notes_file: "notes/claudeCodeRouterContext.md"
     snapshot: "sources/docs/claudeCodeRouterReadme.md"
+    bibtex: |
+      @misc{claudeCodeRouterContext,
+        author       = {musistudio},
+        title        = {claude-code-router: community router for coding agents},
+        year         = {2026},
+        howpublished = {\url{https://github.com/musistudio/claude-code-router}},
+        note         = {Snapshot of README at main fetched 2026-08-20; blog tier, community project, hedged context only. Note key: claudeCodeRouterContext.}
+      }

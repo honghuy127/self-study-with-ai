@@ -19,3 +19,11 @@ sources:
     tier: peer-reviewed
     status: noted
     notes_file: "notes/vaswani2017attention.md"
+    bibtex: |
+      @inproceedings{vaswani2017attention,
+        author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, {\L}ukasz and Polosukhin, Illia},
+        title     = {Attention Is All You Need},
+        booktitle = {Advances in Neural Information Processing Systems 30 (NeurIPS 2017)},
+        year      = {2017},
+        url       = {https://arxiv.org/abs/1706.03762}
+      }
