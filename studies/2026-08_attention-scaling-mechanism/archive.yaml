@@ -1,0 +1,26 @@
+# Archive record written by tools/cleanup_study.py. Do not edit by hand.
+archived_at: '2026-08-22'
+git_commit: d66fc1213b395ae95b7ed064bf682f14384b206a
+note: Removed paths stay recoverable from git history. git_commit is where the content
+  last exists.
+removed:
+- path: sources/docs
+  size_kb: 39
+  files: 1
+  retrieve: git show d66fc1213b395ae95b7ed064bf682f14384b206a:studies/2026-08_attention-scaling-mechanism/sources/docs
+- path: sources/pdfs
+  size_kb: 0
+  files: 0
+  retrieve: git show d66fc1213b395ae95b7ed064bf682f14384b206a:studies/2026-08_attention-scaling-mechanism/sources/pdfs
+- path: experiments
+  size_kb: 21
+  files: 5
+  retrieve: git show d66fc1213b395ae95b7ed064bf682f14384b206a:studies/2026-08_attention-scaling-mechanism/experiments
+- path: .research
+  size_kb: 16
+  files: 7
+  retrieve: git show d66fc1213b395ae95b7ed064bf682f14384b206a:studies/2026-08_attention-scaling-mechanism/.research
+- path: reviews
+  size_kb: 25
+  files: 2
+  retrieve: git show d66fc1213b395ae95b7ed064bf682f14384b206a:studies/2026-08_attention-scaling-mechanism/reviews

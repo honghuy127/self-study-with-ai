@@ -17,7 +17,7 @@ report_style: neurips      # neurips | plain; used only when report is a deliver
 
 status: done           # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
                            # interactive: scoped | diagnosing | learning | practicing | assessing | retained
-cleaned: ""                # set to a date by tools/cleanup_study.py at done-time cleanup
+cleaned: "2026-08-22"
 audit_waiver: ""           # human-only reason to waive residual dossier-audit errors; agents never set this
 
 # Workflow gates. Agents refuse to pass until the human approves them via
@@ -40,4 +40,4 @@ artifacts:
   dossier: .research/
 
 # Skill verdict from the last completed stage, if any.
-last_gate_verdict: ""      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED
+last_gate_verdict: "PASS"      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED
