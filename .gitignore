@@ -1,0 +1,35 @@
+# LaTeX build artifacts
+**/build/
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.run.xml
+*.bcf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+
+# Secrets must never enter this repo
+*.key
+.env
+
+# pytest
+.pytest_cache/
+
+# User content stays private: git tracks templates, tools, and docs;
+# each user's own studies and accumulated knowledge are not versioned
+studies/
+shared/knowledge/
+shared/glossary.md
+shared/library.bib

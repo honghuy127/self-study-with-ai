@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"],
+  "share": "disabled",
+  "permission": {
+    "edit": "ask",
+    "bash": {
+      "*": "ask",
+      "git commit*": "ask",
+      "git push*": "ask",
+      "git reset*": "ask",
+      "git rebase*": "ask",
+      "rm -rf*": "ask"
+    }
+  }
+}
