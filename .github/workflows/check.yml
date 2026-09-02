@@ -27,6 +27,15 @@ jobs:
         run: python tools/check_all.py
       - name: Lint the repo's own Python
         run: python -m ruff check tools tests
+      # About 105 seconds, so it runs once rather than on every matrix leg.
+      # The cheap hash check in the same file runs everywhere.
+      - name: Verify the recorded experiment still reproduces byte for byte
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
+        env:
+          SSWA_REPRODUCE: "1"
+        run: >-
+          python -m unittest
+          tests.test_dossier_example.AuditedExampleTests.test_experiment_is_deterministic_from_its_seed
     strategy:
       fail-fast: false
       matrix:

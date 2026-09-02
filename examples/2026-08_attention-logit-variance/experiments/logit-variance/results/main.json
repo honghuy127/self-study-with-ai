@@ -1,0 +1,59 @@
+{
+  "label": "main measurement",
+  "seed": 20260901,
+  "uniform_key_prob": 0.0156,
+  "measurements": [
+    {
+      "d_k": 8,
+      "pairs": 20000,
+      "variance_unscaled": 8.0171,
+      "variance_scaled": 1.0021,
+      "mean_unscaled": 0.0159,
+      "max_abs_unscaled": 15.9466,
+      "max_abs_scaled": 5.638,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.4215,
+      "mean_max_prob_scaled": 0.1045
+    },
+    {
+      "d_k": 32,
+      "pairs": 20000,
+      "variance_unscaled": 32.273,
+      "variance_scaled": 1.0085,
+      "mean_unscaled": -0.0329,
+      "max_abs_unscaled": 23.8462,
+      "max_abs_scaled": 4.2154,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.7083,
+      "mean_max_prob_scaled": 0.1071
+    },
+    {
+      "d_k": 128,
+      "pairs": 20000,
+      "variance_unscaled": 126.703,
+      "variance_scaled": 0.9899,
+      "mean_unscaled": 0.0493,
+      "max_abs_unscaled": 46.0901,
+      "max_abs_scaled": 4.0738,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.8497,
+      "mean_max_prob_scaled": 0.1061
+    },
+    {
+      "d_k": 512,
+      "pairs": 20000,
+      "variance_unscaled": 506.554,
+      "variance_scaled": 0.9894,
+      "mean_unscaled": 0.1575,
+      "max_abs_unscaled": 107.0516,
+      "max_abs_scaled": 4.7311,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.929,
+      "mean_max_prob_scaled": 0.1077
+    }
+  ]
+}

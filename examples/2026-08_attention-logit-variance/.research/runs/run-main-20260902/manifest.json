@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.1",
+  "run_id": "run-main-20260902",
+  "experiment_id": "logit-variance",
+  "operator": "human",
+  "started_at": "2026-09-02T10:43:23+09:00",
+  "ended_at": "2026-09-02T10:45:07+09:00",
+  "recorded_at": "2026-09-02T01:48:44+00:00",
+  "phase": "full",
+  "status": "completed",
+  "result_kind": "measured",
+  "evidence_eligibility": "candidate_pending_verification",
+  "command": "python3 run.py --seed 20260901 --out results/main.json --label 'main measurement'",
+  "seeds": [
+    "20260901"
+  ],
+  "root": "C:\\Users\\hongh\\Work\\self-study-with-ai\\examples\\2026-08_attention-logit-variance",
+  "git": {
+    "available": true,
+    "commit": "723703a08c62efe7e3645f893d6c3de5a9a1fba7",
+    "branch": "main",
+    "dirty": true,
+    "status_porcelain": [
+      "?? examples/2026-08_attention-logit-variance/"
+    ],
+    "dirty_file_hashes": [
+      {
+        "path": "brief.md",
+        "kind": "file",
+        "size_bytes": 4865,
+        "sha256": "7eb89cca41864722455473d33f75a4ed39c6ce09f30d854266a6248af33b8ccf"
+      },
+      {
+        "path": "events.jsonl",
+        "kind": "file",
+        "size_bytes": 175,
+        "sha256": "8d5853609c6dc34cfb4926c37291446c27ee501f5570ac953366b3c16e206f64"
+      },
+      {
+        "path": "experiments/logit-variance/results/main.json",
+        "kind": "file",
+        "size_bytes": 1507,
+        "sha256": "0ec35e87de8e41272a9cd925087abbe3efdf83db3f8d84f51af22d91eb8f23c6"
+      },
+      {
+        "path": "experiments/logit-variance/results/replication.json",
+        "kind": "file",
+        "size_bytes": 1530,
+        "sha256": "26750aeacfce2569037929289a024647272cc1473447163d13bdc94705dd6d0a"
+      },
+      {
+        "path": "experiments/logit-variance/run.py",
+        "kind": "file",
+        "size_bytes": 4141,
+        "sha256": "5839cfc798849c000c05bef747f1d93ff2b654c6a61ba5a9f392e0185b18f9d0"
+      },
+      {
+        "path": "report/main.tex",
+        "kind": "file",
+        "size_bytes": 1412,
+        "sha256": "561244cef5ea54ca19a66d82082630f1b03040eef056e007ef99dc3f26053f49"
+      },
+      {
+        "path": "report/refs.bib",
+        "kind": "file",
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "sources/registry.yaml",
+        "kind": "file",
+        "size_bytes": 145,
+        "sha256": "35de50751599e27f9cabaad44571fa5fee884a3b16d36784585ecd6e832fcfc0"
+      },
+      {
+        "path": "study.yaml",
+        "kind": "file",
+        "size_bytes": 2513,
+        "sha256": "1b34dc2b083edf31fe4358926d12ef31498568182aefe3d19ec4acac7c4a21ab"
+      }
+    ],
+    "dirty_snapshot_scope": "tracked changes and untracked non-ignored files, excluding .research runtime state",
+    "dirty_snapshot_complete": true
+  },
+  "capture_environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "executable": "C:\\Python314\\python.exe"
+  },
+  "configs": [],
+  "inputs": [
+    {
+      "path": "experiments/logit-variance/run.py",
+      "exists": true,
+      "size_bytes": 4141,
+      "modified_at_ns": 1788313662447566600,
+      "sha256": "5839cfc798849c000c05bef747f1d93ff2b654c6a61ba5a9f392e0185b18f9d0"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "experiments/logit-variance/results/main.json",
+      "exists": true,
+      "size_bytes": 1507,
+      "modified_at_ns": 1788313662447566600,
+      "sha256": "0ec35e87de8e41272a9cd925087abbe3efdf83db3f8d84f51af22d91eb8f23c6"
+    }
+  ],
+  "resources": [
+    "CPU only, single process, 104 s wall clock"
+  ],
+  "failure_reason": null,
+  "note": "Standard library only; the run is fully determined by the seed."
+}

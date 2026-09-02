@@ -1,0 +1,158 @@
+\documentclass[11pt]{article}
+
+% Plain article style for self-study reports that do not need a conference
+% layout. Use the neurips style for publication-shaped delegated reports.
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+
+\title{Measuring the $1/\sqrt{d_k}$ Scale in Attention Logits}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The $1/\sqrt{d_k}$ factor in scaled dot-product attention is justified by a
+variance argument that its source states but never measures. This report
+measures it under exactly the assumptions the argument makes. Unscaled logit
+variance tracks $d_k$ across two orders of magnitude, and the scale holds
+variance within about one percent of unity. Softmax concentration over 64
+competing keys climbs from a mean largest probability of $0.4215$ to $0.9290$
+without the scale, and holds near $0.106$ with it, which is still about seven
+times the uniform $0.0156$. Every figure comes from a recorded run with an
+independent replication behind it. Nothing here measures gradients, so the
+mechanism the source suspects remains untested.
+\end{abstract}
+
+\section{Introduction}
+
+A companion study established what the source argues: for queries and keys
+with independent, zero-mean, unit-variance components, a $d_k$-dimensional dot
+product has variance $d_k$, so dividing by $\sqrt{d_k}$ restores unit
+variance. That is algebra, and the source offers no measurement of it. This
+report supplies one. The question is narrow on purpose: under the assumptions
+the argument makes, do the numbers behave as the algebra says, and how far
+from the idealized values do they actually sit?
+
+\section{Background}
+
+Scaled dot-product attention scores a query against each key by an inner
+product, divides by $\sqrt{d_k}$, and normalizes the scores with a softmax.
+The variance argument is conditional: it assumes independence and unit
+variance in the components. This study imposes those assumptions in its
+generator rather than testing them, so what follows is a check on the algebra,
+not on a trained model.
+
+\section{Methods and Sources}
+
+This study cites no external sources. Its evidence is its own runs, recorded
+in the study's dossier with per-run manifests, content hashes, and a claims
+ledger.
+
+For each $d_k \in \{8, 32, 128, 512\}$ the experiment samples 20000 independent
+query and key pairs from a standard normal, records the population variance of
+the resulting logits with and without the scale, and separately samples 2000
+softmax rows of 64 competing keys to record the mean largest probability. The
+scaled and unscaled figures come from the same sampled dot products, so the
+comparison carries no sampling confound.
+
+Two full runs were recorded: a main run at seed 20260901 and an independent
+replication at seed 771244. Figures below come from the main run; the
+replication is cited wherever the spread between runs is material. The design
+was frozen in the experiment plan before either run.
+
+\section{Findings}
+
+\subsection{Unscaled variance grows linearly in the key dimension}
+
+Table~\ref{tab:variance} gives the measured variances. The unscaled column
+tracks $d_k$: relative to $d_k = 8$, the measured ratios are $4.03$, $15.80$,
+and $63.18$ against the predicted $4$, $16$, and $64$.
+
+\begin{table}[t]
+\centering
+\caption{Measured logit variance, main run at seed 20260901, 20000 pairs per dimension.}
+\label{tab:variance}
+\begin{tabular}{rrrr}
+\toprule
+$d_k$ & unscaled & scaled & scaled, replication \\
+\midrule
+8 & 8.0171 & 1.0021 & 1.0259 \\
+32 & 32.273 & 1.0085 & 0.9927 \\
+128 & 126.703 & 0.9899 & 0.9692 \\
+512 & 506.554 & 0.9894 & 0.9990 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The scale holds variance near unity}
+
+The scaled column of Table~\ref{tab:variance} stays within $1.1$ percent of
+unity at every dimension in the main run. The replication column is the honest
+resolution of this design: it stays within $3.1$ percent, with its largest
+deviation at $d_k = 128$. Reporting the scale as producing exactly unit
+variance would overstate what two runs of this size can show.
+
+\subsection{Concentration is bounded, not removed}
+
+Table~\ref{tab:softmax} gives the mean largest softmax probability over 64
+competing keys. Without the scale it climbs steeply with $d_k$, which is the
+behavior the scale exists to prevent. With the scale it is flat across
+dimensions at roughly $0.106$.
+
+\begin{table}[t]
+\centering
+\caption{Mean largest softmax probability over 64 keys, main run, 2000 rows per dimension. Uniform is 0.0156.}
+\label{tab:softmax}
+\begin{tabular}{rrr}
+\toprule
+$d_k$ & unscaled & scaled \\
+\midrule
+8 & 0.4215 & 0.1045 \\
+32 & 0.7083 & 0.1071 \\
+128 & 0.8497 & 0.1061 \\
+512 & 0.9290 & 0.1077 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+That flat value deserves emphasis, because it is easy to misread. At $0.106$
+the scaled softmax still puts about seven times the uniform mass on its
+largest entry. The scale stops concentration from growing with dimension. It
+does not produce a diffuse distribution, and a reader who takes the flat
+column as evidence of near-uniform attention has drawn a conclusion these
+numbers do not support.
+
+\section{Related Work}
+
+Out of scope by the brief. This report measures one stated argument and makes
+no survey claim about later normalization proposals.
+
+\section{Limitations}
+
+The generator imposes the independence and unit variance the argument assumes,
+so nothing here transfers to trained attention, whose queries and keys satisfy
+neither. Sampling error is visible in the third significant figure, and the
+two runs differ by up to $2.4$ percent on unscaled variance. Most importantly,
+no gradient was measured. The source suspects that unscaled logits push the
+softmax into a small-gradient region; this study measures concentration, which
+is consistent with that story but does not establish it. Settling it needs a
+gradient measurement, which is a separate study.
+
+\section{Conclusion}
+
+Under the assumptions the argument makes, the algebra holds up: unscaled logit
+variance grows with $d_k$, the $1/\sqrt{d_k}$ scale returns it to roughly
+unity, and softmax concentration stops growing with dimension. What the
+measurement adds beyond the algebra is calibration, namely how far the real
+numbers sit from the idealized ones and how much of the concentration story
+the scale actually addresses.
+
+\end{document}

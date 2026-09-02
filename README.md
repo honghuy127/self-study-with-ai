@@ -314,9 +314,10 @@ runtime/                       # single source of truth for agents and commands
 .opencode/                     # generated: OpenCode agents and commands
 └── skills/conduct-cs-ai-research/   # git submodule: research playbooks and gates
 .claude/                       # generated: Claude Code agents, commands, and the zone-guard hook
-examples/                      # one finished study and the unit it distilled, tracked, so CI validates something real
-├── 2026-08_scaled-dot-product-attention/
-└── knowledge/                 # what that study left behind
+examples/                      # two finished studies and the units they distilled, tracked, so CI validates something real
+├── 2026-08_scaled-dot-product-attention/   # grounded, source-only
+├── 2026-08_attention-logit-variance/       # audited, experimental: runs, manifests, claims dossier
+└── knowledge/                 # what those studies left behind
 studies/                       # your studies (gitignored)
 shared/
 ├── templates/                 # brief, notes, study.yaml, learning-*, practice-item, inbox-note, knowledge-unit
@@ -415,19 +416,27 @@ default: `studies/`, `archive/`, `shared/knowledge/`, `shared/inbox/`,
 example, and nothing about your reading or learning record, unless you opt in
 by un-ignoring those paths.
 
-## The example study
+## The example studies
 
-[`examples/2026-08_scaled-dot-product-attention/`](examples/) is a finished
-delegated study, tracked in git: grounded, source-only, `understand` intent,
+Two finished studies ship in [`examples/`](examples/), tracked in git, both
 signed off and deliberately not cleaned so the whole shape stays visible.
-Beside it, [`examples/knowledge/`](examples/knowledge/) holds the unit that
-study distilled into, so the example covers the whole lifecycle rather than
-stopping at the report.
 
-CI validates both exactly as it validates your own studies and units, which is
-what keeps the per-study and knowledge check groups from silently reporting
-`NOT_ASSESSED` everywhere. Read [`examples/README.md`](examples/README.md) for
-what the example deliberately does not ship.
+`2026-08_scaled-dot-product-attention` is the light path: grounded,
+source-only, one verified source, answering why attention divides by
+`sqrt(d_k)` and separating what its source establishes from what it merely
+suspects. `2026-08_attention-logit-variance` is the heavy one: `audited`
+assurance and `experimental` methodology, measuring what the first study
+derived, with two recorded runs, per-run manifests with content hashes, a
+claims ledger, and an independent replication behind every reported claim.
+[`examples/knowledge/`](examples/knowledge/) holds the units they distilled
+into, so the examples cover the whole lifecycle rather than stopping at a
+report.
+
+CI validates all of it exactly as it validates your own studies and units,
+which is what keeps the per-study, knowledge, and dossier check groups from
+silently reporting `NOT_ASSESSED`. Read
+[`examples/README.md`](examples/README.md) for how to reproduce the audited
+study's runs, and for what the examples deliberately do not ship.
 
 ## Adapting this repo
 

@@ -1,0 +1,14 @@
+# Normalize line endings in the repository, whatever a contributor's
+# core.autocrlf happens to be set to.
+* text=auto
+
+# Exception, and the reason this file exists: the audited example's dossier
+# records a sha256 for its experiment code and result artifacts, and
+# audit_research.py rehashes them on every run of tools/check_all.py. If git
+# rewrote their line endings on checkout, those hashes would match on the
+# machine that captured them and fail everywhere else, which would make the
+# dossier look tampered with on Linux CI. Store and check these out byte for
+# byte.
+examples/**/experiments/**/run.py            -text
+examples/**/experiments/**/results/*.json    -text
+examples/**/.research/**                     -text

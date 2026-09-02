@@ -1,0 +1,59 @@
+{
+  "label": "independent replication, different seed",
+  "seed": 771244,
+  "uniform_key_prob": 0.0156,
+  "measurements": [
+    {
+      "d_k": 8,
+      "pairs": 20000,
+      "variance_unscaled": 8.2071,
+      "variance_scaled": 1.0259,
+      "mean_unscaled": -0.0006,
+      "max_abs_unscaled": 16.5259,
+      "max_abs_scaled": 5.8428,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.4202,
+      "mean_max_prob_scaled": 0.1045
+    },
+    {
+      "d_k": 32,
+      "pairs": 20000,
+      "variance_unscaled": 31.7668,
+      "variance_scaled": 0.9927,
+      "mean_unscaled": -0.0487,
+      "max_abs_unscaled": 24.7373,
+      "max_abs_scaled": 4.373,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.6972,
+      "mean_max_prob_scaled": 0.1071
+    },
+    {
+      "d_k": 128,
+      "pairs": 20000,
+      "variance_unscaled": 124.0589,
+      "variance_scaled": 0.9692,
+      "mean_unscaled": 0.1948,
+      "max_abs_unscaled": 48.328,
+      "max_abs_scaled": 4.2716,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.8516,
+      "mean_max_prob_scaled": 0.1067
+    },
+    {
+      "d_k": 512,
+      "pairs": 20000,
+      "variance_unscaled": 511.4883,
+      "variance_scaled": 0.999,
+      "mean_unscaled": -0.189,
+      "max_abs_unscaled": 92.2049,
+      "max_abs_scaled": 4.0749,
+      "softmax_rows": 2000,
+      "keys_per_row": 64,
+      "mean_max_prob_unscaled": 0.9301,
+      "mean_max_prob_scaled": 0.1086
+    }
+  ]
+}

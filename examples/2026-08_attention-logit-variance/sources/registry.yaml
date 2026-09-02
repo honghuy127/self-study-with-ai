@@ -1,0 +1,22 @@
+# provenance: queries run (text, date, scope), inclusion/exclusion reasons
+# entries are appended by the researcher agent; schema in AGENTS.md
+provenance:
+  queries: []
+  knowledge_reused:
+    - attention.scale   # examples/knowledge/attention-scale.md
+  inclusion: >-
+    Source-free by design. The claim under test is a property of a formula,
+    and the formula plus its assumptions are already recorded, with source
+    anchors, in the knowledge unit `attention.scale` distilled from
+    `2026-08_scaled-dot-product-attention`. Gathering the same paper a second
+    time would add a citation without adding evidence, which is exactly what
+    the knowledge base exists to prevent.
+  coverage_limits: >-
+    This study's evidence is its own runs, recorded in `.research/` with
+    per-run manifests and content hashes. It therefore inherits none of the
+    authority of the literature and carries none of its breadth: it measures
+    one formula under assumptions it imposes on itself.
+
+# No external sources. The evidence ledger is .research/evidence.jsonl, whose
+# records point at run artifacts rather than at documents.
+sources: []

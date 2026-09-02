@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "project_id": "7d1a3562-9450-48f5-ab64-0a2d9f8b4836",
+  "title": "Does the sqrt(d_k) scale hold logit variance at 1?",
+  "created_at": "2026-09-02T01:42:58+00:00",
+  "updated_at": "2026-09-02T01:42:58+00:00",
+  "stage": "scoping",
+  "stage_status": "proposed",
+  "research_questions": [],
+  "contribution_type": null,
+  "methodology": null,
+  "deliverables": [],
+  "constraints": {},
+  "artifact_index": {},
+  "open_risks": [],
+  "blockers": [],
+  "decision_index": [
+    {
+      "id": "DEC-20260902T014258Z-6c01344d",
+      "recorded_at": "2026-09-02T01:42:58+00:00",
+      "summary": "Initialize research dossier"
+    }
+  ],
+  "next_actions": []
+}

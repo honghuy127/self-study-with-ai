@@ -2,6 +2,27 @@
   "generated_by": "tools/knowledge.py",
   "units": [
     {
+      "id": "attention.logit-variance",
+      "file": "attention-logit-variance.md",
+      "title": "Measured behavior of the sqrt(d_k) scale",
+      "question": "What does the sqrt(d_k) scale actually do to logit variance and softmax concentration, measured rather than derived?",
+      "prerequisites": [
+        "attention.scale"
+      ],
+      "source_ids": [],
+      "tags": [
+        "transformers",
+        "attention",
+        "normalization",
+        "measurement"
+      ],
+      "studies": [
+        "2026-08_attention-logit-variance"
+      ],
+      "next_due": "",
+      "superseded_by": ""
+    },
+    {
       "id": "attention.scale",
       "file": "attention-scale.md",
       "title": "The sqrt(d_k) scale in dot-product attention",
