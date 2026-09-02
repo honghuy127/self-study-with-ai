@@ -378,6 +378,11 @@ def cmd_supersede(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument(
+        "--dir",
+        default="",
+        help="knowledge base to operate on (default: shared/knowledge; examples/knowledge is the shipped one)",
+    )
     sub = ap.add_subparsers(dest="command", required=True)
 
     p_new = sub.add_parser("new", help="create a knowledge unit")
@@ -408,6 +413,12 @@ def main(argv: list[str] | None = None) -> int:
     p_sup.add_argument("new")
 
     args = ap.parse_args(argv)
+    if args.dir:
+        # Point every command at an alternate base. Used by check_all.py to
+        # validate the shipped examples/knowledge tree the same way it
+        # validates the user's own.
+        global KNOWLEDGE
+        KNOWLEDGE = Path(args.dir).resolve()
     handlers = {
         "new": cmd_new,
         "index": cmd_index,

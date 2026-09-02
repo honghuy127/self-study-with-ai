@@ -152,6 +152,65 @@ class KnowledgeBaseTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             knowledge.main(["supersede", "old.unit", "does.not.exist"])
 
+    def test_dir_flag_redirects_every_command(self) -> None:
+        other = self.tmp / "elsewhere"
+        other.mkdir()
+        write_unit(other, "over.there")
+        code, out = quiet(knowledge.main, ["--dir", str(other), "search", "over", "--json"])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out)[0]["id"], "over.there")
+
+
+class ShippedKnowledgeBaseTests(unittest.TestCase):
+    """The example study must demonstrate its own done-time contract.
+
+    AGENTS.md says a finished study with no knowledge unit has produced a
+    document, not knowledge. examples/ is the one study that ships, so it is
+    the only place a reader can see that step, and the only knowledge base CI
+    can validate on a fresh clone.
+    """
+
+    BASE = ROOT / "examples" / "knowledge"
+
+    def test_the_example_study_distilled_into_a_unit(self) -> None:
+        units = knowledge.load_units(self.BASE)
+        self.assertTrue(units, "examples/knowledge holds no units")
+        for unit in units:
+            with self.subTest(unit=unit.id):
+                self.assertTrue(unit.id)
+                self.assertTrue(unit.question)
+
+    def test_units_name_the_study_they_came_from(self) -> None:
+        for unit in knowledge.load_units(self.BASE):
+            with self.subTest(unit=unit.id):
+                studies = unit.list_field("studies")
+                self.assertTrue(studies, f"{unit.id} does not say which study produced it")
+                for study_id in studies:
+                    self.assertTrue(
+                        (ROOT / "examples" / study_id).is_dir(),
+                        f"{unit.id} names study {study_id}, which does not ship",
+                    )
+
+    def test_units_cite_sources_the_study_registered(self) -> None:
+        import yaml
+
+        for unit in knowledge.load_units(self.BASE):
+            for study_id in unit.list_field("studies"):
+                registry = ROOT / "examples" / study_id / "sources" / "registry.yaml"
+                data = yaml.safe_load(registry.read_text(encoding="utf-8"))
+                registered = {e["key"] for e in data["sources"]}
+                for source in unit.list_field("source_ids"):
+                    with self.subTest(unit=unit.id, source=source):
+                        self.assertIn(source, registered)
+
+    def test_index_is_current(self) -> None:
+        code, out = quiet(knowledge.main, ["--dir", str(self.BASE), "index", "--check"])
+        self.assertEqual(code, 0, out)
+
+    def test_links_resolve(self) -> None:
+        code, out = quiet(knowledge.main, ["--dir", str(self.BASE), "link", "--check"])
+        self.assertEqual(code, 0, out)
+
 
 if __name__ == "__main__":
     unittest.main()

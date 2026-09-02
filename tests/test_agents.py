@@ -12,6 +12,7 @@ contract is asserted once, against the source.
 """
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -19,6 +20,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 RUNTIME = ROOT / "runtime" / "agents"
+COMMANDS = ROOT / "runtime" / "commands"
+SKILL = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research"
 
 DELEGATED_AGENTS = ("researcher", "summarizer", "paper-analyst", "experimenter", "writer", "reviewer")
 INTERACTIVE_AGENTS = ("tutor", "assessor")
@@ -181,6 +184,62 @@ class AssessmentIndependenceTests(unittest.TestCase):
                 meta = frontmatter(name)
                 self.assertEqual(meta.get("webfetch"), "deny")
                 self.assertEqual(meta.get("websearch"), "deny")
+
+
+class SkillPlaybookReferenceTests(unittest.TestCase):
+    """Every playbook an agent is told to read must actually exist.
+
+    The agents cite the conduct-cs-ai-research skill by filename. That skill
+    is a submodule with its own release cadence, so a rename upstream would
+    otherwise send an agent to a missing file and be discovered only by an
+    agent quietly proceeding without the guidance it was supposed to load.
+    Skipped when the submodule is not checked out; CI checks it out.
+    """
+
+    EXPLICIT = re.compile(r"(references/[a-z0-9-]+\.md|assets/[a-z0-9-]+\.(?:md|csv))")
+    BACKTICKED = re.compile(r"`([a-z][a-z0-9-]*\.md)`")
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not (SKILL / "SKILL.md").is_file():
+            raise unittest.SkipTest(
+                "conduct-cs-ai-research submodule is not checked out; "
+                "run git submodule update --init --recursive"
+            )
+        cls.sources = sorted(RUNTIME.glob("*.md")) + sorted(COMMANDS.glob("*.md"))
+
+    def test_explicit_skill_paths_resolve(self) -> None:
+        for path in self.sources:
+            text = path.read_text(encoding="utf-8")
+            for match in sorted(set(self.EXPLICIT.findall(text))):
+                with self.subTest(source=path.name, target=match):
+                    self.assertTrue(
+                        (SKILL / match).is_file(),
+                        f"{path.name} cites {match}, which the skill does not have",
+                    )
+
+    def test_bare_playbook_names_resolve(self) -> None:
+        """A bare `name.md` must be a skill playbook or a file in this repo."""
+        repo_files = {p.name for p in ROOT.rglob("*.md") if ".git" not in p.parts}
+        skill_files = {p.name for p in (SKILL / "references").glob("*.md")}
+        skill_files |= {p.name for p in (SKILL / "assets").glob("*.md")}
+        for path in self.sources:
+            for name in sorted(set(self.BACKTICKED.findall(path.read_text(encoding="utf-8")))):
+                with self.subTest(source=path.name, target=name):
+                    self.assertTrue(
+                        name in skill_files or name in repo_files,
+                        f"{path.name} cites {name}, which is neither a skill playbook nor a repo file",
+                    )
+
+    def test_vendored_scripts_match_their_recorded_pin(self) -> None:
+        """The pin in UPSTREAM.md must name the commit actually checked out."""
+        import subprocess
+
+        head = subprocess.run(
+            ["git", "-C", str(SKILL), "rev-parse", "HEAD"], capture_output=True, text=True
+        ).stdout.strip()
+        pin = (ROOT / "tools" / "research" / "UPSTREAM.md").read_text(encoding="utf-8")
+        self.assertIn(head, pin, "tools/research/UPSTREAM.md does not record the checked-out commit")
 
 
 if __name__ == "__main__":

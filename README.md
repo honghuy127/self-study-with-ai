@@ -252,10 +252,18 @@ python3 tools/knowledge.py new attention.scale --question "Why 1/sqrt(d_k)?"
 python3 tools/knowledge.py index      # rebuild INDEX.md and index.json
 python3 tools/knowledge.py link       # dangling prerequisites, duplicate ids, broken [[links]]
 python3 tools/knowledge.py supersede attention.scale attention.scale-v2
+python3 tools/knowledge.py --dir examples/knowledge search "attention"   # the shipped base
 ```
 
 `check_all.py` fails on a stale index, a duplicate id, or a link that resolves
-to nothing, so the base cannot quietly rot into a folder of orphans.
+to nothing, so the base cannot quietly rot into a folder of orphans. It checks
+every base it finds: the shipped `examples/knowledge/` and your own
+`shared/knowledge/`.
+
+A finished study that produced no unit produced a document, not knowledge.
+[`examples/knowledge/attention-scale.md`](examples/knowledge/attention-scale.md)
+shows the shape: the answer, the anchored evidence behind it, the limits, and
+the misconceptions worth catching later.
 
 ## Retrieval, so the study survives
 
@@ -306,7 +314,9 @@ runtime/                       # single source of truth for agents and commands
 .opencode/                     # generated: OpenCode agents and commands
 └── skills/conduct-cs-ai-research/   # git submodule: research playbooks and gates
 .claude/                       # generated: Claude Code agents, commands, and the zone-guard hook
-examples/                      # one finished study, tracked, so CI validates something real
+examples/                      # one finished study and the unit it distilled, tracked, so CI validates something real
+├── 2026-08_scaled-dot-product-attention/
+└── knowledge/                 # what that study left behind
 studies/                       # your studies (gitignored)
 shared/
 ├── templates/                 # brief, notes, study.yaml, learning-*, practice-item, inbox-note, knowledge-unit
@@ -409,11 +419,15 @@ by un-ignoring those paths.
 
 [`examples/2026-08_scaled-dot-product-attention/`](examples/) is a finished
 delegated study, tracked in git: grounded, source-only, `understand` intent,
-signed off and deliberately not cleaned so the whole shape stays visible. CI
-validates it exactly as it validates your own studies, which is what keeps the
-per-study check groups from silently reporting `NOT_ASSESSED` everywhere. Read
-[`examples/README.md`](examples/README.md) for what it deliberately does not
-ship.
+signed off and deliberately not cleaned so the whole shape stays visible.
+Beside it, [`examples/knowledge/`](examples/knowledge/) holds the unit that
+study distilled into, so the example covers the whole lifecycle rather than
+stopping at the report.
+
+CI validates both exactly as it validates your own studies and units, which is
+what keeps the per-study and knowledge check groups from silently reporting
+`NOT_ASSESSED` everywhere. Read [`examples/README.md`](examples/README.md) for
+what the example deliberately does not ship.
 
 ## Adapting this repo
 

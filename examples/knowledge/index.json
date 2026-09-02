@@ -1,0 +1,25 @@
+{
+  "generated_by": "tools/knowledge.py",
+  "units": [
+    {
+      "id": "attention.scale",
+      "file": "attention-scale.md",
+      "title": "The sqrt(d_k) scale in dot-product attention",
+      "question": "Why are dot-product attention logits divided by the square root of the key dimension?",
+      "prerequisites": [],
+      "source_ids": [
+        "vaswani2017attention"
+      ],
+      "tags": [
+        "transformers",
+        "attention",
+        "normalization"
+      ],
+      "studies": [
+        "2026-08_scaled-dot-product-attention"
+      ],
+      "next_due": "",
+      "superseded_by": ""
+    }
+  ]
+}

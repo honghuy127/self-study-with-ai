@@ -21,6 +21,24 @@ fails, which is the point.
   source-only `understand` study answering why attention scores are divided by
   the square root of the head dimension. One source, signed off, not cleaned,
   so the full shape including `reviews/` stays visible.
+- `knowledge/attention-scale.md`: what that study left behind. AGENTS.md holds
+  that a finished study with no knowledge unit has produced a document rather
+  than knowledge, so the example would be incomplete against its own contract
+  without this. It is also the only knowledge base that ships, which is what
+  lets the `knowledge` and `knowledge-base` check groups report `PASS` on a
+  fresh clone instead of `NOT_ASSESSED`.
+
+Your own units live in `shared/knowledge/`, which is gitignored. The tools
+default there; point them here with `--dir`:
+
+```bash
+python3 tools/knowledge.py --dir examples/knowledge search "attention scaling"
+python3 tools/knowledge.py --dir examples/knowledge link
+```
+
+The shipped unit deliberately carries no `review.next_due`. Review state is
+per-person, and a date baked into the repository would show up as overdue in
+every clone forever.
 
 ## What is deliberately not here
 

@@ -197,6 +197,9 @@ review for refresh work.
 - `shared/knowledge/<unit>.md`: from `shared/templates/knowledge-unit.md`, one
   question per page, with structured frontmatter. Managed with
   `tools/knowledge.py`; never hand-maintain `INDEX.md` or `index.json`.
+  `examples/knowledge/attention-scale.md` is the worked reference: answer,
+  anchored evidence, evidential limits, misconceptions, and the study it came
+  from. Leave `review.next_due` for the human to schedule.
 - `shared/inbox/<date>_<slug>.md`: from `shared/templates/inbox-note.md`, the
   cheap path's output. Same evidence discipline as a note, a fraction of the
   ceremony.
