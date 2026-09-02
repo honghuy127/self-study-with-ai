@@ -12,6 +12,11 @@ Checks:
      cited key resolves in the deliverable-local refs.bib, no key the registry marked
      rejected is cited, and bib entries absent from the registry are warned
      about (the registry is the canonical source record).
+  6. The intent contract (when given a study directory whose status says the
+     deliverable is finished): a `compare` study must actually contain a
+     comparison section and a table, a `decide` study must name a
+     recommendation, and so on, per tools/contracts.py. Intent used to be a
+     field nothing read; this is what makes choosing it mean something.
 
 Exit 1 on any finding; print findings with line numbers.
 
@@ -24,6 +29,10 @@ import sys
 from pathlib import Path
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from contracts import INTENT_CONTRACTS  # noqa: E402
 
 MARKERS = ("[CITATION NEEDED]", "[EVIDENCE NEEDED]", "[RESULT PENDING]")
 
@@ -130,7 +139,7 @@ def citation_findings(study: Path) -> tuple[list[str], list[str]]:
                 bib, set(BIB_ENTRIES.findall(strip_comments(bib.read_text(encoding="utf-8"))))
             )
             if key not in bib_keys:
-                errors.append(f"{tex}: cited key '{key}' missing from {bib.relative_to(study)}")
+                errors.append(f"{tex}: cited key '{key}' missing from {bib.relative_to(study).as_posix()}")
     registry = registry_key_sets(study)
     if registry is not None:
         all_keys, rejected = registry
@@ -142,6 +151,40 @@ def citation_findings(study: Path) -> tuple[list[str], list[str]]:
                 for key in sorted(bib_keys - all_keys):
                     warnings.append(f"{bib}: entry '{key}' has no registry record")
     return errors, warnings
+
+
+# The intent contract is a promise about the finished deliverable, so it binds
+# only once the study claims to have one. Enforcing it earlier would fail every
+# freshly scaffolded study against its own template.
+FINISHED_STATUSES = {"review", "done"}
+
+
+def intent_findings(study: Path) -> list[str]:
+    """Check that the deliverable contains what its intent promised."""
+    manifest = study / "study.yaml"
+    if not manifest.is_file():
+        return []
+    try:
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return []
+    if not isinstance(data, dict) or str(data.get("status")) not in FINISHED_STATUSES:
+        return []
+    contract = INTENT_CONTRACTS.get(str(data.get("intent")))
+    if contract is None or not contract.required_sections:
+        return []
+    targets = [t for t in (study / "report" / "main.tex", study / "slides" / "main.tex") if t.is_file()]
+    if not targets:
+        return []
+    findings: list[str] = []
+    for tex in targets:
+        text = strip_comments(tex.read_text(encoding="utf-8"))
+        for label, pattern in contract.required_sections:
+            if not re.search(pattern, text, re.IGNORECASE):
+                findings.append(
+                    f"{tex}: intent '{data.get('intent')}' promises a {label}, which this deliverable does not contain"
+                )
+    return findings
 
 
 def main() -> int:
@@ -156,6 +199,7 @@ def main() -> int:
             errors, warnings = citation_findings(target)
             all_findings.extend(errors)
             all_warnings.extend(warnings)
+            all_findings.extend(intent_findings(target))
         for tex in resolve(arg):
             all_findings.extend(lint(tex))
     for warning in all_warnings:

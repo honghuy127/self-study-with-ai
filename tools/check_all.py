@@ -4,23 +4,31 @@
 Runs, in order:
   0. recreate empty dossier runtime dirs (.research/runs) that git cannot
      store, so a fresh clone does not fail the dossier audit;
-  1. lint_report.py over every study directory (report + slides);
+  1. lint_report.py over every study, in studies/ and in the tracked
+     examples/, including the intent contract's required sections;
   2. a manifest check that every study.yaml declares a valid mode, intent,
      assurance, methodology, deliverables, schema_version, a mode-consistent
      status and gate block, and completion-consistent verdicts;
   3. an artifact check that every manifest artifact path resolves (build
-     outputs and post-cleanup dossiers are exempt by design), that audited
-     studies hold a live dossier, and that uncleaned delegated studies at
-     done still hold their review record;
+     outputs are exempt by design), that archived paths are actually
+     retrievable from their packed archive, that audited studies hold a live
+     dossier, and that uncleaned delegated studies at done still hold their
+     review record;
   4. a brief check that no template guidance remains and that the declared
      source budget is not exceeded (warning);
-  5. audit_research.py over every study that has a .research/ dossier,
+  5. a knowledge-unit frontmatter check, plus a knowledge-base check that the
+     index is current and every id, prerequisite, and [[link]] resolves;
+  6. audit_research.py over every study that has a .research/ dossier,
      honoring the human-owned `audit_waiver` field in study.yaml;
-  6. a hygiene check that fails on git-tracked PDF binaries and warns on
+  7. a hygiene check that fails on git-tracked PDF binaries and warns on
      oversized tracked files;
-  7. a drift check that tools/research/*.py match the skill submodule's
-     scripts/*.py byte-for-byte;
-  8. the repo unit tests under tests/.
+  8. a docs check that the generated contract tables in README.md and
+     AGENTS.md still match tools/contracts.py;
+  9. a runtimes check that .opencode/ and .claude/ match their runtime/
+     source;
+ 10. a skill check that the vendored dossier scripts exist and record their
+     upstream pin;
+ 11. the repo unit tests under tests/.
 
 Groups that find nothing to check report NOT_ASSESSED instead of collapsing
 into PASS. Exits non-zero on any FAIL, after printing a summary of every
@@ -29,6 +37,7 @@ group. Usage: python3 tools/check_all.py
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import re
 import subprocess
 import sys
@@ -36,10 +45,16 @@ from pathlib import Path
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import contracts  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 STUDIES = ROOT / "studies"
+EXAMPLES = ROOT / "examples"
 TOOLS = ROOT / "tools"
-SKILL_SCRIPTS = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research" / "scripts"
+SKILL = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research"
+SKILL_SCRIPTS = SKILL / "scripts"
 VENDORED = TOOLS / "research"
 VENDORED_SCRIPTS = (
     "research_contract.py",
@@ -48,27 +63,19 @@ VENDORED_SCRIPTS = (
     "audit_research.py",
 )
 
-MODES = {"interactive", "delegated", "paper-reading"}
-INTENTS = {"understand", "solve", "build", "compare", "decide", "refresh", "survey"}
-ASSURANCES = {"quick", "grounded", "audited"}
-METHODOLOGIES = {"source-only", "static-code", "experimental", "mixed"}
-DELIVERABLE_VALUES = {"learning-note", "implementation", "decision-brief", "report", "slides", "none"}
-EXPERIMENTAL_METHODOLOGIES = {"experimental", "mixed"}
-REPORT_STYLES = {"neurips", "plain"}
-DEPRECATED_FIELDS = ("track", "depth")
-SCHEMA_VERSION = 2
-VERDICTS = {"PASS", "CONDITIONAL", "FAIL", "BLOCKED", "NOT_ASSESSED"}
+MODES = set(contracts.MODES)
+INTENTS = set(contracts.INTENTS)
+ASSURANCES = set(contracts.ASSURANCES)
+METHODOLOGIES = set(contracts.METHODOLOGIES)
+DELIVERABLE_VALUES = set(contracts.DELIVERABLES)
+EXPERIMENTAL_METHODOLOGIES = set(contracts.EXPERIMENTAL_METHODOLOGIES)
+REPORT_STYLES = set(contracts.REPORT_STYLES)
+DEPRECATED_FIELDS = contracts.DEPRECATED_FIELDS
+SCHEMA_VERSION = contracts.SCHEMA_VERSION
+VERDICTS = set(contracts.VERDICTS)
 
-VALID_STATUSES = {
-    "delegated": {"proposed", "gathering", "summarizing", "experimenting", "drafting", "review", "done"},
-    "interactive": {"scoped", "diagnosing", "learning", "practicing", "assessing", "retained"},
-    "paper-reading": {"proposed", "gathering", "analyzing", "presenting", "review", "done"},
-}
-MODE_GATES = {
-    "delegated": ("sources_approved", "notes_approved", "experiments_approved", "draft_approved", "review_signed_off"),
-    "interactive": ("scope_approved", "evidence_approved", "experiments_approved", "mastery_approved"),
-    "paper-reading": ("paper_approved", "analysis_approved", "deck_approved", "review_signed_off"),
-}
+VALID_STATUSES = {mode: set(states) for mode, states in contracts.STATES.items()}
+MODE_GATES = contracts.MODE_GATES
 
 
 def run(cmd: list[str]) -> tuple[int, str]:
@@ -77,7 +84,17 @@ def run(cmd: list[str]) -> tuple[int, str]:
 
 
 def list_studies() -> list[Path]:
-    return sorted(p for p in STUDIES.iterdir() if p.is_dir()) if STUDIES.is_dir() else []
+    """Every study the gate validates: the user's own plus the shipped examples.
+
+    `studies/` is gitignored, so on a fresh clone and in CI it is empty. The
+    examples are tracked, which is what keeps the per-study groups from
+    reporting NOT_ASSESSED everywhere and lets CI exercise a real study.
+    """
+    found: list[Path] = []
+    for root in (STUDIES, EXAMPLES):
+        if root.is_dir():
+            found.extend(p for p in root.iterdir() if p.is_dir() and (p / "study.yaml").is_file())
+    return sorted(found, key=lambda p: (p.parent.name, p.name))
 
 
 def check_lint() -> str:
@@ -221,6 +238,41 @@ def commit_resolvable(cwd: Path, sha: str) -> bool | None:
     return False
 
 
+def archive_status(study: Path, record: dict | None) -> tuple[bool | None, str]:
+    """Can the archived evidence actually be retrieved? (ok, human-readable reason).
+
+    Packed archives are checked directly: the zip must exist where
+    archive.yaml says and hash to the recorded sha256. Records written before
+    archiving existed, or by --no-archive, fall back to git-commit
+    resolvability, which is only meaningful when the study was committed.
+    None means "cannot tell from here" and never fails a check.
+    """
+    if not record:
+        return None, "no archive record"
+    rel = str(record.get("archive") or "")
+    if rel:
+        # archive paths are recorded relative to the repo root (studies/..'s parent)
+        archive = (study.parent.parent / rel).resolve()
+        if not archive.is_file():
+            archive = (study / rel).resolve()
+        if not archive.is_file():
+            return False, f"archive file {rel} is missing"
+        raw = record.get("archive_sha256")
+        expected = raw.strip() if isinstance(raw, str) else ""
+        if not expected:
+            return None, f"archive {rel} present but the record carries no checksum to verify it against"
+        actual = hashlib.sha256(archive.read_bytes()).hexdigest()
+        if actual != expected:
+            return False, f"archive {rel} does not match its recorded sha256"
+        return True, f"archive {rel} present and verified"
+    resolvable = commit_resolvable(study, str(record.get("git_commit", "")))
+    if resolvable is False:
+        return False, "no archive file, and the recorded git commit is not resolvable here"
+    if resolvable is None:
+        return None, "no archive file; commit not verifiable outside a git checkout"
+    return True, "no archive file; recorded git commit is resolvable"
+
+
 def is_archived(rel: str, record: dict | None) -> bool:
     if not record:
         return False
@@ -262,9 +314,9 @@ def validate_artifacts(study: Path) -> list[str]:
         if (study / rel).exists():
             continue
         if is_archived(rel, record):
-            resolvable = commit_resolvable(study, str((record or {}).get("git_commit", "")))
-            if resolvable is False:
-                errors.append(f"artifact {name} archived but archive commit is not resolvable")
+            ok, reason = archive_status(study, record)
+            if ok is False:
+                errors.append(f"artifact {name} was archived but is not retrievable: {reason}")
             continue
         if cleaned and name == "dossier" and record is None:
             continue
@@ -357,6 +409,9 @@ def snapshot_warnings(study: Path) -> list[str]:
     return []
 
 
+# An unfilled question line, whichever intent seeded it: "- Primary question: [...]".
+UNFILLED_QUESTION = re.compile(r"(?im)^-\s*primary question:\s*\[")
+
 BRIEF_SENTINELS = (
     "[one sentence, answerable]",
     "[Why this study matters",
@@ -385,6 +440,8 @@ def validate_brief(study: Path) -> tuple[list[str], list[str]]:
     for sentinel in BRIEF_SENTINELS:
         if sentinel in text:
             errors.append(f"brief.md still contains template guidance ({sentinel!r})")
+    if UNFILLED_QUESTION.search(text):
+        errors.append("brief.md still has an unfilled primary question")
     budget_match = re.search(r"(?im)^-\s*source budget:\s*(\d+)", text)
     if budget_match:
         budget = int(budget_match.group(1))
@@ -522,7 +579,8 @@ def check_knowledge(knowledge_dir: Path | None = None) -> str:
     fail; malformed frontmatter fails.
     """
     directory = knowledge_dir or ROOT / "shared" / "knowledge"
-    pages = sorted(directory.glob("*.md")) if directory.is_dir() else []
+    # INDEX.md is generated by tools/knowledge.py and carries no frontmatter.
+    pages = sorted(p for p in directory.glob("*.md") if p.name != "INDEX.md") if directory.is_dir() else []
     if not pages:
         print("knowledge: no pages found")
         return "NOT_ASSESSED"
@@ -558,9 +616,7 @@ def ensure_runtime_dirs() -> None:
     for local runs. We restore it before auditing rather than failing on a
     git limitation.
     """
-    if not STUDIES.is_dir():
-        return
-    for dossier in sorted((p / ".research") for p in STUDIES.iterdir() if (p / ".research").is_dir()):
+    for dossier in sorted((p / ".research") for p in list_studies() if (p / ".research").is_dir()):
         runs = dossier / "runs"
         if not runs.is_dir():
             runs.mkdir(parents=True)
@@ -585,7 +641,7 @@ def read_audit_waiver(study: Path) -> str:
 
 
 def check_audit() -> str:
-    dossiers = sorted((p / ".research") for p in STUDIES.iterdir() if (p / ".research").is_dir()) if STUDIES.is_dir() else []
+    dossiers = sorted((p / ".research") for p in list_studies() if (p / ".research").is_dir())
     if not dossiers:
         print("audit: no .research dossiers found")
         return "NOT_ASSESSED"
@@ -638,31 +694,70 @@ def check_hygiene() -> str:
     return "FAIL" if pdfs else "PASS"
 
 
-def check_drift() -> str:
-    if not SKILL_SCRIPTS.is_dir():
-        print(
-            "drift: skill submodule missing at "
-            f"{SKILL_SCRIPTS.relative_to(ROOT)}; run "
-            "'git submodule update --init --recursive'"
-        )
-        return "FAIL"
+def check_skill() -> str:
+    """The vendored dossier scripts must be present and their pin recorded.
+
+    They are vendored on purpose so the dossier workflow survives a checkout
+    with no submodule, which is why this no longer demands byte-for-byte
+    equality with the submodule. What it does demand is that the scripts exist
+    and that tools/research/UPSTREAM.md says where they came from. A newer
+    submodule is reported, not failed: refreshing is a decision, not an
+    emergency.
+    """
     ok = True
     for name in VENDORED_SCRIPTS:
-        vendored = VENDORED / name
-        upstream = SKILL_SCRIPTS / name
-        if not vendored.is_file():
-            print(f"drift {name}: FAIL (missing vendored copy)")
-            ok = False
-            continue
-        if not upstream.is_file():
-            print(f"drift {name}: FAIL (missing submodule copy)")
-            ok = False
-            continue
-        if vendored.read_bytes() != upstream.read_bytes():
-            print(f"drift {name}: FAIL (vendored copy differs from submodule)")
-            ok = False
+        if (VENDORED / name).is_file():
+            print(f"skill {name}: PASS")
         else:
-            print(f"drift {name}: PASS")
+            print(f"skill {name}: FAIL (missing vendored copy; run python3 tools/sync_skill.py)")
+            ok = False
+    pin = VENDORED / "UPSTREAM.md"
+    if not pin.is_file():
+        print("skill pin: FAIL (tools/research/UPSTREAM.md missing; run python3 tools/sync_skill.py)")
+        ok = False
+    else:
+        code, out = run([sys.executable, str(TOOLS / "sync_skill.py"), "--check"])
+        print(f"skill pin: {'PASS' if code == 0 else 'FAIL'}")
+        print(out)
+        if code != 0:
+            ok = False
+    if not (SKILL / "SKILL.md").is_file():
+        print(
+            "skill playbooks: WARN (submodule not initialized; agents cannot read the "
+            "references/ playbooks. Run: git submodule update --init --recursive)"
+        )
+    return "PASS" if ok else "FAIL"
+
+
+def check_docs() -> str:
+    """README and AGENTS.md contract tables must match tools/contracts.py."""
+    code, out = run([sys.executable, str(TOOLS / "docsgen.py"), "--check"])
+    print(f"docs: {'PASS' if code == 0 else 'FAIL'}")
+    print(out)
+    return "PASS" if code == 0 else "FAIL"
+
+
+def check_runtimes() -> str:
+    """.opencode/ and .claude/ must match their runtime/ source."""
+    code, out = run([sys.executable, str(TOOLS / "sync_runtimes.py"), "--check"])
+    print(f"runtimes: {'PASS' if code == 0 else 'FAIL'}")
+    print(out)
+    return "PASS" if code == 0 else "FAIL"
+
+
+def check_knowledge_base() -> str:
+    """Index freshness and link integrity across shared/knowledge/."""
+    directory = ROOT / "shared" / "knowledge"
+    if not directory.is_dir() or not [p for p in directory.glob("*.md") if p.name not in {"INDEX.md", "index.json"}]:
+        print("knowledge-base: no units yet")
+        return "NOT_ASSESSED"
+    ok = True
+    for label, argv in (("link", ["link", "--check"]), ("index", ["index", "--check"])):
+        code, out = run([sys.executable, str(TOOLS / "knowledge.py"), *argv])
+        print(f"knowledge-base {label}: {'PASS' if code == 0 else 'FAIL'}")
+        print(out)
+        if code != 0:
+            ok = False
     return "PASS" if ok else "FAIL"
 
 
@@ -682,14 +777,17 @@ def main() -> int:
         "artifacts": check_artifacts(),
         "briefs": check_briefs(),
         "knowledge": check_knowledge(),
+        "knowledge-base": check_knowledge_base(),
         "audit": check_audit(),
         "hygiene": check_hygiene(),
-        "drift": check_drift(),
+        "docs": check_docs(),
+        "runtimes": check_runtimes(),
+        "skill": check_skill(),
         "tests": check_tests(),
     }
     print()
     for name, status in results.items():
-        print(f"{name:9} {status}")
+        print(f"{name:15} {status}")
     return 0 if all(status != "FAIL" for status in results.values()) else 1
 
 

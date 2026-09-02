@@ -1,0 +1,128 @@
+\documentclass[11pt]{article}
+
+% Plain article style for self-study reports that do not need a conference
+% layout. Use the neurips style for publication-shaped delegated reports.
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+
+\title{Why Attention Divides by the Square Root of the Key Dimension}
+\author{self-study-with-ai}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Scaled dot-product attention divides its logits by $\sqrt{d_k}$ before the
+softmax~\citep{vaswani2017attention}. This report separates what the source
+establishes about that choice from what it conjectures. The divisor follows
+from a variance calculation: under the stated assumption of independent,
+zero-mean, unit-variance components, a $d_k$-dimensional dot product has
+variance $d_k$, so dividing by $\sqrt{d_k}$ restores unit variance. The
+familiar explanation, that unscaled logits saturate the softmax into a region
+of vanishing gradients, is offered by the source as a suspicion and is
+supported by no measurement in it. This study is source-only and measures
+nothing itself.
+\end{abstract}
+
+\section{Introduction}
+
+The factor $1/\sqrt{d_k}$ appears in every implementation of transformer
+attention, and the reason usually given for it is a story about softmax
+saturation. This report asks a narrower question: what does the primary
+source actually establish, and where does the widely repeated explanation
+exceed it? The scope is one paper~\citep{vaswani2017attention} and its own
+argument. Later variants and any empirical reproduction are out of scope by
+the brief.
+
+\section{Background}
+
+Dot-product attention scores a query against each key by an inner product,
+normalizes the scores with a softmax, and uses the result to weight
+values. The scaled variant differs by a single constant: each logit is
+divided by $\sqrt{d_k}$, where $d_k$ is the dimension of the keys
+(Section~3.2.1 of~\citet{vaswani2017attention}). In multi-head attention
+$d_k$ is the per-head dimension rather than the model width (Section~3.2.2),
+a distinction that is easy to lose when reading the equation alone.
+
+\section{Methods and Sources}
+
+One source, the paper that introduced the operation, read at the published
+version. Secondary explanations were excluded deliberately: they restate the
+same footnote with less precision, and citing them would launder a primary
+claim. The methodology is source-only, so this report contains no measurement
+of its own and no experimental claim. Every statement below traces to a
+locator in the single source; the anchored reading is recorded in the study's
+note for that source.
+
+\section{Findings}
+
+\subsection{The divisor follows from a variance calculation}
+
+The source states that if the components of a query and a key are independent
+random variables with mean $0$ and variance $1$, their dot product has mean
+$0$ and variance $d_k$ (Section~3.2.1, footnote~4
+of~\citet{vaswani2017attention}). The variance of a sum of $d_k$ independent
+terms grows linearly in $d_k$, so the standard deviation grows as
+$\sqrt{d_k}$. Dividing by $\sqrt{d_k}$ therefore returns the logits to unit
+variance, and no other function of $d_k$ does. This answers the primary
+question: the exponent is not a tuned hyperparameter but the exact
+normalization implied by the assumptions.
+
+The result holds only under those assumptions. Learned queries and keys are
+neither independent nor unit variance, so the calculation fixes a scale
+rather than guaranteeing a property of a trained model.
+
+\subsection{The motivating observation is comparative}
+
+The source introduces the scaling in the context of a comparison. It reports
+that additive attention and dot-product attention perform similarly for small
+$d_k$, but that additive attention outperforms dot-product attention without
+scaling for larger values of $d_k$ (Section~3.2.1). Dot-product attention is
+kept because it is faster and more space-efficient in practice, being
+implementable with optimized matrix multiplication.
+
+\subsection{The gradient explanation is a conjecture in the source}
+
+The source suspects that for large $d_k$ the dot products grow large in
+magnitude, pushing the softmax into regions with extremely small gradients,
+and it scales the logits to counteract that effect (Section~3.2.1). The hedge
+is the source's own. No ablation isolating the scaling factor, no
+gradient-magnitude measurement, and no effect size for this choice appears in
+the paper. The common presentation of this mechanism as established fact is
+therefore more confident than its primary source.
+
+\section{Related Work}
+
+Out of scope by the brief. Later proposals that revisit attention
+normalization exist, and this report neither surveys nor evaluates them; a
+study that did would need its own gathering pass and a wider source budget.
+
+\section{Limitations}
+
+This report is source-only and single-source. It measures nothing, so it
+cannot say whether the gradient conjecture is correct, only that the source
+marks it as a conjecture. The variance argument inherits its assumptions, and
+those assumptions do not describe trained attention. Settling either open
+question requires a study with an experimental methodology, which is the
+natural follow-up rather than a defect of this one.
+
+\section{Conclusion}
+
+The $\sqrt{d_k}$ divisor is the variance normalizer for a sum of $d_k$
+independent unit-variance products, under the assumptions the source
+states~\citep{vaswani2017attention}. The saturation story that usually
+accompanies it is a suspicion in that source and is unmeasured there. Knowing
+which half is derived and which half is conjectured is the durable result of
+this study.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

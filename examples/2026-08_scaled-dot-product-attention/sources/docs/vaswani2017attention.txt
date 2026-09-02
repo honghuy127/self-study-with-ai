@@ -1,0 +1,19 @@
+# snapshot: vaswani2017attention
+# source: https://arxiv.org/abs/1706.03762
+# tool: none (provenance stub, not an extraction)
+# fetched: n/a
+
+This example study ships a provenance stub instead of a pdftotext extraction
+of the paper. The repository does not redistribute paper text, and inventing
+an extraction would be exactly the fabrication the workflow exists to prevent.
+
+To make this a real snapshot, fetch the PDF into sources/pdfs/ and run:
+
+    pdftotext -layout sources/pdfs/vaswani2017attention.pdf \
+        sources/docs/vaswani2017attention.txt
+
+The note at notes/vaswani2017attention.md anchors every claim to a locator in
+the published paper (Section 3.2.1, Equation 1, and footnote 4 on page 4), so
+each one can be checked against your own copy without this file. In a real
+study the summarizer has no web access and reads this snapshot instead, which
+is why the registry requires one.

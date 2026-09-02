@@ -1,8 +1,9 @@
 ---
-description: Advance a paper-reading study one gated step from target-paper acquisition through analysis and presentation. Usage: /read-paper studies/<slug>
+description: "Advance a paper-reading study one gated step from target-paper acquisition through analysis and presentation. Usage: /read-paper studies/<slug>"
 agent: build
 ---
 
+<!-- Generated from runtime/commands/read-paper.md by tools/sync_runtimes.py. Edit the source, not this file. -->
 Advance the paper-reading pipeline for: $ARGUMENTS
 
 This command drives `mode: paper-reading` only and is idempotent. Read the

@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Linting the repo's own Python. The unit tests need nothing beyond the
+# standard library and PyYAML.
+ruff>=0.6

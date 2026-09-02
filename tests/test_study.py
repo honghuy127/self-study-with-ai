@@ -12,8 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-import study  # noqa: E402
 import check_all  # noqa: E402
+import study  # noqa: E402
 from new_study import copy_templates  # noqa: E402
 
 INTERACTIVE_CONFIG = {
@@ -369,21 +369,70 @@ class StudyCliTests(unittest.TestCase):
             self.assertEqual(study.cmd_practice(self.interactive), 0)
         self.assertIn("no practice items", out.getvalue())
 
+    def write_practice_item(self, name: str = "near-problem") -> Path:
+        item = self.interactive / "learning" / "practice" / f"{name}.md"
+        item.write_text(
+            "# Near problem\n\n## Problem\n\nDerive the scale factor.\n\n"
+            "## Hints\n\nThink about variance.\n\n## Solution\n\nDivide by sqrt(d_k).\n",
+            encoding="utf-8",
+        )
+        return item
+
+    def record_baseline(self) -> None:
+        (self.interactive / "learning" / "baseline.md").write_text(
+            "# Baseline attempt\n\n## Task\n\nExplain the scale.\n\n"
+            "## Summary of attempt\n\nLearner said: fuzzy, cannot recall.\n",
+            encoding="utf-8",
+        )
+
     def test_practice_lists_items(self) -> None:
-        item = self.interactive / "learning" / "practice" / "near-problem.md"
-        item.write_text("# Near problem\n", encoding="utf-8")
+        self.write_practice_item()
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.assertEqual(study.cmd_practice(self.interactive), 0)
-        self.assertIn("near-problem.md", out.getvalue())
+        self.assertIn("near-problem", out.getvalue())
 
-    def test_assess_points_at_mastery_record(self) -> None:
+    def test_practice_administers_problem_and_withholds_solution(self) -> None:
+        self.write_practice_item()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(study.cmd_practice(self.interactive, item="near-problem"), 0)
+        text = out.getvalue()
+        self.assertIn("Derive the scale factor", text)
+        self.assertNotIn("Divide by sqrt(d_k)", text)
+        self.assertNotIn("Think about variance", text)
+        self.assertIn("withheld", text)
+
+    def test_practice_unknown_item_fails(self) -> None:
+        self.write_practice_item()
+        with self.assertRaises(SystemExit):
+            study.cmd_practice(self.interactive, item="nope")
+
+    def test_assess_refuses_templated_baseline(self) -> None:
+        (self.interactive / "learning" / "baseline.md").write_text(
+            "# Baseline attempt\n\n## Task\n\n[The baseline prompt from the brief, verbatim]\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(SystemExit):
+            study.cmd_assess(self.interactive)
+
+    def test_assess_opens_attempt_record(self) -> None:
+        self.record_baseline()
+        (self.interactive / "learning" / "mastery.md").write_text(
+            "# Mastery record\n\n## Mastery task\n\nDerive it unaided.\n\n"
+            "## Grading notes\n\nAccept only a variance argument.\n",
+            encoding="utf-8",
+        )
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.assertEqual(study.cmd_assess(self.interactive), 0)
         text = out.getvalue()
         self.assertIn("help level none", text)
-        self.assertIn("mastery.md", text)
+        self.assertIn("Derive it unaided", text)
+        self.assertNotIn("Accept only a variance argument", text)
+        attempts = sorted((self.interactive / "learning" / "attempts").glob("mastery_*.md"))
+        self.assertEqual(len(attempts), 1)
+        self.assertIn("Learner response, verbatim", attempts[0].read_text(encoding="utf-8"))
 
     def test_revisit_reports_unscheduled(self) -> None:
         out = io.StringIO()

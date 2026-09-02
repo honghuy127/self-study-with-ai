@@ -27,9 +27,14 @@ __pycache__/
 # pytest
 .pytest_cache/
 
-# User content stays private: git tracks templates, tools, and docs;
-# each user's own studies and accumulated knowledge are not versioned
+# User content stays private: git tracks templates, tools, docs, and the
+# examples/ study that CI exercises; each user's own studies, questions, and
+# accumulated knowledge are not versioned
 studies/
+archive/
 shared/knowledge/
+shared/inbox/
+shared/queue.yaml
+shared/review-log.jsonl
 shared/glossary.md
 shared/library.bib

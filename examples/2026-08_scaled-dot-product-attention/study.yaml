@@ -1,0 +1,44 @@
+# Study manifest. Agents do not edit gate fields or status; lifecycle state
+# changes only through `python3 tools/study.py` (status-set and approve),
+# which appends every decision to events.jsonl.
+schema_version: 2          # bumped on breaking manifest changes
+id: "2026-08_scaled-dot-product-attention"
+title: "Why are attention scores divided by sqrt(d_k)?"
+created: "2026-08-04"
+
+# Study dimensions. mode is required and explicit; the others have defaults.
+mode: delegated            # interactive | delegated | paper-reading (one target paper to a comprehensive deck)
+intent: understand         # understand | solve | build | compare | decide | refresh | survey
+assurance: grounded        # quick | grounded | audited; audited adds a .research dossier and claims ledger
+methodology: source-only   # source-only | static-code | experimental | mixed
+deliverables:              # learning-note | implementation | decision-brief | report | slides | none
+  - report
+report_style: plain        # neurips | plain; used only when report is a deliverable
+
+status: done               # delegated: proposed | gathering | summarizing | experimenting | drafting | review | done
+                           # interactive: scoped | diagnosing | learning | practicing | assessing | retained
+                           # paper-reading: proposed | gathering | analyzing | presenting | review | done
+cleaned: ""                # set to a date by tools/cleanup_study.py at done-time cleanup
+audit_waiver: ""           # human-only reason to waive residual dossier-audit errors; agents never set this
+
+# Workflow gates. Agents refuse to pass until the human approves them via
+# tools/study.py. Delegated mode uses the block below; interactive mode uses
+# scope/evidence/experiments/mastery gates; paper-reading uses
+# paper/analysis/deck/review gates.
+gates:
+  sources_approved: true
+  notes_approved: true
+  experiments_approved: n_a   # n_a unless methodology is experimental or mixed
+  draft_approved: true
+  review_signed_off: true
+
+# What the pipeline produced, relative paths.
+artifacts:
+  brief: brief.md
+  registry: sources/registry.yaml
+  notes_dir: notes/
+  report: report/main.tex
+  pdf: report/build/main.pdf
+
+# Skill verdict from the last completed stage, if any.
+last_gate_verdict: "PASS"      # PASS | CONDITIONAL | FAIL | BLOCKED | NOT_ASSESSED

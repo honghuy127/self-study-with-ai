@@ -32,19 +32,24 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from contracts import (  # noqa: E402
+    ASSURANCES,
+    DELIVERABLES,
+    EXPERIMENTAL_METHODOLOGIES,
+    INTENT_CONTRACTS,
+    INTENTS,
+    METHODOLOGIES,
+    MODES,
+    REPORT_STYLES,
+)
+
 ROOT = Path(__file__).resolve().parent.parent
 STUDIES = ROOT / "studies"
 TEMPLATES = ROOT / "shared" / "templates"
 
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-
-MODES = ("interactive", "delegated", "paper-reading")
-INTENTS = ("understand", "solve", "build", "compare", "decide", "refresh", "survey")
-ASSURANCES = ("quick", "grounded", "audited")
-METHODOLOGIES = ("source-only", "static-code", "experimental", "mixed")
-DELIVERABLES = ("learning-note", "implementation", "decision-brief", "report", "slides", "none")
-EXPERIMENTAL_METHODOLOGIES = ("experimental", "mixed")
-REPORT_STYLES = ("neurips", "plain")
 
 DEFAULT_INTENT = {"interactive": "understand", "delegated": "survey", "paper-reading": "understand"}
 DEFAULT_DELIVERABLES = {
@@ -150,6 +155,32 @@ def render_study_yaml(template_text: str, fields: dict) -> str:
     return out
 
 
+GENERIC_QUESTIONS = (
+    "- Primary question: [one sentence, answerable]\n"
+    "- Secondary questions: [optional, one per line]"
+)
+
+
+def render_brief(config: dict) -> str:
+    """Seed the brief with the intent's own questions.
+
+    Intent used to be a field that nothing downstream read. It now shapes two
+    things: the questions the brief asks for here, and the sections
+    lint_report.py requires in the finished deliverable.
+    """
+    text = (TEMPLATES / "brief.md").read_text(encoding="utf-8")
+    contract = INTENT_CONTRACTS.get(config["intent"])
+    if contract is None:
+        return text
+    questions = "\n".join(contract.brief_questions)
+    replacement = (
+        f"<!-- intent: {config['intent']}. {contract.shape}. -->\n"
+        f"{questions}\n"
+        "- Secondary questions: [optional, one per line]"
+    )
+    return text.replace(GENERIC_QUESTIONS, replacement, 1)
+
+
 def copy_templates(study: Path, study_id: str, title: str, config: dict) -> None:
     """Materialize the mode-aware study skeleton.
 
@@ -198,8 +229,7 @@ def copy_templates(study: Path, study_id: str, title: str, config: dict) -> None
         shutil.copytree(TEMPLATES / "slides", study / "slides", dirs_exist_ok=True)
         (study / "slides" / "refs.bib").write_text("", encoding="utf-8")
 
-    brief = (TEMPLATES / "brief.md").read_text(encoding="utf-8")
-    (study / "brief.md").write_text(brief, encoding="utf-8")
+    (study / "brief.md").write_text(render_brief(config), encoding="utf-8")
 
     template_text = (TEMPLATES / "study.yaml").read_text(encoding="utf-8")
     fields = {
@@ -333,7 +363,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.assurance == "audited":
         init_dossier(study, title)
 
-    print(f"created {study.relative_to(ROOT)}")
+    try:
+        shown = study.relative_to(ROOT).as_posix()
+    except ValueError:
+        shown = study.as_posix()  # STUDIES redirected outside the repo, as tests do
+    print(f"created {shown}")
     if mode == "interactive":
         print(f"next: fill studies/{study_id}/brief.md, then record the unaided baseline in learning/baseline.md")
     elif mode == "paper-reading":

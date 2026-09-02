@@ -1,0 +1,42 @@
+# provenance: queries run (text, date, scope), inclusion/exclusion reasons
+# entries are appended by the researcher agent; schema in AGENTS.md
+provenance:
+  queries:
+    - text: "scaled dot-product attention sqrt(d_k) origin"
+      date: "2026-08-04"
+      scope: "arXiv, NeurIPS proceedings"
+    - text: "transformer attention scaling factor justification"
+      date: "2026-08-04"
+      scope: "arXiv"
+  knowledge_reused: []   # first study in this base; nothing to reuse
+  inclusion: >-
+    The question is about a specific choice made in one paper, so the primary
+    source is the paper that made it. Secondary explanations were excluded on
+    purpose: they restate the same footnote with less precision, and citing
+    them would launder a primary claim through a blog.
+  coverage_limits: >-
+    One source. This is not a survey of attention scaling and says nothing
+    about later alternatives. Claims about what happens empirically at large
+    d_k come from the source's own reporting, not from any run in this study.
+
+sources:
+  - key: vaswani2017attention
+    title: "Attention Is All You Need"
+    authors: "Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia"
+    year: 2017
+    url: "https://arxiv.org/abs/1706.03762"
+    pdf: "https://arxiv.org/pdf/1706.03762"
+    venue: "Advances in Neural Information Processing Systems 30 (NeurIPS 2017)"
+    tier: peer-reviewed
+    status: noted
+    notes_file: notes/vaswani2017attention.md
+    snapshot: sources/docs/vaswani2017attention.txt
+    bibtex: |
+      @inproceedings{vaswani2017attention,
+        title = {Attention Is All You Need},
+        author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+        booktitle = {Advances in Neural Information Processing Systems},
+        volume = {30},
+        year = {2017},
+        url = {https://arxiv.org/abs/1706.03762}
+      }

@@ -1,8 +1,9 @@
 ---
-description: Run the gathering stage for a study via the researcher agent. Usage: /gather studies/<slug>
+description: "Run the gathering stage for a study via the researcher agent. Usage: /gather studies/<slug>"
 agent: build
 ---
 
+<!-- Generated from runtime/commands/gather.md by tools/sync_runtimes.py. Edit the source, not this file. -->
 Run the gathering stage for: $ARGUMENTS
 
 1. Read the study's `brief.md` and `study.yaml`. Refuse to proceed if the

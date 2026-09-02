@@ -1,8 +1,9 @@
 ---
-description: Run the reviewer agent on a study draft and record findings. Usage: /review studies/<slug>
+description: "Run the reviewer agent on a study draft and record findings. Usage: /review studies/<slug>"
 agent: build
 ---
 
+<!-- Generated from runtime/commands/review.md by tools/sync_runtimes.py. Edit the source, not this file. -->
 Run the review stage for: $ARGUMENTS
 
 1. Read `brief.md` and `study.yaml`. For delegated mode, refuse unless

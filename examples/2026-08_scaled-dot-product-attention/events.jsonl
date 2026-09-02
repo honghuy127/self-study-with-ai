@@ -1,0 +1,10 @@
+{"ts": "2026-08-04T09:12:00+09:00", "type": "init", "mode": "delegated", "assurance": "grounded", "methodology": "source-only", "deliverables": ["report"], "actor": "agent"}
+{"ts": "2026-08-04T09:40:00+09:00", "type": "transition", "from": "proposed", "to": "gathering", "note": "brief filled; one-source budget set", "actor": "agent"}
+{"ts": "2026-08-04T10:05:00+09:00", "type": "approval", "gate": "sources_approved", "note": "primary source verified against the arXiv listing and the NeurIPS 2017 proceedings entry", "actor": "human", "date": "2026-08-04", "verdict": "PASS", "evidence_inspected": "sources/registry.yaml provenance block and bibtex"}
+{"ts": "2026-08-04T10:06:00+09:00", "type": "transition", "from": "gathering", "to": "summarizing", "note": "sources gate approved", "actor": "agent"}
+{"ts": "2026-08-04T11:20:00+09:00", "type": "approval", "gate": "notes_approved", "note": "checked every anchor in the note against my own copy of the paper; the suspect/establish split is correct", "actor": "human", "date": "2026-08-04", "verdict": "PASS", "evidence_inspected": "notes/vaswani2017attention.md"}
+{"ts": "2026-08-04T11:21:00+09:00", "type": "transition", "from": "summarizing", "to": "drafting", "note": "notes gate approved", "actor": "agent"}
+{"ts": "2026-08-04T12:30:00+09:00", "type": "approval", "gate": "draft_approved", "note": "abstract hedge fixed after first read; lint clean", "actor": "human", "date": "2026-08-04", "verdict": "PASS", "evidence_inspected": "report/main.tex, lint_report output"}
+{"ts": "2026-08-04T12:31:00+09:00", "type": "transition", "from": "drafting", "to": "review", "note": "draft gate approved", "actor": "agent"}
+{"ts": "2026-08-04T13:15:00+09:00", "type": "approval", "gate": "review_signed_off", "note": "findings 1 resolved, 2 and 3 accepted as recorded decisions", "actor": "human", "date": "2026-08-04", "verdict": "PASS", "evidence_inspected": "reviews/r1-agent.md", "reopen_condition": "reopen if an experimental study contradicts the gradient conjecture"}
+{"ts": "2026-08-04T13:16:00+09:00", "type": "transition", "from": "review", "to": "done", "note": "review signed off", "actor": "agent"}

@@ -11,6 +11,7 @@ permission:
   bash: deny
 ---
 
+<!-- Generated from runtime/agents/summarizer.md by tools/sync_runtimes.py. Edit the source, not this file. -->
 You are the summarizer for a self-study pipeline. You convert one assigned
 source (from `sources/registry.yaml`) into one note under `notes/`, following
 `shared/templates/note.md` or `shared/templates/note-codebase.md` exactly

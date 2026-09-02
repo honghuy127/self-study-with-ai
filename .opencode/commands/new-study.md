@@ -1,8 +1,9 @@
 ---
-description: Scaffold a new study directory from a topic. Usage: /new-study <topic-slug> [title] --mode interactive|delegated|paper-reading
+description: "Scaffold a new study directory from a topic. Usage: /new-study <topic-slug> [title] --mode interactive|delegated|paper-reading"
 agent: build
 ---
 
+<!-- Generated from runtime/commands/new-study.md by tools/sync_runtimes.py. Edit the source, not this file. -->
 Create a new study for the topic: $ARGUMENTS
 
 Steps:

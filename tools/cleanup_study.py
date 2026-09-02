@@ -1,25 +1,32 @@
 #!/usr/bin/env python3
-"""Slim a signed-off study down to its knowledge core.
+"""Slim a signed-off study down to its knowledge core, packing what it removes.
 
 This repo stores self-study, not academic publication. During a study the
 full evidence chain is kept; raw source snapshots, experiment artifacts,
 review drafts, and the .research dossier all guard in-progress work and are
 checked by tools/research/audit_research.py. After the human signs the review
-off, only the distilled knowledge retains lasting value. The chain stays
-recoverable in git history, and the registry URLs can re-fetch raw sources.
+off, only the distilled knowledge stays in the working tree.
 
 Kept:    brief.md, study.yaml, notes/, report/ (sources), slides/ (sources),
          sources/registry.yaml, sources/repos.yaml
-Removed: sources/docs/, sources/pdfs/, experiments/, .research/, reviews/
+Packed:  sources/docs/, sources/pdfs/, experiments/, .research/, reviews/
 
-Every removal is recorded in archive.yaml with the git commit where the
-content last existed, file counts, and a retrieval command, so declared
-evidence locators stay resolvable without mining history by hand.
+Nothing is deleted until it is inside a verified archive. Cleanup writes
+`archive/<study-id>.zip`, re-opens it, confirms every packed file is present
+with a matching size, and only then removes the originals. archive.yaml
+records the archive path, its sha256, its file count, and a retrieval command
+that works in any checkout.
+
+This is deliberate: `studies/` is gitignored by default, so the git-history
+recovery this tool used to promise resolved to nothing whenever the evidence
+had never been committed. A local zip does not depend on what git happened to
+track. `--no-archive` restores the old delete-only behavior and requires
+`--force`, because it destroys the evidence chain the repo exists to protect.
 
 Run manifests reference paths that existed at capture time; after cleanup
-those paths are historical. Registry `snapshot` entries likewise become
-historical references that re-fetch from `url`. Gitignored build outputs
-(report/build, slides/build) are not touched.
+those paths live in the archive. Registry `snapshot` entries likewise become
+archived references that can also be re-fetched from `url`. Gitignored build
+outputs (report/build, slides/build) are not touched.
 
 Refuses to run unless study.yaml records `status: done`,
 `gates.review_signed_off: true`, and no `cleaned` stamp yet. Interactive
@@ -28,15 +35,18 @@ Delegated and paper-reading studies share done-time cleanup. Stamps
 `cleaned: "YYYY-MM-DD"` on success.
 
 Usage: python3 tools/cleanup_study.py <study-dir> [--dry-run]
+                                      [--archive-dir DIR] [--no-archive --force]
 """
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import re
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import yaml
@@ -102,38 +112,110 @@ def stamp_cleaned(study: Path, text: str) -> str:
     return line
 
 
-def write_archive_record(study: Path, removed: list[tuple[str, int, int]]) -> None:
-    """Record what left the tree so locators stay resolvable.
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
-    The commit recorded is HEAD at cleanup time: cleanup runs before its own
-    commit, so that commit is where the removed content last exists.
+
+def pack_archive(study: Path, paths: list[str], archive_dir: Path) -> Path:
+    """Zip every removable path, then verify the archive can be read back.
+
+    Verification is the point: the caller deletes originals only after this
+    returns, and it returns only when every packed file is present in the
+    archive at its recorded size. A half-written zip raises instead.
+    """
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    archive = archive_dir / f"{study.name}.zip"
+    if archive.exists():
+        raise SystemExit(
+            f"refusing: {archive} already exists; move it aside or pass --archive-dir"
+        )
+    expected: dict[str, int] = {}
+    tmp = archive.with_suffix(".zip.part")
+    with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        for rel in paths:
+            target = study / rel
+            if not target.exists():
+                continue
+            for item in sorted(target.rglob("*")):
+                if not item.is_file():
+                    continue
+                arcname = item.relative_to(study).as_posix()
+                bundle.write(item, arcname)
+                expected[arcname] = item.stat().st_size
+    with zipfile.ZipFile(tmp) as bundle:
+        packed = {info.filename: info.file_size for info in bundle.infolist()}
+        broken = bundle.testzip()
+        if broken is not None:
+            tmp.unlink(missing_ok=True)
+            raise SystemExit(f"refusing: archive failed its own integrity check at {broken}")
+    missing = sorted(set(expected) - set(packed))
+    mismatched = sorted(name for name, size in expected.items() if packed.get(name) != size)
+    if missing or mismatched:
+        tmp.unlink(missing_ok=True)
+        detail = ", ".join((missing + mismatched)[:5])
+        raise SystemExit(f"refusing: archive did not capture {len(missing) + len(mismatched)} files ({detail})")
+    tmp.replace(archive)
+    return archive
+
+
+def write_archive_record(
+    study: Path,
+    removed: list[tuple[str, int, int]],
+    archive: Path | None,
+) -> None:
+    """Record what left the tree and exactly how to get it back.
+
+    When an archive was packed, the retrieval command reads from that file and
+    works in any checkout. Without one (`--no-archive --force`), the record
+    falls back to git history and says plainly that recovery depends on the
+    content having been committed, which the default gitignore makes unlikely.
     """
     commit = head_commit(study)
-    record = {
-        "archived_at": dt.date.today().isoformat(),
-        "git_commit": commit,
-        "note": (
-            "Removed paths stay recoverable from git history. "
-            + (
-                "git_commit is where the content last exists."
-                if commit
-                else "git_commit unknown: not a git repository at cleanup time."
-            )
-        ),
-        "removed": [
-            {
-                "path": rel,
-                "size_kb": size // 1024,
-                "files": files,
-                "retrieve": (
+    if archive is not None:
+        try:
+            archive_rel = archive.relative_to(study.parent.parent).as_posix()
+        except ValueError:
+            archive_rel = archive.as_posix()
+        record: dict = {
+            "archived_at": dt.date.today().isoformat(),
+            "archive": archive_rel,
+            "archive_sha256": sha256_file(archive),
+            "archive_files": len(zipfile.ZipFile(archive).infolist()),
+            "git_commit": commit,
+            "note": "Packed paths live in the archive file; retrieval does not depend on git history.",
+        }
+    else:
+        record = {
+            "archived_at": dt.date.today().isoformat(),
+            "archive": "",
+            "git_commit": commit,
+            "note": (
+                "Removed without an archive (--no-archive --force). Recovery depends on the content "
+                "having been committed before cleanup; studies/ is gitignored by default, so these "
+                "retrieval commands may resolve to nothing."
+            ),
+        }
+    record["removed"] = [
+        {
+            "path": rel,
+            "size_kb": size // 1024,
+            "files": files,
+            "retrieve": (
+                f"python3 -m zipfile -e {record['archive']} <destination>"
+                if archive is not None
+                else (
                     f"git show {commit}:{study.parent.name}/{study.name}/{rel}"
                     if commit
                     else f"git log -- {study.parent.name}/{study.name}/{rel}"
-                ),
-            }
-            for rel, size, files in removed
-        ],
-    }
+                )
+            ),
+        }
+        for rel, size, files in removed
+    ]
     (study / "archive.yaml").write_text(
         "# Archive record written by tools/cleanup_study.py. Do not edit by hand.\n"
         + yaml.dump(record, sort_keys=False, allow_unicode=True),
@@ -141,15 +223,24 @@ def write_archive_record(study: Path, removed: list[tuple[str, int, int]]) -> No
     )
 
 
-def clean(study: Path, dry_run: bool) -> list[tuple[str, int]]:
+def clean(
+    study: Path,
+    dry_run: bool,
+    archive_dir: Path | None = None,
+    no_archive: bool = False,
+) -> list[tuple[str, int]]:
     manifest = study / "study.yaml"
     data = load_manifest(study)
     check_gates(data)
+
+    present = [rel for rel in REMOVABLE if (study / rel).exists()]
+    archive: Path | None = None
+    if present and not dry_run and not no_archive:
+        archive = pack_archive(study, present, archive_dir or (study.parent.parent / "archive"))
+
     removed = []
-    for rel in REMOVABLE:
+    for rel in present:
         target = study / rel
-        if not target.exists():
-            continue
         size = tree_size(target)
         files = tree_file_count(target)
         if not dry_run:
@@ -159,7 +250,7 @@ def clean(study: Path, dry_run: bool) -> list[tuple[str, int]]:
     # removed, so a cleaned study can be reopened without guessing whether the
     # absence of evidence means "archived" or "never existed".
     if not dry_run:
-        write_archive_record(study, removed)
+        write_archive_record(study, removed, archive)
         stamp_cleaned(study, manifest.read_text(encoding="utf-8"))
     return [(rel, size) for rel, size, _ in removed]
 
@@ -172,15 +263,38 @@ def main() -> int:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="report what would be removed without deleting anything",
+        help="report what would be packed and removed without changing anything",
+    )
+    parser.add_argument(
+        "--archive-dir",
+        default=None,
+        help="where to write <study-id>.zip (default: archive/ beside studies/)",
+    )
+    parser.add_argument(
+        "--no-archive",
+        action="store_true",
+        help="delete without packing an archive first; requires --force",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="acknowledge that --no-archive destroys the evidence chain",
     )
     args = parser.parse_args()
+    if args.no_archive and not args.force:
+        print(
+            "error: --no-archive deletes the evidence chain with no verified copy. "
+            "Pass --force if that is really what you want.",
+            file=sys.stderr,
+        )
+        return 2
     study = Path(args.study_dir).resolve()
     if not study.is_dir():
         print(f"error: study directory not found: {study}", file=sys.stderr)
         return 2
     before = tree_size(study)
-    removed = clean(study, args.dry_run)
+    archive_dir = Path(args.archive_dir).resolve() if args.archive_dir else None
+    removed = clean(study, args.dry_run, archive_dir=archive_dir, no_archive=args.no_archive)
     verb = "would remove" if args.dry_run else "removed"
     for rel, size in removed:
         print(f"{verb} {rel} ({size // 1024} KB)")
@@ -189,6 +303,9 @@ def main() -> int:
     else:
         freed = sum(size for _, size in removed)
         print(f"{'would free' if args.dry_run else 'freed'} {freed // 1024} KB; study was {before // 1024} KB on disk")
+        if not args.dry_run and not args.no_archive:
+            record = yaml.safe_load((study / "archive.yaml").read_text(encoding="utf-8"))
+            print(f"archived to {record['archive']} ({record['archive_files']} files, sha256 {record['archive_sha256'][:12]})")
     return 0
 
 

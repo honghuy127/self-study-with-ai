@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,27 +13,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import pin_repos  # noqa: E402
 
-
-def make_git_repo(path: Path, message: str = "init") -> str:
-    path.mkdir(parents=True)
-    (path / "f.txt").write_text("hello\n", encoding="utf-8")
-    env = {
-        "GIT_AUTHOR_NAME": "t",
-        "GIT_AUTHOR_EMAIL": "t@example.com",
-        "GIT_COMMITTER_NAME": "t",
-        "GIT_COMMITTER_EMAIL": "t@example.com",
-        "PATH": __import__("os").environ["PATH"],
-        "HOME": __import__("os").environ["HOME"],
-    }
-    for args in (
-        ["git", "init", "-q"],
-        ["git", "add", "."],
-        ["git", "commit", "-q", "-m", message],
-    ):
-        subprocess.run(args, cwd=path, check=True, env=env, capture_output=True)
-    return subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=path, check=True, capture_output=True, text=True
-    ).stdout.strip()
+from tests.gitenv import make_git_repo  # noqa: E402
 
 
 class StudyFactory:
@@ -42,7 +21,7 @@ class StudyFactory:
         self.study = tmp / "study"
         (self.study / "sources").mkdir(parents=True)
 
-    def with_dossier(self) -> "StudyFactory":
+    def with_dossier(self) -> StudyFactory:
         (self.study / ".research").mkdir()
         (self.study / ".research" / "evidence.jsonl").write_text("", encoding="utf-8")
         return self

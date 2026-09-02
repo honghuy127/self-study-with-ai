@@ -7,8 +7,8 @@ Usage: python3 tools/study.py <command> [args]
   status      <id>                    show mode, state, gates, and next action
   status-set  <id> <status> --note .. move the study along its transition graph
   approve     <id> <gate> --note ...  record a human gate decision
-  practice    <id>                    interactive: show practice items without exposing answers
-  assess      <id>                    interactive: administer the mastery task
+  practice    <id> [--item NAME]      interactive: administer a practice item, problem only
+  assess      <id>                    interactive: open the unaided mastery attempt
   revisit     <id>                    interactive: list due delayed-review items
   reopen      <id>                    report what reopening a finished study needs (read-only)
 
@@ -26,114 +26,21 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
-
 import check_all
+import yaml
+from contracts import (
+    EXPERIMENTAL_METHODOLOGIES,
+    GATE_ALIASES,
+    INTENT_CONTRACTS,
+    MODE_GATES,
+    NEXT_ACTION,
+    TRANSITIONS,
+    required_gates,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 STUDIES = ROOT / "studies"
-
-MODE_GATES = {
-    "delegated": ("sources_approved", "notes_approved", "experiments_approved", "draft_approved", "review_signed_off"),
-    "interactive": ("scope_approved", "evidence_approved", "experiments_approved", "mastery_approved"),
-    "paper-reading": ("paper_approved", "analysis_approved", "deck_approved", "review_signed_off"),
-}
-
-# One state engine, three allowed transition graphs. Backward edges exist on
-# purpose: assessment can return to practice, review can return to drafting,
-# and a finished non-interactive study can reopen into review for refresh work.
-TRANSITIONS = {
-    "delegated": {
-        "proposed": {"gathering"},
-        "gathering": {"summarizing", "proposed"},
-        "summarizing": {"experimenting", "drafting", "gathering"},
-        "experimenting": {"drafting", "summarizing"},
-        "drafting": {"review", "summarizing", "experimenting"},
-        "review": {"done", "gathering", "summarizing", "experimenting", "drafting"},
-        "done": {"review"},
-    },
-    "interactive": {
-        "scoped": {"diagnosing"},
-        "diagnosing": {"learning", "scoped"},
-        "learning": {"practicing", "diagnosing"},
-        "practicing": {"assessing", "learning"},
-        "assessing": {"retained", "practicing", "learning"},
-        "retained": set(),
-    },
-    "paper-reading": {
-        "proposed": {"gathering"},
-        "gathering": {"analyzing", "proposed"},
-        "analyzing": {"presenting", "gathering"},
-        "presenting": {"review", "analyzing"},
-        "review": {"done", "gathering", "analyzing", "presenting"},
-        "done": {"review"},
-    },
-}
-
-# Gates that must be approved before entering a state. The experiments gate
-# only binds when the methodology runs experiments.
-ENTRY_GATES = {
-    "delegated": {
-        "drafting": ("sources_approved", "notes_approved"),
-        "review": ("draft_approved",),
-        "done": ("review_signed_off",),
-    },
-    "interactive": {
-        "diagnosing": ("scope_approved",),
-        "learning": ("evidence_approved",),
-        "retained": ("mastery_approved",),
-    },
-    "paper-reading": {
-        "analyzing": ("paper_approved",),
-        "presenting": ("analysis_approved",),
-        "review": ("deck_approved",),
-        "done": ("review_signed_off",),
-    },
-}
-
-EXPERIMENTAL_METHODOLOGIES = ("experimental", "mixed")
-
-GATE_ALIASES = {
-    "sources": "sources_approved",
-    "notes": "notes_approved",
-    "experiments": "experiments_approved",
-    "draft": "draft_approved",
-    "review": "review_signed_off",
-    "scope": "scope_approved",
-    "evidence": "evidence_approved",
-    "mastery": "mastery_approved",
-    "paper": "paper_approved",
-    "analysis": "analysis_approved",
-    "deck": "deck_approved",
-}
-
-NEXT_ACTION = {
-    "delegated": {
-        "proposed": "fill brief.md, then /gather and stop for sources approval",
-        "gathering": "register sources, then stop for sources approval",
-        "summarizing": "note every registered source, then stop for notes approval",
-        "experimenting": "run the approved experiments, then stop for experiments approval",
-        "drafting": "synthesize and draft the report, then stop for draft approval",
-        "review": "independent review, then stop for review sign-off",
-        "done": "merge shared/ knowledge, then tools/cleanup_study.py; reopen later via study.py reopen",
-    },
-    "interactive": {
-        "scoped": "record the unaided baseline in learning/baseline.md, then approve scope",
-        "diagnosing": "plan the concept path in learning/map.md from the baseline",
-        "learning": "tutor one link at a time; journal every exchange in learning/journal.md",
-        "practicing": "administer near and transfer practice (study practice)",
-        "assessing": "administer the mastery task unaided (study assess), then approve mastery",
-        "retained": "distill outputs/learning-note.md and schedule the delayed review (study revisit)",
-    },
-    "paper-reading": {
-        "proposed": "fill the exact target-paper and talk contracts, then /read-paper",
-        "gathering": "verify one target paper and context packet, then stop for paper approval",
-        "analyzing": "produce the anchored paper analysis, then stop for analysis approval",
-        "presenting": "storyboard, build, lint, and render the deck, then stop for deck approval",
-        "review": "independently audit slide claims and rendered output, then stop for review sign-off",
-        "done": "merge reusable knowledge, then tools/cleanup_study.py; reopen later via study.py reopen",
-    },
-}
+TEMPLATES = ROOT / "shared" / "templates"
 
 
 def resolve_study(ident: str) -> Path:
@@ -153,10 +60,24 @@ def load_manifest(study: Path) -> dict:
     try:
         data = yaml.safe_load(manifest.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
-        raise SystemExit(f"study: invalid YAML in {manifest}: {exc}")
+        raise SystemExit(f"study: invalid YAML in {manifest}: {exc}") from exc
     if not isinstance(data, dict):
         raise SystemExit(f"study: {manifest} did not parse to a mapping")
     return data
+
+
+# Guidance strings from shared/templates/learning-baseline.md. Their presence
+# means nobody recorded a real attempt in that file yet.
+BASELINE_SENTINELS = (
+    "[The baseline prompt from the brief, verbatim]",
+    "[What the learner produced unaided",
+    "[Which pieces feel least solid",
+    "[What the attempt implies for the concept path",
+)
+
+
+def is_templated(text: str) -> bool:
+    return any(sentinel in text for sentinel in BASELINE_SENTINELS)
 
 
 def require_interactive(study: Path, data: dict) -> None:
@@ -201,12 +122,7 @@ def cmd_status_set(study: Path, target: str, note: str) -> int:
         )
 
     gates = data.get("gates") or {}
-    required = list(ENTRY_GATES[mode].get(target, ()))
-    if target == "drafting" and methodology in EXPERIMENTAL_METHODOLOGIES:
-        required.append("experiments_approved")
-    if target == "retained" and gates.get("experiments_approved") != "n_a":
-        required.append("experiments_approved")
-    for gate in required:
+    for gate in required_gates(mode, target, methodology, gates):
         if gates.get(gate) is not True:
             raise SystemExit(f"study: entering {target!r} requires gate {gate}; approve it first")
 
@@ -244,6 +160,12 @@ def cmd_status(study: Path) -> int:
         for name, rel in artifacts.items():
             mark = "present" if (study / str(rel)).exists() else "missing"
             print(f"  {name:24} {rel} ({mark})")
+    contract = INTENT_CONTRACTS.get(str(data.get("intent")))
+    if contract:
+        print(f"intent contract: {contract.shape}")
+        if contract.required_sections:
+            required = ", ".join(label for label, _ in contract.required_sections)
+            print(f"  deliverable must contain: {required} (enforced by lint_report.py)")
     next_action = NEXT_ACTION.get(mode, {}).get(status, "no automatic suggestion for this state")
     print(f"next: {next_action}")
     allowed = sorted(TRANSITIONS.get(mode, {}).get(status, set()))
@@ -268,7 +190,7 @@ def cmd_approve(study: Path, gate: str, note: str, evidence: str = "", reopen: s
         raise SystemExit(f"study: gate {resolved} is already approved")
     if re.search(rf"(?m)^  {resolved}: n_a", text):
         raise SystemExit(f"study: gate {resolved} is n_a for this methodology")
-    new_text, count = re.subn(rf"(?m)^(  {resolved}: )false(\s*(?:#.*)?)$", rf"\g<1>true\2", text, count=1)
+    new_text, count = re.subn(rf"(?m)^(  {resolved}: )false(\s*(?:#.*)?)$", r"\g<1>true\2", text, count=1)
     if count != 1:
         raise SystemExit(f"study: gate {resolved} not found as pending in {manifest}")
     new_text, count = re.subn(
@@ -291,7 +213,50 @@ def cmd_approve(study: Path, gate: str, note: str, evidence: str = "", reopen: s
     return 0
 
 
-def cmd_practice(study: Path) -> int:
+SECTION_RE = re.compile(r"(?m)^##\s+(.+?)\s*$")
+
+# Practice and mastery files hold the answer next to the question. These
+# sections are withheld until the learner has attempted the item, so the
+# administering process never puts a solution on screen first.
+WITHHELD_SECTIONS = ("hints", "solution", "expected", "answer", "grading notes")
+
+
+def split_sections(text: str) -> list[tuple[str, str]]:
+    """Split a markdown body into (heading, body) pairs at level-two headings."""
+    matches = list(SECTION_RE.finditer(text))
+    sections: list[tuple[str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections.append((match.group(1), text[match.end():end].strip("\n")))
+    return sections
+
+
+def is_withheld(heading: str) -> bool:
+    lowered = heading.strip().lower()
+    return any(lowered.startswith(name) for name in WITHHELD_SECTIONS)
+
+
+def show_problem(path: Path) -> bool:
+    """Print only the presentable sections of a practice or mastery item.
+
+    Returns True when something was withheld, so the caller can say so
+    without naming what it was.
+    """
+    sections = split_sections(path.read_text(encoding="utf-8"))
+    if not sections:
+        raise SystemExit(f"study: {path.name} has no '## ' sections; fill it from shared/templates/practice-item.md")
+    withheld = False
+    for heading, body in sections:
+        if is_withheld(heading):
+            withheld = True
+            continue
+        print(f"\n## {heading}\n")
+        print(body.strip() or "[empty]")
+    return withheld
+
+
+def cmd_practice(study: Path, item: str = "") -> int:
+    """Administer one practice item: problem sections only, then record the attempt."""
     data = load_manifest(study)
     require_interactive(study, data)
     status = data.get("status")
@@ -302,26 +267,77 @@ def cmd_practice(study: Path) -> int:
     if not items:
         print("no practice items recorded yet")
         print("the tutor adds a near problem and a transfer problem as learning/practice/*.md")
+        print(f"start one from {(TEMPLATES / 'practice-item.md').relative_to(ROOT).as_posix()}")
         return 0
-    print("administer one item at a time; never display a solution before the learner attempts it")
-    for item in items:
-        print(f"  {item.relative_to(study)}")
+    if not item:
+        print("practice items:")
+        for candidate in items:
+            print(f"  {candidate.stem}")
+        print(f"administer one with: python3 tools/study.py practice {study.name} --item <name>")
+        return 0
+    matches = [candidate for candidate in items if candidate.stem == item or candidate.name == item]
+    if not matches:
+        names = ", ".join(candidate.stem for candidate in items)
+        raise SystemExit(f"study: no practice item {item!r} (have: {names})")
+    target = matches[0]
+    print(f"practice item: {target.relative_to(study).as_posix()}  (help level 0; hints on request only)")
+    withheld = show_problem(target)
+    if withheld:
+        print("\n[hints and solution withheld until the learner records an attempt]")
+    append_event(study, {"type": "practice", "item": target.stem, "actor": "human"})
+    print(f"\nrecord the attempt under '## Attempt record' in {target.relative_to(study).as_posix()}")
     return 0
 
 
 def cmd_assess(study: Path) -> int:
+    """Open the unaided mastery attempt.
+
+    Refuses when the baseline is still templated: a mastery claim means
+    nothing without the pre-teaching attempt it is measured against. Creates
+    the attempt record so the assessor writes into a fixed shape rather than
+    inventing one, and prints the task without its grading notes.
+    """
     data = load_manifest(study)
     require_interactive(study, data)
     mastery = study / "learning" / "mastery.md"
     if not mastery.is_file():
         raise SystemExit(f"study: {mastery} not found")
-    print("mastery assessment rules:")
-    print("  - tutoring disabled; help level none; the learner completes the task unaided")
-    print("  - record, per capability, demonstrated yes/no with the learner's own words as evidence")
-    print("  - write the verdict (pass | needs-practice) into learning/mastery.md")
-    print("  - needs-practice returns to practicing with an exercise targeting the weakest capability")
-    print(f"  - then record the decision: python3 tools/study.py approve {study.name} mastery --note \"...\"")
-    print(f"task: {mastery.relative_to(study)}")
+
+    baseline = study / "learning" / "baseline.md"
+    if not baseline.is_file():
+        raise SystemExit(f"study: {baseline} not found; record the unaided baseline before assessing")
+    if is_templated(baseline.read_text(encoding="utf-8")):
+        raise SystemExit(
+            "study: learning/baseline.md is still templated. The baseline is the unaided attempt "
+            "recorded before any teaching; without it a mastery verdict has nothing to measure."
+        )
+
+    attempts = study / "learning" / "attempts"
+    attempts.mkdir(exist_ok=True)
+    stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M")
+    record = attempts / f"mastery_{stamp}.md"
+    if not record.exists():
+        record.write_text(
+            f"# Mastery attempt {stamp}\n\n"
+            "Help level: none. Tutoring disabled. Written by the assessor, not the tutor.\n\n"
+            "## Task as administered\n\n[paste the task exactly as shown to the learner]\n\n"
+            "## Learner response, verbatim\n\n[the learner's own words; never paraphrased into correctness]\n\n"
+            "## Capability judgments\n\n"
+            "| Capability | Demonstrated unaided | Evidence from the response |\n|---|---|---|\n"
+            "| [capability] | yes / no | [quote] |\n\n"
+            "## Verdict\n\n[pass | needs-practice] [rationale; on needs-practice name the weakest capability]\n",
+            encoding="utf-8",
+        )
+    print("mastery assessment: help level none, tutoring disabled, no hints on request")
+    print(f"attempt record: {record.relative_to(study).as_posix()}")
+    withheld = show_problem(mastery)
+    if withheld:
+        print("\n[grading notes withheld from the administered view]")
+    append_event(study, {"type": "assessment", "record": record.relative_to(study).as_posix(), "actor": "human"})
+    print(
+        f"\nwhen finished, fold the verdict into learning/mastery.md, then record the decision:\n"
+        f"  python3 tools/study.py approve {study.name} mastery --note \"...\""
+    )
     return 0
 
 
@@ -391,18 +407,17 @@ def cmd_reopen(study: Path) -> int:
         if not isinstance(record, dict):
             problems.append("archive.yaml is unreadable")
         else:
-            commit = str(record.get("git_commit", ""))
             removed = record.get("removed") or []
             if not removed:
                 print("archive: cleaned, nothing was removed; knowledge core complete")
             else:
-                resolvable = check_all.commit_resolvable(study, commit)
-                if resolvable is False:
-                    problems.append(f"archive commit {commit[:12]} is not resolvable in this checkout")
-                elif resolvable is None:
-                    print(f"archive: {len(removed)} removed paths recorded; commit not verifiable outside a git checkout")
+                ok, reason = check_all.archive_status(study, record)
+                if ok is False:
+                    problems.append(f"{len(removed)} archived paths are not retrievable: {reason}")
+                elif ok is None:
+                    print(f"archive: {len(removed)} removed paths recorded; {reason}")
                 else:
-                    print(f"archive: {len(removed)} removed paths recoverable at commit {commit[:12]}")
+                    print(f"archive: {len(removed)} removed paths retrievable ({reason})")
     elif cleaned:
         problems.append("cleaned study has no archive.yaml; evidence locators are not resolvable")
     else:
@@ -477,9 +492,12 @@ def main(argv: list[str] | None = None) -> int:
         help="skill verdict written to last_gate_verdict; check_all requires it for done/retained studies",
     )
 
+    p_practice = sub.add_parser("practice", help="interactive: administer a practice item, problem only")
+    p_practice.add_argument("study", help="study id or directory")
+    p_practice.add_argument("--item", default="", help="practice item stem to administer; omit to list")
+
     for name, help_text in (
-        ("practice", "interactive: show practice items without exposing answers"),
-        ("assess", "interactive: administer the mastery task"),
+        ("assess", "interactive: open the unaided mastery attempt"),
         ("revisit", "interactive: list due delayed-review items"),
         ("reopen", "report what reopening a finished study needs (read-only)"),
     ):
@@ -495,7 +513,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "approve":
         return cmd_approve(study, args.gate, args.note, evidence=args.evidence, reopen=args.reopen, verdict=args.verdict)
     if args.command == "practice":
-        return cmd_practice(study)
+        return cmd_practice(study, item=args.item)
     if args.command == "assess":
         return cmd_assess(study)
     if args.command == "revisit":

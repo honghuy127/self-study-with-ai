@@ -1,8 +1,9 @@
 ---
-description: Advance a delegated study one gated step: summarize unnoted sources, run experiments on experimental methodologies, then draft the report. Idempotent; stops at each human gate. Usage: /draft studies/<slug>
+description: "Advance a delegated study one gated step: summarize unnoted sources, run experiments on experimental methodologies, then draft the report. Idempotent; stops at each human gate. Usage: /draft studies/<slug>"
 agent: build
 ---
 
+<!-- Generated from runtime/commands/draft.md by tools/sync_runtimes.py. Edit the source, not this file. -->
 Advance the drafting pipeline for: $ARGUMENTS
 
 This command drives delegated studies only. For an interactive study, stop
@@ -39,7 +40,7 @@ the last one stopped.
    `writer` subagent with the
    study directory. The writer produces `notes/_synthesis.md`, then
    `report/main.tex` and `report/refs.bib`.
-6. Ask the human to run `tools/build_report.sh <study-dir>` and
+6. Ask the human to run `python3 tools/build.py report <study-dir>` and
    `python3 tools/lint_report.py <study-dir>`; surface both outputs.
 7. Summarize the draft status and any `[RESULT PENDING]` markers. Remind the
    user to approve the draft gate (`python3 tools/study.py approve

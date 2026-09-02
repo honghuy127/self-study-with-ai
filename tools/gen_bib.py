@@ -33,7 +33,7 @@ def load_entries(study: Path) -> list[dict]:
     try:
         data = yaml.safe_load(registry.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
-        raise SystemExit(f"gen_bib: invalid YAML in {registry}: {exc}")
+        raise SystemExit(f"gen_bib: invalid YAML in {registry}: {exc}") from exc
     entries = (data or {}).get("sources") if isinstance(data, dict) else None
     if not isinstance(entries, list):
         raise SystemExit(f"gen_bib: {registry} has no top-level sources list")

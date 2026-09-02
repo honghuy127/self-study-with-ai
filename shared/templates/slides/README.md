@@ -9,7 +9,7 @@ upgrades it during drafting.
 ## 1. Format
 
 - **LaTeX beamer is the canonical, reproducible route.** Build with
-  `tools/build_slides.sh <study-dir>` (latexmk, pdflatex). Sources stay in
+  `python3 tools/build.py slides <study-dir>` (latexmk, pdflatex). Sources stay in
   git; the PDF lives in `slides/build/` and is regenerated, never edited by
   hand.
 - **PowerPoint is not rejected as a format; it is blocked only by the lack
@@ -67,7 +67,7 @@ upgrades it during drafting.
 ## 4. Verification (talk gate)
 
 1. `python3 tools/gen_bib.py <study-dir>`
-2. `bash tools/build_slides.sh <study-dir>`
+2. `python3 tools/build.py slides <study-dir>`
 3. `python3 tools/lint_report.py <study-dir>` (must exit clean)
 4. `pdftoppm -png -r 70 slides/build/main.pdf <dir>/s`, visually inspect
    every page for overflow, clipping, contrast, and number consistency;

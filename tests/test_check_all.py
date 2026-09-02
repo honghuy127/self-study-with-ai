@@ -554,9 +554,15 @@ class NotAssessedTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
+        # Both study roots are redirected: check_all also validates the
+        # tracked examples/ tree, which would otherwise make these groups
+        # report PASS on the real repo content.
         self._old_studies = check_all.STUDIES
-        check_all.STUDIES = Path(self._tmp.name)
+        self._old_examples = check_all.EXAMPLES
+        check_all.STUDIES = Path(self._tmp.name) / "studies"
+        check_all.EXAMPLES = Path(self._tmp.name) / "examples"
         self.addCleanup(setattr, check_all, "STUDIES", self._old_studies)
+        self.addCleanup(setattr, check_all, "EXAMPLES", self._old_examples)
 
     def test_no_studies_reports_not_assessed(self) -> None:
         self.assertEqual(check_all.check_lint(), "NOT_ASSESSED")
@@ -565,8 +571,17 @@ class NotAssessedTests(unittest.TestCase):
         self.assertEqual(check_all.check_briefs(), "NOT_ASSESSED")
 
     def test_no_dossiers_reports_not_assessed(self) -> None:
-        (Path(self._tmp.name) / "2026-08_test").mkdir()
+        study = check_all.STUDIES / "2026-08_test"
+        study.mkdir(parents=True)
+        (study / "study.yaml").write_text("id: x\n", encoding="utf-8")
         self.assertEqual(check_all.check_audit(), "NOT_ASSESSED")
+
+    def test_examples_are_validated_alongside_studies(self) -> None:
+        """The shipped example is what keeps CI from checking nothing."""
+        example = check_all.EXAMPLES / "2026-08_demo"
+        example.mkdir(parents=True)
+        (example / "study.yaml").write_text("id: demo\n", encoding="utf-8")
+        self.assertEqual([p.name for p in check_all.list_studies()], ["2026-08_demo"])
 
 
 class ArchiveRecordTests(unittest.TestCase):
@@ -603,7 +618,42 @@ class ArchiveRecordTests(unittest.TestCase):
         self.write_archive()
         with mock.patch.object(check_all, "commit_resolvable", return_value=False):
             errors = check_all.validate_artifacts(self.study)
-        self.assertTrue(any("archive commit" in e for e in errors))
+        self.assertTrue(any("not retrievable" in e for e in errors))
+
+    def write_packed_archive(self, sha: str, rel: str = "archive/x.zip") -> None:
+        (self.study / "archive.yaml").write_text(
+            f"archived_at: '2026-08-21'\narchive: {rel}\narchive_sha256: {sha}\ngit_commit: ''\n"
+            "removed:\n  - path: .research\n    size_kb: 1\n    files: 1\n"
+            "    retrieve: python3 -m zipfile -e archive/x.zip <destination>\n",
+            encoding="utf-8",
+        )
+
+    def test_packed_archive_passes_when_file_matches(self) -> None:
+        import hashlib
+
+        # archive paths are recorded relative to the repo root, two levels up
+        # from the study directory (repo/studies/<id>).
+        archive = self.study.parent.parent / "archive" / "x.zip"
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        archive.write_bytes(b"PK-not-a-real-zip")
+        (self.study / "study.yaml").write_text("artifacts:\n  dossier: .research/\n", encoding="utf-8")
+        self.write_packed_archive(hashlib.sha256(archive.read_bytes()).hexdigest())
+        self.assertEqual(check_all.validate_artifacts(self.study), [])
+
+    def test_packed_archive_fails_when_file_missing(self) -> None:
+        (self.study / "study.yaml").write_text("artifacts:\n  dossier: .research/\n", encoding="utf-8")
+        self.write_packed_archive("deadbeef" * 8, rel="archive/gone.zip")
+        errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("archive/gone.zip is missing" in e for e in errors))
+
+    def test_packed_archive_fails_on_hash_mismatch(self) -> None:
+        archive = self.study.parent.parent / "archive" / "x.zip"
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        archive.write_bytes(b"tampered")
+        (self.study / "study.yaml").write_text("artifacts:\n  dossier: .research/\n", encoding="utf-8")
+        self.write_packed_archive("deadbeef" * 8)
+        errors = check_all.validate_artifacts(self.study)
+        self.assertTrue(any("recorded sha256" in e for e in errors))
 
     def test_nested_archived_path_matches(self) -> None:
         record = {"removed": [{"path": "sources/docs"}]}
