@@ -22,6 +22,12 @@ ROOT = Path(__file__).resolve().parent.parent
 RUNTIME = ROOT / "runtime" / "agents"
 COMMANDS = ROOT / "runtime" / "commands"
 SKILL = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research"
+GITHUB_SKILL_SOURCE = ROOT / ".agents" / "skills" / "github" / "SKILL.md"
+CLAUDE_GITHUB_SKILL = ROOT / ".claude" / "skills" / "github" / "SKILL.md"
+GITHUB_PLAYBOOK = SKILL / "references" / "github-collaboration.md"
+GITHUB_PLAYBOOK_RELATIVE = Path(
+    "../../../.opencode/skills/conduct-cs-ai-research/references/github-collaboration.md"
+)
 
 DELEGATED_AGENTS = ("researcher", "summarizer", "paper-analyst", "experimenter", "writer", "reviewer")
 INTERACTIVE_AGENTS = ("tutor", "assessor")
@@ -45,6 +51,22 @@ def allows(name: str, glob: str) -> bool:
 
 
 class ZoneBasicsTests(unittest.TestCase):
+    def test_github_skill_is_available_to_all_three_harnesses(self):
+        self.assertTrue(GITHUB_SKILL_SOURCE.is_file())
+        self.assertTrue(CLAUDE_GITHUB_SKILL.is_file())
+        self.assertTrue(GITHUB_PLAYBOOK.is_file())
+        text = GITHUB_SKILL_SOURCE.read_text(encoding="utf-8")
+        self.assertIn("name: github", text)
+        self.assertIn("github-collaboration.md", text)
+        self.assertIn("Codex, OpenCode, and Claude Code", text)
+        self.assertIn("Generated from .agents/skills", CLAUDE_GITHUB_SKILL.read_text(encoding="utf-8"))
+        for adapter in (GITHUB_SKILL_SOURCE, CLAUDE_GITHUB_SKILL):
+            with self.subTest(adapter=adapter):
+                self.assertEqual(
+                    (adapter.parent / GITHUB_PLAYBOOK_RELATIVE).resolve(),
+                    GITHUB_PLAYBOOK.resolve(),
+                )
+
     def test_all_agents_exist(self):
         for name in ALL_AGENTS:
             with self.subTest(name=name):

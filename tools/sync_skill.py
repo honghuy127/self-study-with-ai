@@ -18,9 +18,10 @@ which commit it came from.
     python3 tools/sync_skill.py --update   # git submodule update --remote first
     python3 tools/sync_skill.py --check    # report whether the pin is current
 
-The submodule also carries the playbooks under `references/`, which the agents
-read directly and which are not vendored. Keep it initialized:
-`git submodule update --init --recursive`.
+The submodule also carries the playbooks under `references/`, which are not
+vendored. The portable adapters in `.agents/skills/` and `.claude/skills/`
+load those files directly, so one submodule update refreshes Codex, OpenCode,
+and Claude Code. Keep it initialized: `git submodule update --init --recursive`.
 """
 from __future__ import annotations
 
@@ -34,6 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research"
 SKILL_SCRIPTS = SKILL / "scripts"
+GITHUB_PLAYBOOK = SKILL / "references" / "github-collaboration.md"
 VENDORED = ROOT / "tools" / "research"
 PIN = VENDORED / "UPSTREAM.md"
 SCRIPTS = ("research_contract.py", "research_state.py", "capture_run.py", "audit_research.py")
@@ -104,6 +106,9 @@ def main(argv: list[str] | None = None) -> int:
         if not current:
             print(f"sync_skill: vendored at {pinned[:12]}; submodule not initialized, cannot compare")
             return 0
+        if not GITHUB_PLAYBOOK.is_file():
+            print("sync_skill: GitHub collaboration playbook is missing")
+            return 1
         if pinned == current:
             print(f"sync_skill: vendored scripts match the submodule at {pinned[:12]}")
             return 0
@@ -122,6 +127,12 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"sync_skill: {SKILL_SCRIPTS.relative_to(ROOT).as_posix()} is missing. "
             "Run: git submodule update --init --recursive",
+            file=sys.stderr,
+        )
+        return 1
+    if not GITHUB_PLAYBOOK.is_file():
+        print(
+            f"sync_skill: {GITHUB_PLAYBOOK.relative_to(ROOT).as_posix()} is missing",
             file=sys.stderr,
         )
         return 1

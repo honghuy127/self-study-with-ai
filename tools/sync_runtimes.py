@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the OpenCode and Claude Code agent layers from runtime/.
+"""Generate the OpenCode and Claude Code runtime layers and shared skills.
 
 The whole operating layer (six specialist agents and the lifecycle commands)
 used to exist only as OpenCode files, so the repo could not be driven from any
@@ -24,6 +24,11 @@ than papered over. OpenCode takes per-glob edit rules directly. Claude Code
 has no per-glob edit permission, so the write zone is rendered into the agent
 prose and the repo-wide invariants (nobody hand-edits study.yaml or
 events.jsonl) are enforced by the PreToolUse hook in tools/zone_guard.py.
+
+Portable skill adapters shared by Codex and OpenCode live in .agents/skills/.
+Claude Code copies are generated into .claude/skills/. The adapters point to
+the external canonical playbooks, so those playbooks are neither duplicated
+nor linked with platform-dependent symlinks.
 """
 from __future__ import annotations
 
@@ -37,8 +42,10 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "runtime"
 OPENCODE = ROOT / ".opencode"
 CLAUDE = ROOT / ".claude"
+SHARED_SKILLS = ROOT / ".agents" / "skills"
 
 BANNER = "<!-- Generated from runtime/{kind}/{name}.md by tools/sync_runtimes.py. Edit the source, not this file. -->"
+SKILL_BANNER = "<!-- Generated from .agents/skills by tools/sync_runtimes.py. Edit the source, not this file. -->"
 
 # Claude Code expresses capability as a tool allowlist rather than per-glob
 # permissions. Every agent reads and writes files; the rest follows the
@@ -167,6 +174,14 @@ def render_claude_command(meta: dict, body: str) -> str:
     return "\n".join(lines) + body
 
 
+def render_claude_skill(source: str) -> str:
+    """Add a provenance marker after shared Agent Skills frontmatter."""
+    parts = source.split("---", 2)
+    if len(parts) != 3 or parts[0].strip():
+        raise SystemExit("sync_runtimes: shared skill has no leading frontmatter block")
+    return f"---{parts[1]}---\n\n{SKILL_BANNER}\n\n{parts[2].lstrip()}"
+
+
 TARGETS = (
     ("agents", OPENCODE / "agents", render_opencode_agent),
     ("agents", CLAUDE / "agents", render_claude_agent),
@@ -186,6 +201,11 @@ def generate() -> dict[Path, str]:
             if meta.get("name") != path.stem:
                 raise SystemExit(f"sync_runtimes: {path.name} declares name {meta.get('name')!r}")
             output[directory / path.name] = renderer(meta, body)
+    if SHARED_SKILLS.is_dir():
+        for path in sorted(SHARED_SKILLS.glob("*/SKILL.md")):
+            output[CLAUDE / "skills" / path.parent.name / "SKILL.md"] = render_claude_skill(
+                path.read_text(encoding="utf-8")
+            )
     return output
 
 
@@ -197,6 +217,11 @@ def orphans(generated: dict[Path, str]) -> list[Path]:
             continue
         for path in sorted(directory.glob("*.md")):
             if path not in generated and "Generated from runtime/" in path.read_text(encoding="utf-8"):
+                stale.append(path)
+    skills_dir = CLAUDE / "skills"
+    if skills_dir.is_dir():
+        for path in sorted(skills_dir.glob("*/SKILL.md")):
+            if path not in generated and SKILL_BANNER in path.read_text(encoding="utf-8"):
                 stale.append(path)
     return stale
 

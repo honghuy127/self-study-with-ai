@@ -7,10 +7,16 @@ specific to running the workflow under Claude Code.
 ## What is different here
 
 The agent definitions live once in [`runtime/`](runtime/) and are rendered
-into both harnesses by `python3 tools/sync_runtimes.py`. Never edit
-`.claude/agents/`, `.claude/commands/`, `.opencode/agents/`, or
+into both harnesses by `python3 tools/sync_runtimes.py`. The portable skills
+shared by Codex and OpenCode in [`.agents/skills/`](.agents/skills/) are
+rendered into `.claude/skills/` by the same command. Never edit `.claude/agents/`,
+`.claude/commands/`, `.claude/skills/`, `.opencode/agents/`, or
 `.opencode/commands/` directly: they are generated, and `check_all.py` fails
 when they drift from their source.
+
+The generated `/github` skill is a thin adapter to the canonical playbook in
+the `conduct-cs-ai-research` submodule. Refresh it for Claude Code, Codex, and
+OpenCode together with `python3 tools/sync_skill.py --update`.
 
 Permission enforcement differs between the two harnesses, and the difference
 is real rather than cosmetic:

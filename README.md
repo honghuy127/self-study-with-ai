@@ -48,9 +48,9 @@ knowledge unit that gets asked back to you on a schedule.
 - git with submodule support
 - `latexmk` or `tectonic`, only if you build reports or slides
 - `pdftotext` (poppler), only for paper snapshots during gathering
-- An agent harness: [OpenCode](https://opencode.ai) or
-  [Claude Code](https://claude.com/claude-code). Both are generated from the
-  same source, see [Runtimes](#runtimes).
+- An agent harness: [OpenCode](https://opencode.ai),
+  [Claude Code](https://claude.com/claude-code), or Codex. OpenCode and
+  Claude Code are generated from the same source, see [Runtimes](#runtimes).
 
 ```bash
 git clone --recurse-submodules https://github.com/honghuy127/self-study-with-ai.git
@@ -346,6 +346,14 @@ per-glob edit permissions, while Claude Code carries the zone in agent prose
 plus a `PreToolUse` hook for the repo-wide invariants. See
 [CLAUDE.md](CLAUDE.md) for the details and for the hook's configuration.
 
+The portable [`github`](.agents/skills/github/SKILL.md) adapter lives in
+`.agents/skills/`, which Codex and OpenCode both discover. It is generated
+into `.claude/skills/` for Claude Code by `python3 tools/sync_runtimes.py`.
+Both adapters load the same externally maintained
+[`github-collaboration.md`](.opencode/skills/conduct-cs-ai-research/references/github-collaboration.md)
+playbook from the skill submodule, so there is no copied playbook and no
+platform-dependent symbolic link.
+
 ## The example studies
 
 Two finished studies ship in [`examples/`](examples/), tracked in git, both
@@ -387,7 +395,8 @@ runtime/                       # single source of truth for agents and commands
 └── commands/                  # lifecycle entry points
 .opencode/                     # generated: OpenCode agents and commands
 └── skills/conduct-cs-ai-research/   # git submodule: research playbooks and gates
-.claude/                       # generated: Claude Code agents, commands, and the zone-guard hook
+.claude/                       # generated: Claude Code agents, commands, skills, and zone-guard hook
+.agents/skills/github/         # GitHub adapter shared by Codex and OpenCode
 examples/                      # two finished studies and the units they distilled
 ├── 2026-08_scaled-dot-product-attention/   # grounded, source-only
 ├── 2026-08_attention-logit-variance/       # audited, experimental: runs, manifests, claims dossier
@@ -440,6 +449,10 @@ Refresh that submodule and the scripts vendored from it with:
 python3 tools/sync_skill.py --update    # pull the submodule, re-vendor, record the pin
 python3 tools/sync_skill.py --check     # report whether the pin is current
 ```
+
+The `--update` command also refreshes the canonical GitHub playbook used by
+Codex, OpenCode, and Claude Code because every adapter reads it directly from
+the submodule.
 
 The dossier scripts are vendored under `tools/research/` so the workflow keeps
 working in a checkout whose submodule was never initialized;
