@@ -372,6 +372,7 @@ evidence map, and visual QA rules live in
 python3 tools/check_all.py                       # the whole gate
 python3 tools/lint_report.py studies/<slug>
 python3 tools/research.py studies/<slug> audit_research.py
+python3 tools/research.py studies/<slug> relativize   # make a dossier portable
 ```
 
 `check_all.py` is the pre-review gate. It lints every study in `studies/` and

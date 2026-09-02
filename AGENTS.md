@@ -178,7 +178,11 @@ review for refresh work.
   `python3 tools/research.py <study-dir> <script>`. `research_state.py`
   initializes, validates, and transitions state; `capture_run.py` appends run
   manifests; `evidence.jsonl` and `claims.jsonl` are written directly by the
-  researcher and experimenter, one JSON object per line.
+  researcher and experimenter, one JSON object per line. `capture_run.py`
+  records absolute, platform-flavored paths, so the wrapper relativizes the
+  dossier after every capture; run
+  `python3 tools/research.py <study-dir> relativize` by hand on an older
+  dossier, and never hand-edit a recorded path to point somewhere else.
 - `report/`: `main.tex` + `refs.bib` in the style chosen at scaffold time.
   Build only via `python3 tools/build.py report <study-dir>`. `refs.bib` is a
   generated view of the registry; durable fixes go in the registry, then rerun

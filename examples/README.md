@@ -57,11 +57,32 @@ python3 run.py --seed 20260901 --out /tmp/main.json --label "main measurement"
 diff /tmp/main.json results/main.json      # expected: no output
 ```
 
-Standard library only, about 105 seconds per run. The dossier records a
-sha256 for `run.py` and both result files, and `tools/check_all.py` rehashes
-them on every run, which is why `.gitattributes` marks those paths `-text`:
-if git rewrote their line endings on checkout, the hashes would match only on
-the machine that captured them.
+Standard library only, about 105 seconds per run. Verified byte-identical
+across Windows and Linux and across CPython 3.12 and 3.14.
+
+## Two ways a committed dossier stops being portable
+
+Both of these bit this example before it shipped, so if you commit a dossier
+of your own, expect them.
+
+`capture_run.py` records **absolute** paths, which resolve only on the machine
+that ran the experiment. `tools/research.py` now relativizes after every
+capture; for a dossier captured before that, run
+`python3 tools/research.py <study-dir> relativize`. `check_all.py` warns when
+it finds one. The same command also normalizes Windows path separators, which
+matters more than it sounds: a relative path recorded as
+`.research\runs\x\manifest.json` resolves on Windows and reads as one strange
+filename on Linux, so the manifest looks unledgered and every claim linking
+that run fails behind it.
+
+The audit **rehashes** the recorded artifacts on every `check_all.py` run, so
+`.gitattributes` marks those paths `-text`. Without that, git's line-ending
+translation changes their bytes on checkout and the dossier verifies only on
+the machine that captured it, while looking tampered with everywhere else.
+
+Neither shows up on the machine that created the dossier. If you have WSL,
+`wsl -e bash -lc "cd /mnt/c/... && python3 tools/check_all.py"` catches both
+before CI does.
 
 ## What is deliberately not here
 

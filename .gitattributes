@@ -9,6 +9,11 @@
 # machine that captured them and fail everywhere else, which would make the
 # dossier look tampered with on Linux CI. Store and check these out byte for
 # byte.
-examples/**/experiments/**/run.py            -text
-examples/**/experiments/**/results/*.json    -text
+examples/**/experiments/**                   -text
 examples/**/.research/**                     -text
+
+# studies/ is gitignored by default, so these rules bind only if you opt in to
+# tracking your own studies. They are here so that opting in does not quietly
+# reintroduce the same failure.
+studies/**/experiments/**                    -text
+studies/**/.research/**                      -text

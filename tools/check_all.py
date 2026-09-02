@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -643,6 +644,44 @@ def read_audit_waiver(study: Path) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def absolute_recorded_paths(study: Path) -> list[str]:
+    """Recorded paths that only resolve on the machine that captured them.
+
+    capture_run.py records resolved absolute paths. tools/research.py now
+    rewrites them after every capture, but a dossier captured before that, or
+    edited by hand, still carries them, and it will fail its own audit on any
+    other checkout. Reported as a warning with the fix rather than a failure:
+    the dossier is intact, it is only unportable.
+    """
+    dossier = study / ".research"
+    offenders: list[str] = []
+    for manifest_path in sorted((dossier / "runs").glob("*/manifest.json")):
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(manifest, dict):
+            continue
+        for group in ("configs", "inputs", "outputs"):
+            for record in manifest.get(group) or []:
+                path = record.get("path") if isinstance(record, dict) else None
+                if isinstance(path, str) and Path(path).is_absolute():
+                    offenders.append(f"{manifest_path.parent.name}/{group}: {path}")
+    ledger = dossier / "experiments.jsonl"
+    if ledger.is_file():
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            path = record.get("manifest_path") if isinstance(record, dict) else None
+            if isinstance(path, str) and Path(path).is_absolute():
+                offenders.append(f"experiments.jsonl: {path}")
+    return offenders
+
+
 def check_audit() -> str:
     dossiers = sorted((p / ".research") for p in list_studies() if (p / ".research").is_dir())
     if not dossiers:
@@ -651,6 +690,11 @@ def check_audit() -> str:
     ok = True
     for dossier in dossiers:
         study = dossier.parent
+        for offender in absolute_recorded_paths(study):
+            print(
+                f"audit {study.name}: WARN absolute recorded path ({offender}); "
+                f"run python3 tools/research.py {study.name} relativize"
+            )
         code, out = run([sys.executable, str(VENDORED / "audit_research.py"), "--root", str(study)])
         status = "PASS" if code == 0 else "FAIL"
         print(f"audit {study.name}: {status}")
