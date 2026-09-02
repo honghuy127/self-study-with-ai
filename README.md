@@ -2,9 +2,8 @@
 
 [![check](https://github.com/honghuy127/self-study-with-ai/actions/workflows/check.yml/badge.svg)](https://github.com/honghuy127/self-study-with-ai/actions/workflows/check.yml)
 
-A working system for studying technical topics in depth with AI agents, where
-the point is that you end up knowing something and can prove where every
-claim came from.
+A system for studying technical topics in depth with AI agents, built so that
+you end up knowing something and can show where every claim came from.
 
 Three study modes sit on one evidence kernel. In **delegated mode** you pose a
 question and specialist agents gather sources, write anchored notes, and draft
@@ -13,7 +12,7 @@ diagnosis and practice, and a separate agent that never saw the tutoring
 administers an unaided assessment, because a report someone else wrote is not
 the same as understanding. In **paper-reading mode** agents analyze one exact
 paper and turn the approved analysis into a presentation. Around all three sit
-two things that make the effort compound: a queryable knowledge base that
+the two things that make the effort compound: a queryable knowledge base that
 studies distill into, and a retrieval schedule that brings it back before you
 forget it.
 
@@ -22,27 +21,74 @@ and cumulative. A chat transcript rots: months later you cannot tell which
 statements came from verified sources and which came from a plausible-sounding
 model, and you have forgotten the answer anyway. This workflow forces the
 first distinction into the open, with `[CITATION NEEDED]` markers instead of
-confident prose, local source snapshots, and explicit claim truth states. And
-it answers the second by treating what you learned as an asset with a review
-schedule rather than a finished document.
+confident prose, local source snapshots, and explicit claim truth states. It
+answers the second by treating what you learned as an asset with a review
+schedule rather than as a finished document.
 
 Everything is plain files, so oversight equals reading git diffs.
 
 ## The loop
 
 ```text
-question --> /ask ------------------> inbox note ---> distill --> knowledge unit
-         \                                                     /        |
-          --> /new-study --> study --> gates --> deliverable --/         v
-                                                                    /review-due
-                                                                  (retrieval,
-                                                                   rescheduled)
+small question ──▶ /ask ──────────────────────▶ inbox note ──┐
+                                                             ├──▶ knowledge unit ──▶ /review-due
+real question  ──▶ /new-study ──▶ study ──▶ report ──────────┘
+                                  (human gates)
 ```
 
 A small question costs one command and produces one anchored note. A real
 question becomes a study with human gates. Both end in the same place: a
-knowledge unit that gets asked back to you on a schedule. Nothing is finished
-when the PDF builds.
+knowledge unit that gets asked back to you on a schedule.
+
+## Getting started
+
+### Requirements
+
+- Python 3.10 or newer, and `pip install -r requirements.txt` (PyYAML)
+- git with submodule support
+- `latexmk` or `tectonic`, only if you build reports or slides
+- `pdftotext` (poppler), only for paper snapshots during gathering
+- An agent harness: [OpenCode](https://opencode.ai) or
+  [Claude Code](https://claude.com/claude-code). Both are generated from the
+  same source, see [Runtimes](#runtimes).
+
+```bash
+git clone --recurse-submodules https://github.com/honghuy127/self-study-with-ai.git
+cd self-study-with-ai
+pip install -r requirements.txt
+python3 tools/check_all.py     # should pass on a fresh clone
+```
+
+Every command in this repo is written `python3`. On Windows use `python` or
+`py -3`; nothing else differs, and there are no shell scripts.
+
+### Three entry points, by size of question
+
+```bash
+# Small: one question, verified sources, no study directory
+python3 tools/inbox.py new "Why does RoPE need a base?"     # or /ask "..."
+
+# Medium to large: a gated study
+python3 tools/new_study.py transformer-length-extrapolation \
+  --title "How do transformers extrapolate to longer sequences?" \
+  --mode delegated --intent survey
+
+python3 tools/new_study.py attention-scaling \
+  --title "Derive the sqrt(d_k) attention scale" --mode interactive
+
+python3 tools/new_study.py attention-is-all-you-need-reading \
+  --title "Attention Is All You Need: paper reading" --mode paper-reading
+
+# Recurring: what needs rehearsing today
+python3 tools/review.py due
+```
+
+Scaffolding creates `studies/YYYY-MM_<slug>/`. Fill in `brief.md` (purpose,
+questions, scope, budgets, stop rules, and the mode-specific contract). The
+brief is human-owned: agents refuse to act on a blank template.
+
+If you would rather read a finished study than start one, both example studies
+in [`examples/`](examples/) are complete and tracked.
 
 ## How a study flows
 
@@ -80,9 +126,9 @@ Four dimensions are independent of the mode:
 | Deliverables | `learning-note`, `implementation`, `decision-brief`, `report`, `slides`, `none` | Outputs to scaffold |
 <!-- END GENERATED: dimensions -->
 
-Intent is not decoration. It seeds the brief's questions at scaffold time and
-binds the finished deliverable, which `tools/lint_report.py` checks once a
-study reaches `review`:
+Intent is enforced, not just recorded. It seeds the brief's questions at
+scaffold time and binds the finished deliverable, which `tools/lint_report.py`
+checks once a study reaches `review`:
 
 <!-- BEGIN GENERATED: intents -->
 | Intent | Shape of the answer | Deliverable must contain |
@@ -103,87 +149,6 @@ honestly flip. Assurance sets how much verification the study pays for:
 snapshots and anchored notes, and `audited` adds a claims dossier plus
 independent review.
 
-## Getting started
-
-### Requirements
-
-- Python 3.10 or newer, and `pip install -r requirements.txt` (PyYAML)
-- git with submodule support
-- `latexmk` or `tectonic`, only if you build reports or slides
-- `pdftotext` (poppler), only for paper snapshots during gathering
-- An agent harness: [OpenCode](https://opencode.ai) or
-  [Claude Code](https://claude.com/claude-code). Both are generated from the
-  same source, see [Runtimes](#runtimes).
-
-Every command below is written `python3`. On Windows use `python` or `py -3`;
-nothing else differs, and there are no shell scripts left in the repo.
-
-```bash
-git clone --recurse-submodules https://github.com/honghuy127/self-study-with-ai.git
-cd self-study-with-ai
-pip install -r requirements.txt
-python3 tools/check_all.py     # should pass on a fresh clone
-```
-
-### Three entry points, by size of question
-
-```bash
-# Small: one question, verified sources, no study directory
-python3 tools/inbox.py new "Why does RoPE need a base?"     # or /ask "..."
-
-# Medium to large: a gated study
-python3 tools/new_study.py transformer-length-extrapolation \
-  --title "How do transformers extrapolate to longer sequences?" \
-  --mode delegated --intent survey
-
-python3 tools/new_study.py attention-scaling \
-  --title "Derive the sqrt(d_k) attention scale" --mode interactive
-
-python3 tools/new_study.py attention-is-all-you-need-reading \
-  --title "Attention Is All You Need: paper reading" --mode paper-reading
-
-# Recurring: what needs rehearsing today
-python3 tools/review.py due
-```
-
-Scaffolding creates `studies/YYYY-MM_<slug>/`. Fill in `brief.md` (purpose,
-questions, scope, budgets, stop rules, and the mode-specific contract). The
-brief is human-owned: agents refuse to act on a blank template.
-
-## Commands
-
-Agent-driven, as slash commands in either harness:
-
-| Command | What it does |
-|---|---|
-| `/ask "<question>"` | One question, three to five verified sources, into `shared/inbox/`. No study directory |
-| `/new-study <topic>` | Scaffolds a study; `--mode` required |
-| `/gather <study-dir>` | The researcher collects sources, verifies metadata, and snapshots papers and pages |
-| `/draft <study-dir>` | Delegated: summarizes unnoted sources, runs experiments where the methodology calls for them, then drafts `report/main.tex`. Stops at each gate |
-| `/read-paper <study-dir>` | Paper-reading: verifies one target, produces the anchored analysis, then builds and visually verifies the deck |
-| `/learn <study-dir>` | Interactive: baseline, concept path, tutoring, practice. Stops before assessment |
-| `/practice <study-dir> [item]` | Administers one practice item with hints and solution withheld |
-| `/assess <study-dir>` | Dispatches the independent assessor for the unaided mastery task |
-| `/review <study-dir>` | The reviewer audits claims, citations, and traceability |
-| `/review-due` | Today's retrieval practice across every knowledge unit and mastery record |
-
-Human-driven, via the CLIs:
-
-| Command | What it does |
-|---|---|
-| `python3 tools/study.py status <id>` | Mode, state, gates, artifacts, intent contract, allowed transitions, next action |
-| `python3 tools/study.py status-set <id> <status> --note "..."` | Moves along the transition graph; refuses invalid jumps and ungated entries |
-| `python3 tools/study.py approve <id> <gate> --note "..."` | Records a human gate decision in `events.jsonl`; `--verdict`, `--evidence`, `--reopen` |
-| `python3 tools/study.py practice <id> --item <name>` | Prints the problem, withholds hints and solution, logs the attempt |
-| `python3 tools/study.py assess <id>` | Opens a timestamped attempt record; refuses if the baseline is still templated |
-| `python3 tools/study.py revisit <id>` | Lists due delayed-review items for an interactive study |
-| `python3 tools/study.py reopen <id>` | Read-only report of what a finished study needs to reopen |
-| `python3 tools/knowledge.py search "<question>"` | What the repo already knows. Run this before gathering |
-| `python3 tools/knowledge.py new\|index\|link\|show\|supersede` | Create, index, validate, read, retire knowledge units |
-| `python3 tools/review.py due\|run\|record\|schedule\|log` | The retrieval loop |
-| `python3 tools/inbox.py new\|list\|promote\|distill` | The cheap path, and its two graduations |
-| `python3 tools/inbox.py queue add\|list\|start` | Reading queue, straight into a paper-reading study |
-
 ## Who does what
 
 Eight specialist roles, each confined to its own write zone:
@@ -199,10 +164,10 @@ Eight specialist roles, each confined to its own write zone:
 | tutor | diagnosing / learning / practicing | Interactive: baseline, concept path, journalled tutoring, practice items | `learning/` minus the mastery record, `outputs/` |
 | assessor | assessing | Interactive: administers the unaided mastery task in its own context, without the tutoring history | `learning/mastery.md`, `learning/attempts/` |
 
-The permission boundaries are the design, not documentation of it. The writer
-cannot browse, so nothing from memory can leak into a deliverable. The tutor
-cannot write the mastery record and the assessor cannot read the journal or
-the practice solutions, so the assessment measures the learner rather than the
+Those boundaries are enforced, not merely described. The writer cannot browse,
+so nothing from memory can leak into a deliverable. The tutor cannot write the
+mastery record and the assessor cannot read the journal or the practice
+solutions, so the assessment measures the learner rather than the
 conversation. `tests/test_agents.py` fails if either boundary is widened.
 
 ## What a study looks like
@@ -244,7 +209,7 @@ against disk, and carry no unresolved gap markers.
 
 `shared/knowledge/` holds one page per durable idea, with structured
 frontmatter (id, question, prerequisites, source ids, misconceptions, review
-state). It is the reason a fifth study is cheaper than the first.
+state). It is what makes a fifth study cheaper than the first.
 
 ```bash
 python3 tools/knowledge.py search "attention scaling variance"   # before gathering
@@ -256,11 +221,9 @@ python3 tools/knowledge.py --dir examples/knowledge search "attention"   # the s
 ```
 
 `check_all.py` fails on a stale index, a duplicate id, or a link that resolves
-to nothing, so the base cannot quietly rot into a folder of orphans. It checks
-every base it finds: the shipped `examples/knowledge/` and your own
+to nothing, so the base cannot rot into a folder of orphans. It checks every
+base it finds: the shipped `examples/knowledge/` and your own
 `shared/knowledge/`.
-
-A finished study that produced no unit produced a document, not knowledge.
 [`examples/knowledge/attention-scale.md`](examples/knowledge/attention-scale.md)
 shows the shape: the answer, the anchored evidence behind it, the limits, and
 the misconceptions worth catching later.
@@ -297,59 +260,42 @@ Nothing is deleted until it is inside a verified archive. Cleanup writes
 its recorded size, and only then removes the originals. `archive.yaml` records
 the archive path, its sha256, its file count, and a retrieval command that
 works in any checkout, and `check_all.py` fails if that archive later goes
-missing or stops matching its checksum.
+missing or stops matching its checksum. `--no-archive` deletes without
+packing, and requires `--force`.
 
-This replaced a git-history promise that could not be kept: `studies/` is
-gitignored by default, so the old `git show <commit>:<path>` retrieval
-commands resolved to nothing whenever the evidence had never been committed.
-`--no-archive` still exists and still deletes, but requires `--force`.
+## Command reference
 
-## Repository layout
+Agent-driven, as slash commands in either harness:
 
-```text
-.github/workflows/check.yml    # CI: check_all.py + ruff, on Linux, Windows, and macOS
-runtime/                       # single source of truth for agents and commands
-├── agents/                    # eight specialist roles with neutral write zones
-└── commands/                  # lifecycle entry points
-.opencode/                     # generated: OpenCode agents and commands
-└── skills/conduct-cs-ai-research/   # git submodule: research playbooks and gates
-.claude/                       # generated: Claude Code agents, commands, and the zone-guard hook
-examples/                      # two finished studies and the units they distilled, tracked, so CI validates something real
-├── 2026-08_scaled-dot-product-attention/   # grounded, source-only
-├── 2026-08_attention-logit-variance/       # audited, experimental: runs, manifests, claims dossier
-└── knowledge/                 # what those studies left behind
-studies/                       # your studies (gitignored)
-shared/
-├── templates/                 # brief, notes, study.yaml, learning-*, practice-item, inbox-note, knowledge-unit
-│   ├── latex/                 # report templates: neurips/ (vendored style) and plain/
-│   └── slides/                # beamer skeleton plus design principles
-├── knowledge/                 # your knowledge units, INDEX.md, index.json (gitignored)
-├── inbox/                     # your question notes (gitignored)
-├── review-log.jsonl           # your retrieval history (gitignored)
-├── library.bib, glossary.md   # merged bibliography and cross-study terms (gitignored)
-tools/
-├── contracts.py               # single source of truth: modes, states, gates, transitions, intents
-├── study.py                   # lifecycle CLI: status, status-set, approve, practice, assess, revisit, reopen
-├── new_study.py               # scaffolder (--mode required)
-├── knowledge.py               # knowledge base: new, index, search, link, show, supersede
-├── review.py                  # retrieval: due, run, record, schedule, log
-├── inbox.py                   # cheap path and reading queue
-├── build.py                   # latexmk/tectonic wrapper for report/ and slides/
-├── gen_bib.py                 # generate refs.bib from registry bibtex blocks
-├── lint_report.py             # prose, citation, and intent-contract linter
-├── check_all.py               # repo-wide gate (see below)
-├── cleanup_study.py           # pack and slim a signed-off study; writes archive.yaml
-├── pin_repos.py, verify_pins.py   # pin and verify local codebase checkouts
-├── docsgen.py                 # render the contract tables in README.md and AGENTS.md
-├── sync_runtimes.py           # generate .opencode/ and .claude/ from runtime/
-├── sync_skill.py              # refresh the vendored dossier scripts from the skill
-├── zone_guard.py              # Claude Code PreToolUse hook: refuses edits the CLIs own
-├── research.py                # run a dossier script against a study
-└── research/                  # vendored dossier scripts + UPSTREAM.md pin
-AGENTS.md                      # the operating manual the agents follow
-CLAUDE.md                      # Claude Code specifics; read AGENTS.md first
-tests/                         # unit and end-to-end lifecycle tests, run in CI
-```
+| Command | What it does |
+|---|---|
+| `/ask "<question>"` | One question, three to five verified sources, into `shared/inbox/`. No study directory |
+| `/new-study <topic>` | Scaffolds a study; `--mode` required |
+| `/gather <study-dir>` | The researcher collects sources, verifies metadata, and snapshots papers and pages |
+| `/draft <study-dir>` | Delegated: summarizes unnoted sources, runs experiments where the methodology calls for them, then drafts `report/main.tex`. Stops at each gate |
+| `/read-paper <study-dir>` | Paper-reading: verifies one target, produces the anchored analysis, then builds and visually verifies the deck |
+| `/learn <study-dir>` | Interactive: baseline, concept path, tutoring, practice. Stops before assessment |
+| `/practice <study-dir> [item]` | Administers one practice item with hints and solution withheld |
+| `/assess <study-dir>` | Dispatches the independent assessor for the unaided mastery task |
+| `/review <study-dir>` | The reviewer audits claims, citations, and traceability |
+| `/review-due` | Today's retrieval practice across every knowledge unit and mastery record |
+
+Human-driven, via the CLIs:
+
+| Command | What it does |
+|---|---|
+| `python3 tools/study.py status <id>` | Mode, state, gates, artifacts, intent contract, allowed transitions, next action |
+| `python3 tools/study.py status-set <id> <status> --note "..."` | Moves along the transition graph; refuses invalid jumps and ungated entries |
+| `python3 tools/study.py approve <id> <gate> --note "..."` | Records a human gate decision in `events.jsonl`; `--verdict`, `--evidence`, `--reopen` |
+| `python3 tools/study.py practice <id> --item <name>` | Prints the problem, withholds hints and solution, logs the attempt |
+| `python3 tools/study.py assess <id>` | Opens a timestamped attempt record; refuses if the baseline is still templated |
+| `python3 tools/study.py revisit <id>` | Lists due delayed-review items for an interactive study |
+| `python3 tools/study.py reopen <id>` | Read-only report of what a finished study needs to reopen |
+| `python3 tools/knowledge.py search "<question>"` | What the repo already knows. Run this before gathering |
+| `python3 tools/knowledge.py new\|index\|link\|show\|supersede` | Create, index, validate, read, retire knowledge units |
+| `python3 tools/review.py due\|run\|record\|schedule\|log` | The retrieval loop |
+| `python3 tools/inbox.py new\|list\|promote\|distill` | The cheap path, and its two graduations |
+| `python3 tools/inbox.py queue add\|list\|start` | Reading queue, straight into a paper-reading study |
 
 ## Build a report or deck
 
@@ -395,32 +341,15 @@ The agents and commands are defined once, in [`runtime/`](runtime/), and
 rendered into both harnesses by `python3 tools/sync_runtimes.py`. Never edit
 the generated directories; `check_all.py` fails when they drift.
 
-The two harnesses enforce write zones differently, and the difference is real:
-
-- **OpenCode** takes each zone as per-glob edit permissions, enforced by the
-  harness. A summarizer physically cannot write into `report/`.
-- **Claude Code** has no per-glob edit permission, so each generated agent
-  carries its zone in prose, and the repo-wide invariants are enforced by the
-  `PreToolUse` hook in `tools/zone_guard.py`, which refuses edits to
-  `study.yaml`, `events.jsonl`, `archive.yaml`, and any `.pdf` under a study.
-
-See [CLAUDE.md](CLAUDE.md) for the Claude Code specifics.
-
-## Your content stays private
-
-The repository tracks the workflow machinery: templates, tools, agents,
-skills, docs, and one example study. Your own studies, questions, and
-accumulated knowledge are your data, not machinery, and are gitignored by
-default: `studies/`, `archive/`, `shared/knowledge/`, `shared/inbox/`,
-`shared/queue.yaml`, `shared/review-log.jsonl`, `shared/glossary.md`,
-`shared/library.bib`. A fresh clone contains the full machinery plus the
-example, and nothing about your reading or learning record, unless you opt in
-by un-ignoring those paths.
+The harnesses enforce write zones differently: OpenCode takes each zone as
+per-glob edit permissions, while Claude Code carries the zone in agent prose
+plus a `PreToolUse` hook for the repo-wide invariants. See
+[CLAUDE.md](CLAUDE.md) for the details and for the hook's configuration.
 
 ## The example studies
 
 Two finished studies ship in [`examples/`](examples/), tracked in git, both
-signed off and deliberately not cleaned so the whole shape stays visible.
+signed off and left uncleaned so the whole shape stays visible.
 
 `2026-08_scaled-dot-product-attention` is the light path: grounded,
 source-only, one verified source, answering why attention divides by
@@ -433,11 +362,68 @@ claims ledger, and an independent replication behind every reported claim.
 into, so the examples cover the whole lifecycle rather than stopping at a
 report.
 
-CI validates all of it exactly as it validates your own studies and units,
-which is what keeps the per-study, knowledge, and dossier check groups from
-silently reporting `NOT_ASSESSED`. Read
-[`examples/README.md`](examples/README.md) for how to reproduce the audited
-study's runs, and for what the examples deliberately do not ship.
+CI validates all of it exactly as it validates your own studies and units.
+Read [`examples/README.md`](examples/README.md) for how to reproduce the
+audited study's runs, for the two ways a committed dossier stops being
+portable, and for what the examples deliberately leave out.
+
+## Your content stays private
+
+The repository tracks the workflow machinery: templates, tools, agents,
+skills, docs, and the two example studies. Your own studies, questions, and
+accumulated knowledge are your data, not machinery, and are gitignored by
+default: `studies/`, `archive/`, `shared/knowledge/`, `shared/inbox/`,
+`shared/queue.yaml`, `shared/review-log.jsonl`, `shared/glossary.md`,
+`shared/library.bib`. A fresh clone contains the full machinery plus the
+examples, and nothing about your reading or learning record, unless you opt in
+by un-ignoring those paths.
+
+## Repository layout
+
+```text
+.github/workflows/check.yml    # CI: check_all.py + ruff, on Linux, Windows, and macOS
+runtime/                       # single source of truth for agents and commands
+├── agents/                    # eight specialist roles with neutral write zones
+└── commands/                  # lifecycle entry points
+.opencode/                     # generated: OpenCode agents and commands
+└── skills/conduct-cs-ai-research/   # git submodule: research playbooks and gates
+.claude/                       # generated: Claude Code agents, commands, and the zone-guard hook
+examples/                      # two finished studies and the units they distilled
+├── 2026-08_scaled-dot-product-attention/   # grounded, source-only
+├── 2026-08_attention-logit-variance/       # audited, experimental: runs, manifests, claims dossier
+└── knowledge/                 # what those studies left behind
+studies/                       # your studies (gitignored)
+shared/
+├── templates/                 # brief, notes, study.yaml, learning-*, practice-item, inbox-note, knowledge-unit
+│   ├── latex/                 # report templates: neurips/ (vendored style) and plain/
+│   └── slides/                # beamer skeleton plus design principles
+├── knowledge/                 # your knowledge units, INDEX.md, index.json (gitignored)
+├── inbox/                     # your question notes (gitignored)
+├── review-log.jsonl           # your retrieval history (gitignored)
+├── library.bib, glossary.md   # merged bibliography and cross-study terms (gitignored)
+tools/
+├── contracts.py               # single source of truth: modes, states, gates, transitions, intents
+├── study.py                   # lifecycle CLI: status, status-set, approve, practice, assess, revisit, reopen
+├── new_study.py               # scaffolder (--mode required)
+├── knowledge.py               # knowledge base: new, index, search, link, show, supersede
+├── review.py                  # retrieval: due, run, record, schedule, log
+├── inbox.py                   # cheap path and reading queue
+├── build.py                   # latexmk/tectonic wrapper for report/ and slides/
+├── gen_bib.py                 # generate refs.bib from registry bibtex blocks
+├── lint_report.py             # prose, citation, and intent-contract linter
+├── check_all.py               # repo-wide gate (see Lint and audit)
+├── cleanup_study.py           # pack and slim a signed-off study; writes archive.yaml
+├── pin_repos.py, verify_pins.py   # pin and verify local codebase checkouts
+├── docsgen.py                 # render the contract tables in README.md and AGENTS.md
+├── sync_runtimes.py           # generate .opencode/ and .claude/ from runtime/
+├── sync_skill.py              # refresh the vendored dossier scripts from the skill
+├── zone_guard.py              # Claude Code PreToolUse hook: refuses edits the CLIs own
+├── research.py                # run a dossier script against a study
+└── research/                  # vendored dossier scripts + UPSTREAM.md pin
+AGENTS.md                      # the operating manual the agents follow
+CLAUDE.md                      # Claude Code specifics; read AGENTS.md first
+tests/                         # unit and end-to-end lifecycle tests, run in CI
+```
 
 ## Adapting this repo
 
@@ -448,7 +434,7 @@ discipline itself lives in the `conduct-cs-ai-research` submodule, which
 follows the [Agent Skills specification](https://agentskills.io/specification)
 and loads in any compatible runtime.
 
-## Update the research skill
+Refresh that submodule and the scripts vendored from it with:
 
 ```bash
 python3 tools/sync_skill.py --update    # pull the submodule, re-vendor, record the pin
@@ -457,9 +443,8 @@ python3 tools/sync_skill.py --check     # report whether the pin is current
 
 The dossier scripts are vendored under `tools/research/` so the workflow keeps
 working in a checkout whose submodule was never initialized;
-`tools/research/UPSTREAM.md` records which commit they came from.
-
-Upstream: <https://github.com/honghuy127/cs-ai-research-skills> (MIT).
+`tools/research/UPSTREAM.md` records which commit they came from. Upstream:
+<https://github.com/honghuy127/cs-ai-research-skills> (MIT).
 
 ## License
 
