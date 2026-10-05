@@ -212,10 +212,11 @@ class SkillPlaybookReferenceTests(unittest.TestCase):
     """Every playbook an agent is told to read must actually exist.
 
     The agents cite the conduct-cs-ai-research skill by filename. That skill
-    is a submodule with its own release cadence, so a rename upstream would
+    lives in a sibling checkout with its own release cadence, linked from
+    `.opencode/skills/conduct-cs-ai-research`, so a rename upstream would
     otherwise send an agent to a missing file and be discovered only by an
     agent quietly proceeding without the guidance it was supposed to load.
-    Skipped when the submodule is not checked out; CI checks it out.
+    Skipped when the checkout is absent; CI skips these tests there too.
     """
 
     EXPLICIT = re.compile(r"(references/[a-z0-9-]+\.md|assets/[a-z0-9-]+\.(?:md|csv))")
@@ -225,8 +226,9 @@ class SkillPlaybookReferenceTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         if not (SKILL / "SKILL.md").is_file():
             raise unittest.SkipTest(
-                "conduct-cs-ai-research submodule is not checked out; "
-                "run git submodule update --init --recursive"
+                "conduct-cs-ai-research checkout is absent; clone "
+                "honghuy127/cs-ai-research-skills next to this repo as "
+                "../cs-ai-research-skills"
             )
         cls.sources = sorted(RUNTIME.glob("*.md")) + sorted(COMMANDS.glob("*.md"))
 

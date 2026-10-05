@@ -13,8 +13,9 @@ in full before performing GitHub work. Treat that file as the canonical
 workflow; this adapter exists only to make it discoverable under the same
 `github` name in Codex, OpenCode, and Claude Code.
 
-If the playbook is unavailable, stop and ask the user to initialize the
-submodule with `git submodule update --init --recursive`. Do not replace it
+If the playbook is unavailable, stop and ask the user for the skill checkout
+(expected at `../cs-ai-research-skills`, a clone of
+`honghuy127/cs-ai-research-skills` next to the repo root). Do not replace it
 with instructions recalled from memory.
 
 For issue-validity requests, inspect the current code and relevant tests. Fix

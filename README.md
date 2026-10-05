@@ -45,7 +45,7 @@ knowledge unit that gets asked back to you on a schedule.
 ### Requirements
 
 - Python 3.10 or newer, and `pip install -r requirements.txt` (PyYAML)
-- git with submodule support
+- git
 - `latexmk` or `tectonic`, only if you build reports or slides
 - `pdftotext` (poppler), only for paper snapshots during gathering
 - An agent harness: [OpenCode](https://opencode.ai),
@@ -53,8 +53,11 @@ knowledge unit that gets asked back to you on a schedule.
   Claude Code are generated from the same source, see [Runtimes](#runtimes).
 
 ```bash
-git clone --recurse-submodules https://github.com/honghuy127/self-study-with-ai.git
+git clone https://github.com/honghuy127/self-study-with-ai.git
 cd self-study-with-ai
+# The research playbooks live in a sibling checkout (optional; the vendored
+# dossier scripts work without it)
+git clone https://github.com/honghuy127/cs-ai-research-skills.git ../cs-ai-research-skills
 pip install -r requirements.txt
 python3 tools/check_all.py     # should pass on a fresh clone
 ```
@@ -351,8 +354,9 @@ The portable [`github`](.agents/skills/github/SKILL.md) adapter lives in
 into `.claude/skills/` for Claude Code by `python3 tools/sync_runtimes.py`.
 Both adapters load the same externally maintained
 [`github-collaboration.md`](.opencode/skills/conduct-cs-ai-research/references/github-collaboration.md)
-playbook from the skill submodule, so there is no copied playbook and no
-platform-dependent symbolic link.
+playbook from the sibling skill checkout at `../cs-ai-research-skills`, so
+there is no copied playbook. The link `.opencode/skills/conduct-cs-ai-research`
+points at that checkout.
 
 ## The example studies
 
@@ -394,7 +398,7 @@ runtime/                       # single source of truth for agents and commands
 ├── agents/                    # eight specialist roles with neutral write zones
 └── commands/                  # lifecycle entry points
 .opencode/                     # generated: OpenCode agents and commands
-└── skills/conduct-cs-ai-research/   # git submodule: research playbooks and gates
+└── skills/conduct-cs-ai-research/   # symlink to ../cs-ai-research-skills: research playbooks and gates
 .claude/                       # generated: Claude Code agents, commands, skills, and zone-guard hook
 .agents/skills/github/         # GitHub adapter shared by Codex and OpenCode
 examples/                      # two finished studies and the units they distilled
@@ -439,23 +443,25 @@ tests/                         # unit and end-to-end lifecycle tests, run in CI
 Fork or clone, then scaffold your first study with `new_study.py`. The
 harness-specific surface is generated from `runtime/`; the contracts,
 templates, gates, and scripts are plain files and Python. The research
-discipline itself lives in the `conduct-cs-ai-research` submodule, which
-follows the [Agent Skills specification](https://agentskills.io/specification)
+discipline itself lives in the `conduct-cs-ai-research` skill checkout at
+`../cs-ai-research-skills` (a separate clone of
+`honghuy127/cs-ai-research-skills`), which follows the
+[Agent Skills specification](https://agentskills.io/specification)
 and loads in any compatible runtime.
 
-Refresh that submodule and the scripts vendored from it with:
+Refresh that checkout and the scripts vendored from it with:
 
 ```bash
-python3 tools/sync_skill.py --update    # pull the submodule, re-vendor, record the pin
+python3 tools/sync_skill.py --update    # pull the checkout, re-vendor, record the pin
 python3 tools/sync_skill.py --check     # report whether the pin is current
 ```
 
 The `--update` command also refreshes the canonical GitHub playbook used by
 Codex, OpenCode, and Claude Code because every adapter reads it directly from
-the submodule.
+the checkout.
 
 The dossier scripts are vendored under `tools/research/` so the workflow keeps
-working in a checkout whose submodule was never initialized;
+working on a machine without the skill checkout;
 `tools/research/UPSTREAM.md` records which commit they came from. Upstream:
 <https://github.com/honghuy127/cs-ai-research-skills> (MIT).
 

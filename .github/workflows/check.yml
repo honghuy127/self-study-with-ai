@@ -13,7 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
           # Full history: the artifacts gate resolves each cleaned study's
           # archive record, and pre-archive records point at a git commit that
           # a shallow (depth 1) checkout drops.

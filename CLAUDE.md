@@ -15,8 +15,8 @@ rendered into `.claude/skills/` by the same command. Never edit `.claude/agents/
 when they drift from their source.
 
 The generated `/github` skill is a thin adapter to the canonical playbook in
-the `conduct-cs-ai-research` submodule. Refresh it for Claude Code, Codex, and
-OpenCode together with `python3 tools/sync_skill.py --update`.
+the `conduct-cs-ai-research` skill checkout. Refresh it for Claude Code,
+Codex, and OpenCode together with `python3 tools/sync_skill.py --update`.
 
 Permission enforcement differs between the two harnesses, and the difference
 is real rather than cosmetic:
@@ -47,8 +47,9 @@ way with `python` substituted for `python3`.
   `/read-paper`, `/review`, `/learn`, `/practice`, `/assess`, `/ask`,
   `/review-due`.
 - The research playbooks the agents cite live in the
-  `conduct-cs-ai-research` submodule under
-  `.opencode/skills/conduct-cs-ai-research/`. That path is shared by both
-  harnesses; run `git submodule update --init --recursive` if it is empty.
+  `conduct-cs-ai-research` skill at `.opencode/skills/conduct-cs-ai-research/`,
+  a symlink to the sibling checkout `../cs-ai-research-skills` (a separate
+  clone of `honghuy127/cs-ai-research-skills`, not part of this repo). That
+  path is shared by both harnesses; update it by pulling that checkout.
 - Never flip a gate, edit a status, or hand-write `events.jsonl`. Gate
   decisions are the human's, recorded through `python3 tools/study.py`.

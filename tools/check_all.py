@@ -745,11 +745,11 @@ def check_skill() -> str:
     """The vendored dossier scripts must be present and their pin recorded.
 
     They are vendored on purpose so the dossier workflow survives a checkout
-    with no submodule, which is why this no longer demands byte-for-byte
-    equality with the submodule. What it does demand is that the scripts exist
-    and that tools/research/UPSTREAM.md says where they came from. A newer
-    submodule is reported, not failed: refreshing is a decision, not an
-    emergency.
+    without the skill checkout, which is why this no longer demands
+    byte-for-byte equality with the checkout. What it does demand is that the
+    scripts exist and that tools/research/UPSTREAM.md says where they came
+    from. A newer checkout is reported, not failed: refreshing is a decision,
+    not an emergency.
     """
     ok = True
     for name in VENDORED_SCRIPTS:
@@ -770,8 +770,9 @@ def check_skill() -> str:
             ok = False
     if not (SKILL / "SKILL.md").is_file():
         print(
-            "skill playbooks: WARN (submodule not initialized; agents cannot read the "
-            "references/ playbooks. Run: git submodule update --init --recursive)"
+            "skill playbooks: WARN (skill checkout absent; agents cannot read the "
+            "references/ playbooks. Clone honghuy127/cs-ai-research-skills next to "
+            "this repo as ../cs-ai-research-skills)"
         )
     return "PASS" if ok else "FAIL"
 

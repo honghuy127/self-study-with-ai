@@ -19,9 +19,9 @@ pseudo-command by hand for a dossier captured before this existed.
 
 The scripts themselves are vendored under tools/research/ from the
 conduct-cs-ai-research skill, with their upstream commit recorded in
-tools/research/UPSTREAM.md. Vendoring keeps the dossier workflow usable in a
-checkout whose submodule was never initialized, which is the common case.
-Refresh them with `python3 tools/sync_skill.py`.
+tools/research/UPSTREAM.md. Vendoring keeps the dossier workflow usable on a
+machine without the skill checkout, which is the common case. Refresh them
+with `python3 tools/sync_skill.py`.
 """
 from __future__ import annotations
 
