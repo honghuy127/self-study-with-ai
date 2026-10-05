@@ -150,8 +150,8 @@ class AuditedExampleTests(unittest.TestCase):
         reproduce the study, so it should be the repo's problem when it stops
         being true, not the reader's.
 
-        It costs about 105 seconds, so it is opt-in rather than paid on every
-        matrix leg: CI runs it once, on Linux. The cheaper hash check above
+        It costs about 105 seconds, so it is opt-in (`SSWA_REPRODUCE=1`) and runs by
+        hand, not in the pre-commit gate or in CI. The cheaper hash check above
         still runs everywhere and catches an edited or re-encoded artifact.
         """
         import tempfile

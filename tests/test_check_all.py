@@ -810,5 +810,42 @@ class HygieneWarnTests(unittest.TestCase):
         self.assertIn("hygiene big.bin: WARN", text)
 
 
+class SkipFinishedTests(unittest.TestCase):
+    """Finished studies are exempt from the offline (pre-commit) gate."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self._old_studies = check_all.STUDIES
+        self._old_examples = check_all.EXAMPLES
+        check_all.STUDIES = Path(self._tmp.name) / "studies"
+        check_all.EXAMPLES = Path(self._tmp.name) / "examples"
+        self._old_skip = check_all.SKIP_FINISHED
+        check_all.SKIP_FINISHED = True
+        self.addCleanup(setattr, check_all, "STUDIES", self._old_studies)
+        self.addCleanup(setattr, check_all, "EXAMPLES", self._old_examples)
+        self.addCleanup(setattr, check_all, "SKIP_FINISHED", self._old_skip)
+
+    def names(self) -> list[str]:
+        return [p.name for p in check_all.list_studies()]
+
+    def test_done_and_retained_are_skipped(self) -> None:
+        write_manifest(check_all.STUDIES / "2026-08_active")
+        write_manifest(check_all.STUDIES / "2026-08_done", status="done")
+        write_manifest(check_all.STUDIES / "2026-09_retained", mode="interactive", status="retained")
+        self.assertEqual(self.names(), ["2026-08_active"])
+
+    def test_full_gate_keeps_finished_studies(self) -> None:
+        write_manifest(check_all.STUDIES / "2026-08_done", status="done")
+        check_all.SKIP_FINISHED = False
+        self.assertEqual(self.names(), ["2026-08_done"])
+
+    def test_unreadable_manifest_stays_active(self) -> None:
+        broken = check_all.STUDIES / "2026-08_broken"
+        broken.mkdir(parents=True)
+        (broken / "study.yaml").write_text("[unclosed", encoding="utf-8")
+        self.assertEqual(self.names(), ["2026-08_broken"])
+
+
 if __name__ == "__main__":
     unittest.main()

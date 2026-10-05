@@ -52,7 +52,17 @@ A study is not the unit of value. What survives it is a knowledge unit in
 4. **Git is human-triggered.** Run `git commit`, `git push`, `git reset`,
    `git rebase`, and destructive deletions like `rm -rf` only when a human
    explicitly asks, never proactively. Commit only what the human has
-   reviewed; never commit secrets. What the repo tracks is machinery:
+   reviewed; never commit secrets. Before a commit the human asks for, the
+   offline gate must pass locally: `tools/hooks/pre-commit` runs it (active
+   when `core.hooksPath` points at `tools/hooks`), otherwise run
+   `python3 tools/check_all.py --skip-finished` and
+   `python3 -m ruff check tools tests` by hand. Finished studies (status
+   `done` or `retained`) are exempt from the offline gate: they were signed
+   off and change only through a human reopen, and re-checking them on every
+   commit gets slower with every archived study. The full
+   `python3 tools/check_all.py` (no flag) is the pre-review gate; run it when
+   closing a study. CI is a single-leg backstop, not the primary check.
+   What the repo tracks is machinery:
    templates, tools, agents, skills, docs, and `examples/`. Each user's own
    material is gitignored and stays that way: `studies/`, `archive/`,
    `shared/knowledge/`, `shared/inbox/`, `shared/queue.yaml`,

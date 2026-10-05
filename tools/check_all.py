@@ -32,10 +32,18 @@ Runs, in order:
 
 Groups that find nothing to check report NOT_ASSESSED instead of collapsing
 into PASS. Exits non-zero on any FAIL, after printing a summary of every
-group. Usage: python3 tools/check_all.py
+group. Usage: python3 tools/check_all.py [--skip-finished]
+
+--skip-finished is the offline (pre-commit) mode: studies at a finished
+status (done, retained) are exempt because they were signed off by the human
+and change only through a human reopen, and because the per-study lint and
+audit subprocesses are what makes re-checking the archive expensive as the
+study count grows. The full run without the flag stays the pre-review gate,
+and is what CI runs.
 """
 from __future__ import annotations
 
+import argparse
 import datetime as dt
 import hashlib
 import json
@@ -79,6 +87,11 @@ VALID_STATUSES = {mode: set(states) for mode, states in contracts.STATES.items()
 MODE_GATES = contracts.MODE_GATES
 
 
+# Module-level because every study-scoped check group reads it through
+# list_studies; main() sets it from --skip-finished, tests can patch it.
+SKIP_FINISHED = False
+
+
 def run(cmd: list[str]) -> tuple[int, str]:
     proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
     return proc.returncode, (proc.stdout + proc.stderr).strip()
@@ -90,12 +103,31 @@ def list_studies() -> list[Path]:
     `studies/` is gitignored, so on a fresh clone and in CI it is empty. The
     examples are tracked, which is what keeps the per-study groups from
     reporting NOT_ASSESSED everywhere and lets CI exercise a real study.
+    When SKIP_FINISHED is set (the offline pre-commit gate), studies at a
+    finished status drop out per study_is_finished.
     """
     found: list[Path] = []
     for root in (STUDIES, EXAMPLES):
         if root.is_dir():
             found.extend(p for p in root.iterdir() if p.is_dir() and (p / "study.yaml").is_file())
+    if SKIP_FINISHED:
+        found = [p for p in found if not study_is_finished(p)]
     return sorted(found, key=lambda p: (p.parent.name, p.name))
+
+
+# Finished statuses: done (delegated, paper-reading) and retained
+# (interactive). A finished study was signed off by the human and changes
+# only through a human reopen, which moves it back to an open status.
+FINISHED_STATUSES = {"done", "retained"}
+
+
+def study_is_finished(study: Path) -> bool:
+    """A finished study is exempt from the offline gate; an unreadable manifest is not."""
+    try:
+        data = yaml.safe_load((study / "study.yaml").read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+    return isinstance(data, dict) and data.get("status") in FINISHED_STATUSES
 
 
 def check_lint() -> str:
@@ -832,6 +864,22 @@ def check_tests() -> str:
 
 
 def main() -> int:
+    global SKIP_FINISHED
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--skip-finished",
+        action="store_true",
+        help="exempt finished studies (status done or retained); the pre-commit hook passes this",
+    )
+    args = parser.parse_args()
+    if args.skip_finished:
+        finished = [p.name for p in list_studies() if study_is_finished(p)]
+        SKIP_FINISHED = True
+        if finished:
+            print(
+                f"prep: skipping {len(finished)} finished studies ({', '.join(finished)}); "
+                "drop --skip-finished for the full gate"
+            )
     ensure_runtime_dirs()
     results = {
         "lint": check_lint(),

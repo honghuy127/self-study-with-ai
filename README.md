@@ -318,7 +318,8 @@ evidence map, and visual QA rules live in
 ## Lint and audit
 
 ```bash
-python3 tools/check_all.py                       # the whole gate
+python3 tools/check_all.py                       # the whole gate (pre-review, CI)
+python3 tools/check_all.py --skip-finished       # the offline gate: finished studies exempt
 python3 tools/lint_report.py studies/<slug>
 python3 tools/research.py studies/<slug> audit_research.py
 python3 tools/research.py studies/<slug> relativize   # make a dossier portable
@@ -333,6 +334,31 @@ fails on git-tracked PDF binaries, checks that the generated doc tables and
 generated runtimes are current, checks the vendored dossier scripts and their
 upstream pin, and runs the unit tests. Groups with nothing to check report
 `NOT_ASSESSED` instead of collapsing into `PASS`.
+
+Run the gate offline before every commit instead of paying for it in CI. The
+tracked hook runs both legs (`check_all.py --skip-finished` and ruff) on
+every commit:
+
+```bash
+git config core.hooksPath tools/hooks    # once per clone
+```
+
+Finished studies (`status: done` or `retained`) are exempt from the offline
+gate: the human signed them off and they change only through a human reopen,
+which moves them back to an open status. Without the exemption, per-commit
+cost would grow with every archived study (one lint subprocess per study, one
+audit per dossier). The full gate without the flag stays the pre-review gate;
+run it when finishing or reopening a study.
+
+`.github/workflows/check.yml` remains as a single-leg Linux backstop running
+the full gate, so a finished study whose manifest was flipped by hand is
+still caught. The 105-second deterministic reproduction of the audited
+example is part of neither; run it by hand when the dossier or its experiment
+code changes:
+
+```bash
+SSWA_REPRODUCE=1 python3 -m unittest tests.test_dossier_example.AuditedExampleTests.test_experiment_is_deterministic_from_its_seed
+```
 
 Source PDFs are never committed. The registry's `pdf` field holds a remote URL
 and the local evidence is a pdftotext snapshot under `sources/docs/`, so the
@@ -393,7 +419,7 @@ by un-ignoring those paths.
 ## Repository layout
 
 ```text
-.github/workflows/check.yml    # CI: check_all.py + ruff, on Linux, Windows, and macOS
+.github/workflows/check.yml    # CI backstop: check_all.py + ruff, one Linux leg (the gate runs pre-commit)
 runtime/                       # single source of truth for agents and commands
 ├── agents/                    # eight specialist roles with neutral write zones
 └── commands/                  # lifecycle entry points
@@ -425,6 +451,7 @@ tools/
 ├── gen_bib.py                 # generate refs.bib from registry bibtex blocks
 ├── lint_report.py             # prose, citation, and intent-contract linter
 ├── check_all.py               # repo-wide gate (see Lint and audit)
+├── hooks/pre-commit           # opt-in offline gate (git config core.hooksPath tools/hooks)
 ├── cleanup_study.py           # pack and slim a signed-off study; writes archive.yaml
 ├── pin_repos.py, verify_pins.py   # pin and verify local codebase checkouts
 ├── docsgen.py                 # render the contract tables in README.md and AGENTS.md
@@ -435,7 +462,7 @@ tools/
 └── research/                  # vendored dossier scripts + UPSTREAM.md pin
 AGENTS.md                      # the operating manual the agents follow
 CLAUDE.md                      # Claude Code specifics; read AGENTS.md first
-tests/                         # unit and end-to-end lifecycle tests, run in CI
+tests/                         # unit and end-to-end lifecycle tests, run by the pre-commit gate and CI
 ```
 
 ## Adapting this repo

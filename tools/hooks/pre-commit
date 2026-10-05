@@ -1,0 +1,20 @@
+#!/bin/sh
+# Offline gate, run before every commit: the same checks CI retraces, so the
+# push stays boring. Opt in once per clone with:
+#
+#   git config core.hooksPath tools/hooks
+#
+# Needs the dev dependencies (python -m pip install -r requirements-dev.txt)
+# for the ruff leg. Bypass in an emergency with: git commit --no-verify
+#
+# Finished studies (status done or retained) are exempt: they were signed off
+# and change only through a human reopen, so re-checking them on every commit
+# would scale with the archive. The full gate (no flag) runs in CI instead.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi
+
+status=0
+"$PY" tools/check_all.py --skip-finished || status=1
+"$PY" -m ruff check tools tests || status=1
+exit $status

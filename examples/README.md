@@ -81,7 +81,7 @@ dossier verifies on the machine that captured it and looks tampered with
 everywhere else.
 
 If you have WSL, `wsl -e bash -lc "cd /mnt/c/... && python3
-tools/check_all.py"` catches both before CI does.
+tools/check_all.py"` catches both before you commit.
 
 ## What these examples leave out
 
