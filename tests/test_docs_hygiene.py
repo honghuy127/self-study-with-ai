@@ -8,12 +8,17 @@ tables themselves are generated and checked separately by tools/docsgen.py.
 """
 from __future__ import annotations
 
+import os
 import re
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ("README.md", "AGENTS.md", "CLAUDE.md", "examples/README.md")
+
+# The research playbooks live in the optional sibling checkout, reached
+# through this symlink; on a fresh clone and in CI the symlink dangles.
+OPTIONAL_SKILL = ROOT / ".opencode" / "skills" / "conduct-cs-ai-research"
 
 # Tokens left behind by removed templates and replaced scripts.
 BANNED_TOKENS = (
@@ -30,6 +35,20 @@ PATH_REFERENCE = re.compile(r"\]\((?!http)([^)#]+)[^)]*\)")
 
 def doc_text(name: str) -> str:
     return (ROOT / name).read_text(encoding="utf-8")
+
+
+def through_optional_skill_checkout(base: Path, target: str) -> bool:
+    """True when a doc link lands inside the optional skill checkout, lexically.
+
+    Lexical on purpose: following the symlink would escape the repo, so
+    containment is judged on the normalized path, not the resolved one.
+    """
+    candidate = Path(os.path.normpath(base / target))
+    try:
+        candidate.relative_to(OPTIONAL_SKILL)
+    except ValueError:
+        return False
+    return True
 
 
 class DocsHygieneTests(unittest.TestCase):
@@ -50,9 +69,15 @@ class DocsHygieneTests(unittest.TestCase):
                     )
 
     def test_every_relative_link_resolves(self) -> None:
+        # Playbook citations legitimately dangle where the optional sibling
+        # checkout is absent (fresh clone, CI); when it is present they are
+        # checked like every other link.
+        skill_absent = not (OPTIONAL_SKILL / "SKILL.md").is_file()
         for name in DOCS:
             base = (ROOT / name).parent
             for target in sorted(set(PATH_REFERENCE.findall(doc_text(name)))):
+                if skill_absent and through_optional_skill_checkout(base, target):
+                    continue
                 with self.subTest(file=name, link=target):
                     self.assertTrue(
                         (base / target).exists(),
