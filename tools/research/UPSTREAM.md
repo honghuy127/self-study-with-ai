@@ -5,7 +5,7 @@ The scripts in this directory are vendored copies from the
 that actually run, so the dossier workflow keeps working on a machine
 without the skill checkout.
 
-- Commit: `9b042a8730e228b63cc613ec45831c4943d11c40`
+- Commit: `20f25a6f55c24b5eb11f6ecff4fad7ee60377fc3`
 - Vendored: 2026-10-05
 - Files: research_contract.py, research_state.py, capture_run.py, audit_research.py
 
